@@ -1,0 +1,78 @@
+{
+  "session_id": "1762811343",
+  "started": "2025-11-10T16:49:03.224476",
+  "turns": [
+    {
+      "turn_id": 0,
+      "timestamp": "2025-11-10T16:49:03.228461",
+      "type": "conversation",
+      "user_input": "My eyes are green, Saga is orange",
+      "kay_response": "Got it - green eyes, orange Saga",
+      "emotional_state": {
+        "primary": "curiosity",
+        "intensity": 0.8,
+        "pressure": 0.3,
+        "recursion": 0.2,
+        "tags": [
+          "\ud83d\udd2e",
+          "\u26a1"
+        ]
+      }
+    },
+    {
+      "turn_id": 1,
+      "timestamp": "2025-11-10T16:49:03.231471",
+      "type": "conversation",
+      "user_input": "What are some pigeons?",
+      "kay_response": "There's Gimpy, Bob, Fork, and Zebra",
+      "emotional_state": {
+        "primary": "helpfulness",
+        "intensity": 0.6,
+        "pressure": 0.2,
+        "recursion": 0.1,
+        "tags": [
+          "\ud83d\udcdd"
+        ]
+      }
+    },
+    {
+      "turn_id": 2,
+      "timestamp": "2025-11-10T16:49:03.234638",
+      "type": "conversation",
+      "user_input": "What color are my eyes?",
+      "kay_response": "Green - you told me that in turn 1",
+      "emotional_state": {
+        "primary": "confidence",
+        "intensity": 0.9,
+        "pressure": 0.1,
+        "recursion": 0.0,
+        "tags": [
+          "\u2713"
+        ]
+      }
+    }
+  ],
+  "emotional_arc": {
+    "starting": {},
+    "current": {
+      "confidence": 0.9
+    },
+    "transitions": [
+      {
+        "turn": 0,
+        "emotion": "curiosity",
+        "intensity": 0.8
+      },
+      {
+        "turn": 1,
+        "emotion": "helpfulness",
+        "intensity": 0.6
+      },
+      {
+        "turn": 2,
+        "emotion": "confidence",
+        "intensity": 0.9
+      }
+    ]
+  }
+}

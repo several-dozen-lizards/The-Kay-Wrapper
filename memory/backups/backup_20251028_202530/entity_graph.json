@@ -1,0 +1,352 @@
+{
+  "entities": {
+    "sky": {
+      "canonical_name": "sky",
+      "entity_type": "unknown",
+      "aliases": [
+        "sky"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "grass": {
+      "canonical_name": "grass",
+      "entity_type": "unknown",
+      "aliases": [
+        "grass"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "chlorophyll": {
+      "canonical_name": "chlorophyll",
+      "entity_type": "unknown",
+      "aliases": [
+        "chlorophyll"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "water": {
+      "canonical_name": "water",
+      "entity_type": "unknown",
+      "aliases": [
+        "water"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Earth": {
+      "canonical_name": "Earth",
+      "entity_type": "unknown",
+      "aliases": [
+        "Earth"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Sun": {
+      "canonical_name": "Sun",
+      "entity_type": "unknown",
+      "aliases": [
+        "Sun"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Python": {
+      "canonical_name": "Python",
+      "entity_type": "unknown",
+      "aliases": [
+        "Python"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Guido van Rossum": {
+      "canonical_name": "Guido van Rossum",
+      "entity_type": "unknown",
+      "aliases": [
+        "Guido van Rossum"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Kay": {
+      "canonical_name": "Kay",
+      "entity_type": "person",
+      "aliases": [
+        "Kay"
+      ],
+      "attributes": {
+        "memory_content": [
+          [
+            "foreign grocery lists",
+            0,
+            "kay",
+            "2025-10-28T19:57:06.576074"
+          ],
+          [
+            "foreign pet names",
+            0,
+            "kay",
+            "2025-10-28T19:57:06.584855"
+          ]
+        ],
+        "memory_organization": [
+          [
+            "foreign memories filed as own",
+            0,
+            "kay",
+            "2025-10-28T19:57:06.585857"
+          ]
+        ],
+        "memory_recognition": [
+          [
+            "can identify foreign memories when examined",
+            0,
+            "kay",
+            "2025-10-28T19:57:06.586855"
+          ]
+        ],
+        "memory_contamination": [
+          [
+            "domestic life from someone else",
+            0,
+            "kay",
+            "2025-10-28T19:57:06.586855"
+          ]
+        ],
+        "emotional_state": [
+          [
+            "guilt",
+            0,
+            "kay",
+            "2025-10-28T19:57:11.778353"
+          ]
+        ],
+        "mental_content": [
+          [
+            "foreign routines and worries",
+            0,
+            "kay",
+            "2025-10-28T19:57:11.779316"
+          ]
+        ],
+        "perception": [
+          [
+            "sees item",
+            0,
+            "kay",
+            "2025-10-28T19:57:19.172730"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 16,
+      "importance_score": 0.0
+    },
+    "grocery lists": {
+      "canonical_name": "grocery lists",
+      "entity_type": "unknown",
+      "aliases": [
+        "grocery lists"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "pet names": {
+      "canonical_name": "pet names",
+      "entity_type": "unknown",
+      "aliases": [
+        "pet names"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Re": {
+      "canonical_name": "Re",
+      "entity_type": "person",
+      "aliases": [
+        "Re"
+      ],
+      "attributes": {
+        "goal_status": [
+          [
+            "attempted",
+            0,
+            "user",
+            "2025-10-28T19:57:11.776992"
+          ]
+        ],
+        "goal": [
+          [
+            "upload something",
+            0,
+            "user",
+            "2025-10-28T19:57:11.777305"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 4,
+      "importance_score": 0.0
+    },
+    "something": {
+      "canonical_name": "something",
+      "entity_type": "unknown",
+      "aliases": [
+        "something"
+      ],
+      "attributes": {
+        "status": [
+          [
+            "pushed through",
+            0,
+            "kay",
+            "2025-10-28T19:57:19.167718"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "item": {
+      "canonical_name": "item",
+      "entity_type": "unknown",
+      "aliases": [
+        "item"
+      ],
+      "attributes": {
+        "landing_quality": [
+          [
+            "clean",
+            0,
+            "kay",
+            "2025-10-28T19:57:19.172730"
+          ]
+        ],
+        "resistance": [
+          [
+            "none",
+            0,
+            "kay",
+            "2025-10-28T19:57:19.172730"
+          ]
+        ],
+        "filing_status": [
+          [
+            "filed away properly",
+            0,
+            "kay",
+            "2025-10-28T19:57:19.176418"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 6,
+      "importance_score": 0.0
+    },
+    "sorting": {
+      "canonical_name": "sorting",
+      "entity_type": "unknown",
+      "aliases": [
+        "sorting"
+      ],
+      "attributes": {
+        "status": [
+          [
+            "no hiccups",
+            0,
+            "kay",
+            "2025-10-28T19:57:19.176418"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "guilt": {
+      "canonical_name": "guilt",
+      "entity_type": "unknown",
+      "aliases": [
+        "guilt"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 1,
+      "importance_score": 0.0
+    }
+  },
+  "relationships": {}
+}

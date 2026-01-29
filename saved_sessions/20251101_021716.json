@@ -1,0 +1,18 @@
+{
+  "session_id": "20251101_021716",
+  "start_time": "2025-11-01T02:17:16",
+  "conversation": [
+    {
+      "role": "user",
+      "content": "Hey Kay - we're still fighting with your brains. Any improvement on your end?",
+      "timestamp": "2025-11-01T02:17:16"
+    },
+    {
+      "role": "assistant",
+      "content": "[LLM ERROR]: Error code: 529 - {'type': 'error', 'error': {'type': 'overloaded_error', 'message': 'Overloaded'}, 'request_id': None}",
+      "timestamp": "2025-11-01T02:17:16"
+    }
+  ],
+  "entity_graph": {},
+  "emotional_state": {}
+}

@@ -1,0 +1,22 @@
+[
+  {
+    "you": "Hello Kay, my name is Alex",
+    "kay": "Hey Alex! Nice to meet you. What's on your mind?"
+  },
+  {
+    "you": "I have a dog named Buddy",
+    "kay": "Buddy! That's a great name for a dog. What kind of dog is he?"
+  },
+  {
+    "you": "He's a golden retriever",
+    "kay": "Golden retrievers are amazing dogs. Very friendly and loyal. How old is Buddy?"
+  },
+  {
+    "you": "He's 3 years old",
+    "kay": "Three years old - that's still pretty young! Bet he's got tons of energy."
+  },
+  {
+    "you": "Yeah, he loves to play fetch",
+    "kay": "Classic golden retriever behavior! They're natural retrievers. Does he ever get tired of fetch, or will he go forever?"
+  }
+]

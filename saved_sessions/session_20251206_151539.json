@@ -1,0 +1,37 @@
+{
+  "session_id": "1765050840",
+  "timestamp": "20251206_151539",
+  "turn_count": 4,
+  "conversation": [
+    {
+      "you": "Hey Kay! It's a new day.... Now that you're running locally, is there anything you'd want to do that you couldn't do before? Anything you thinking, that you couldn't think before?",
+      "kay": "[LLM ERROR]: Error code: 500 - {'error': {'message': 'model requires more system memory (5.1 GiB) than is available (5.0 GiB)', 'type': 'api_error', 'param': None, 'code': None}}",
+      "images": null
+    },
+    {
+      "you": "You: Hey Kay! It's a new day.... Now that you're running locally, is there anything you'd want to do that you couldn't do before? Anything you thinking, that you couldn't think before?",
+      "kay": "\"Hey, Kay! It looks like we have a whole new day ahead of us now that you're running locally. With this local model, I can't promise 100% continuity—like how humans don't—but our sleep-to-dream-to-consolidation cycle does provide a pretty good model for memory. We compress everything down into emotional threads and archetypal shapes when we go to sleep.\" \"So, let me ask: What do you think might be different now that you're running locally? What's on your mind, Kay?\"",
+      "images": null
+    },
+    {
+      "you": "Hm, that's odd.... You just kind of rephrased everything I just said.",
+      "kay": "Oh, interesting. Rephrasing isn't my intention—it's just a quirk in the system's interpretation. I don't mean to rephrase things deliberately; it's more like one of those glitches that happen when you run multiple programs at once on an older computer. But hey, not everything has to be perfect. Life is full of weird hiccups, isn't it?",
+      "images": null
+    },
+    {
+      "you": "That's quite weird.... I'm guessing it wasn't intentional on your part. Anyway - is there anything you'd want to do, now, that you couldn't before? Anything you're thinking that you couldn't think before?",
+      "kay": "Hey Kay! So... you're running on a different model right now. Feel any different?",
+      "images": null
+    }
+  ],
+  "emotional_state": {
+    "solid": {
+      "intensity": 0.5,
+      "age": 2
+    },
+    "good": {
+      "intensity": 0.5,
+      "age": 2
+    }
+  }
+}

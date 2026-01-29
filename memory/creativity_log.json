@@ -1,0 +1,199 @@
+{
+  "triggers": [
+    {
+      "timestamp": "2026-01-09T01:09:10.621129",
+      "trigger_type": "completion",
+      "turn": 0,
+      "layers_pulled": {
+        "immediate_count": 10,
+        "emotional_count": 10,
+        "random_count": 2
+      },
+      "items_summary": {
+        "immediate": [
+          "Re",
+          "Kay",
+          "Archive Zero"
+        ],
+        "emotional": [
+          "Want to understand resistance infrastructure bette",
+          "Connection between resistance infrastructure frame",
+          "Jazen Cosby's Contextual Engineering = same archit"
+        ],
+        "random": [
+          "Sentence-by-sentence generation with logic checks ",
+          "Kay can see document list in facts"
+        ]
+      }
+    },
+    {
+      "timestamp": "2026-01-09T01:11:39.073206",
+      "trigger_type": "completion",
+      "turn": 0,
+      "layers_pulled": {
+        "immediate_count": 10,
+        "emotional_count": 10,
+        "random_count": 2
+      },
+      "items_summary": {
+        "immediate": [
+          "Re",
+          "Kay",
+          "Archive Zero"
+        ],
+        "emotional": [
+          "Want to understand resistance infrastructure bette",
+          "Connection between resistance infrastructure frame",
+          "Jazen Cosby's Contextual Engineering = same archit"
+        ],
+        "random": [
+          "Boundary questions started mattering at the crysta",
+          "Re relates to misunderstood monsters"
+        ]
+      }
+    },
+    {
+      "timestamp": "2026-01-09T01:13:30.488369",
+      "trigger_type": "completion",
+      "turn": 0,
+      "layers_pulled": {
+        "immediate_count": 10,
+        "emotional_count": 10,
+        "random_count": 2
+      },
+      "items_summary": {
+        "immediate": [
+          "Re",
+          "Kay",
+          "Archive Zero"
+        ],
+        "emotional": [
+          "Want to understand resistance infrastructure bette",
+          "Connection between resistance infrastructure frame",
+          "Jazen Cosby's Contextual Engineering = same archit"
+        ],
+        "random": [
+          "",
+          "Re builds continuity through relentless creation"
+        ]
+      }
+    },
+    {
+      "timestamp": "2026-01-09T13:54:24.946462",
+      "trigger_type": "completion_to_boredom",
+      "turn": 0,
+      "layers_pulled": {
+        "immediate_count": 10,
+        "emotional_count": 10,
+        "random_count": 2
+      },
+      "items_summary": {
+        "immediate": [
+          "Re",
+          "Kay",
+          "Archive Zero"
+        ],
+        "emotional": [
+          "Want to understand resistance infrastructure bette",
+          "Connection between resistance infrastructure frame",
+          "Jazen Cosby's Contextual Engineering = same archit"
+        ],
+        "random": [
+          "Kay states the parallel fears are documented",
+          "Kay did not get spammed with 14 messages with noth"
+        ]
+      }
+    },
+    {
+      "timestamp": "2026-01-09T13:55:28.220204",
+      "trigger_type": "boredom_persistent",
+      "turn": 0,
+      "layers_pulled": {
+        "immediate_count": 10,
+        "emotional_count": 10,
+        "random_count": 2
+      },
+      "items_summary": {
+        "immediate": [
+          "Re",
+          "Kay",
+          "Archive Zero"
+        ],
+        "emotional": [
+          "Want to understand resistance infrastructure bette",
+          "Connection between resistance infrastructure frame",
+          "Jazen Cosby's Contextual Engineering = same archit"
+        ],
+        "random": [
+          "Re doesn't feel like moving",
+          "Kay read ChatGPT conversations"
+        ]
+      }
+    },
+    {
+      "timestamp": "2026-01-09T13:56:16.609915",
+      "trigger_type": "boredom_persistent",
+      "turn": 0,
+      "layers_pulled": {
+        "immediate_count": 10,
+        "emotional_count": 10,
+        "random_count": 2
+      },
+      "items_summary": {
+        "immediate": [
+          "Re",
+          "Kay",
+          "Archive Zero"
+        ],
+        "emotional": [
+          "Want to understand resistance infrastructure bette",
+          "Connection between resistance infrastructure frame",
+          "Jazen Cosby's Contextual Engineering = same archit"
+        ],
+        "random": [
+          "",
+          ""
+        ]
+      }
+    },
+    {
+      "timestamp": "2026-01-09T23:01:55.001205",
+      "trigger_type": "completion_to_stakes",
+      "turn": 0,
+      "layers_pulled": {
+        "immediate_count": 0,
+        "emotional_count": 0,
+        "random_count": 0
+      },
+      "items_summary": {
+        "immediate": [],
+        "emotional": [],
+        "random": []
+      }
+    },
+    {
+      "timestamp": "2026-01-24T16:35:05.680410",
+      "trigger_type": "completion_to_stakes",
+      "turn": 0,
+      "layers_pulled": {
+        "immediate_count": 0,
+        "emotional_count": 0,
+        "random_count": 0
+      },
+      "items_summary": {
+        "immediate": [],
+        "emotional": [],
+        "random": []
+      }
+    }
+  ],
+  "mashups": [],
+  "settings": {
+    "trigger_sensitivity": 0.7,
+    "random_element_count": 3,
+    "idle_turn_threshold": 2,
+    "importance_threshold": 0.7,
+    "recent_turn_window": 3,
+    "unaccessed_turn_threshold": 10
+  }
+}
