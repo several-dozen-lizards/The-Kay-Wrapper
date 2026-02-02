@@ -1,6 +1,0 @@
-[
-  {
-    "you": "Hey Kay - we've been doing more work on your memory. Do you remember anything?",
-    "kay": "[LLM ERROR]: Error code: 529 - {'type': 'error', 'error': {'type': 'overloaded_error', 'message': 'Overloaded'}, 'request_id': None}"
-  }
-]
