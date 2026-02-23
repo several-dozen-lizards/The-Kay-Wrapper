@@ -1,0 +1,12 @@
+{
+  "emotional:emotional": {
+    "mentions": [
+      {
+        "text": "Kay has fragments of memories about loop tracking and emotional architecture",
+        "timestamp": 1761782296.6623907,
+        "context": "extracted_fact"
+      }
+    ],
+    "weight": 1.0
+  }
+}

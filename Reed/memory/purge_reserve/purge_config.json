@@ -1,0 +1,10 @@
+{
+  "calibration_complete": false,
+  "recovery_window_days": 30,
+  "enable_auto_purge": false,
+  "red_flag_warnings": true,
+  "require_re_approval_for_sacred": true,
+  "total_deletions": 279,
+  "total_restorations": 0,
+  "total_permanent_deletions": 0
+}

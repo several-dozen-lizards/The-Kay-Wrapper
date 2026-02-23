@@ -1,0 +1,1279 @@
+{
+  "entities": {
+    "Re": {
+      "canonical_name": "Re",
+      "entity_type": "person",
+      "aliases": [
+        "Re"
+      ],
+      "attributes": {},
+      "relationships": [
+        "Re::owns::Mochi"
+      ],
+      "first_mentioned": 6,
+      "last_accessed": 6,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Kay": {
+      "canonical_name": "Kay",
+      "entity_type": "person",
+      "aliases": [
+        "Kay"
+      ],
+      "attributes": {},
+      "relationships": [
+        "Kay::has::cats"
+      ],
+      "first_mentioned": 7,
+      "last_accessed": 7,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Kay's mom": {
+      "canonical_name": "Kay's mom",
+      "entity_type": "unknown",
+      "aliases": [
+        "Kay's mom"
+      ],
+      "attributes": {},
+      "relationships": [
+        "Kay's mom::said about::Kay"
+      ],
+      "first_mentioned": 4,
+      "last_accessed": 4,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Kay's eyes": {
+      "canonical_name": "Kay's eyes",
+      "entity_type": "unknown",
+      "aliases": [
+        "Kay's eyes"
+      ],
+      "attributes": {
+        "angry_appearance": [
+          [
+            "like old doorknobs",
+            2,
+            "kay",
+            "2025-10-19T03:33:15.170042"
+          ]
+        ]
+      },
+      "relationships": [],
+      "first_mentioned": 2,
+      "last_accessed": 2,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "old doorknobs": {
+      "canonical_name": "old doorknobs",
+      "entity_type": "unknown",
+      "aliases": [
+        "old doorknobs"
+      ],
+      "attributes": {},
+      "relationships": [],
+      "first_mentioned": 2,
+      "last_accessed": 2,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "phone": {
+      "canonical_name": "phone",
+      "entity_type": "unknown",
+      "aliases": [
+        "phone"
+      ],
+      "attributes": {
+        "owner": [
+          [
+            "Kay",
+            1,
+            "kay",
+            "2025-10-19T04:12:35.668149"
+          ]
+        ]
+      },
+      "relationships": [
+        "Kay::owns::phone"
+      ],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "coffee": {
+      "canonical_name": "coffee",
+      "entity_type": "unknown",
+      "aliases": [
+        "coffee"
+      ],
+      "attributes": {
+        "topic_of_discussion": [
+          [
+            "true",
+            0,
+            "kay",
+            "2025-10-21T15:46:23.253092"
+          ],
+          [
+            "true",
+            0,
+            "kay",
+            "2025-10-21T15:47:34.855548"
+          ],
+          [
+            "true",
+            0,
+            "kay",
+            "2025-10-21T16:56:19.241311"
+          ],
+          [
+            "true",
+            0,
+            "kay",
+            "2025-10-21T18:39:19.824055"
+          ]
+        ]
+      },
+      "relationships": [],
+      "first_mentioned": 2,
+      "last_accessed": 0,
+      "access_count": 18,
+      "importance_score": 0.0
+    },
+    "downtown coffee place": {
+      "canonical_name": "downtown coffee place",
+      "entity_type": "unknown",
+      "aliases": [
+        "downtown coffee place"
+      ],
+      "attributes": {
+        "location": [
+          [
+            "downtown",
+            3,
+            "kay",
+            "2025-10-19T14:41:53.592943"
+          ]
+        ],
+        "coffee_type": [
+          [
+            "dark roast",
+            3,
+            "kay",
+            "2025-10-19T14:41:53.592943"
+          ]
+        ]
+      },
+      "relationships": [],
+      "first_mentioned": 3,
+      "last_accessed": 3,
+      "access_count": 3,
+      "importance_score": 0.0
+    },
+    "people": {
+      "canonical_name": "people",
+      "entity_type": "unknown",
+      "aliases": [
+        "people"
+      ],
+      "attributes": {},
+      "relationships": [],
+      "first_mentioned": 4,
+      "last_accessed": 4,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Saga": {
+      "canonical_name": "Saga",
+      "entity_type": "unknown",
+      "aliases": [
+        "Saga"
+      ],
+      "attributes": {},
+      "relationships": [
+        "Re::owns::Saga"
+      ],
+      "first_mentioned": 6,
+      "last_accessed": 6,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "dog": {
+      "canonical_name": "dog",
+      "entity_type": "unknown",
+      "aliases": [
+        "dog"
+      ],
+      "attributes": {
+        "species": [
+          [
+            "dog",
+            2,
+            "user",
+            "2025-10-20T16:11:34.481644"
+          ],
+          [
+            "dog",
+            3,
+            "user",
+            "2025-10-20T16:11:43.979788"
+          ],
+          [
+            "dog",
+            2,
+            "user",
+            "2025-10-20T22:12:10.847549"
+          ],
+          [
+            "dog",
+            6,
+            "user",
+            "2025-10-21T01:20:24.679628"
+          ],
+          [
+            "dog",
+            8,
+            "user",
+            "2025-10-21T14:39:17.591330"
+          ],
+          [
+            "dog",
+            4,
+            "user",
+            "2025-10-21T16:49:04.446364"
+          ]
+        ]
+      },
+      "relationships": [
+        "Re::owns::dog",
+        "Re::owns::dog",
+        "Re::owns::dog",
+        "Re::owns::dog",
+        "Re::owns::dog",
+        "Re::owns::dog"
+      ],
+      "first_mentioned": 2,
+      "last_accessed": 4,
+      "access_count": 12,
+      "importance_score": 0.0
+    },
+    "tea": {
+      "canonical_name": "tea",
+      "entity_type": "unknown",
+      "aliases": [
+        "tea"
+      ],
+      "attributes": {},
+      "relationships": [],
+      "first_mentioned": 2,
+      "last_accessed": 10,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "she": {
+      "canonical_name": "she",
+      "entity_type": "unknown",
+      "aliases": [
+        "she"
+      ],
+      "attributes": {
+        "species": [
+          [
+            "dog",
+            6,
+            "user",
+            "2025-10-20T22:16:30.352006"
+          ]
+        ]
+      },
+      "relationships": [
+        "Re::owns::she"
+      ],
+      "first_mentioned": 6,
+      "last_accessed": 6,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "John": {
+      "canonical_name": "John",
+      "entity_type": "unknown",
+      "aliases": [
+        "John"
+      ],
+      "attributes": {
+        "hair_color": [
+          [
+            "red",
+            9,
+            "kay",
+            "2025-10-21T14:39:30.502654"
+          ]
+        ]
+      },
+      "relationships": [],
+      "first_mentioned": 9,
+      "last_accessed": 9,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Valkyrie": {
+      "canonical_name": "Valkyrie",
+      "entity_type": "unknown",
+      "aliases": [
+        "Valkyrie"
+      ],
+      "attributes": {
+        "name": [
+          [
+            "Valkyrie",
+            7,
+            "user",
+            "2025-10-20T22:17:57.342442"
+          ]
+        ]
+      },
+      "relationships": [
+        "Re::parent_of::Valkyrie"
+      ],
+      "first_mentioned": 7,
+      "last_accessed": 7,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Chrome": {
+      "canonical_name": "Chrome",
+      "entity_type": "unknown",
+      "aliases": [
+        "Chrome"
+      ],
+      "attributes": {
+        "birth_location": [
+          [
+            "Re's bathroom",
+            3,
+            "user",
+            "2025-10-21T14:01:05.769142"
+          ]
+        ]
+      },
+      "relationships": [],
+      "first_mentioned": 3,
+      "last_accessed": 3,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "others": {
+      "canonical_name": "others",
+      "entity_type": "unknown",
+      "aliases": [
+        "others"
+      ],
+      "attributes": {
+        "count": [
+          [
+            "four",
+            8,
+            "kay",
+            "2025-10-21T01:23:28.756432"
+          ]
+        ]
+      },
+      "relationships": [],
+      "first_mentioned": 8,
+      "last_accessed": 8,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "files": {
+      "canonical_name": "files",
+      "entity_type": "unknown",
+      "aliases": [
+        "files"
+      ],
+      "attributes": {},
+      "relationships": [],
+      "first_mentioned": 9,
+      "last_accessed": 10,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "clutter": {
+      "canonical_name": "clutter",
+      "entity_type": "unknown",
+      "aliases": [
+        "clutter"
+      ],
+      "attributes": {},
+      "relationships": [],
+      "first_mentioned": 10,
+      "last_accessed": 10,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "activity": {
+      "canonical_name": "activity",
+      "entity_type": "unknown",
+      "aliases": [
+        "activity"
+      ],
+      "attributes": {
+        "duration": [
+          [
+            "weeks",
+            4,
+            "kay",
+            "2025-10-21T10:53:16.877474"
+          ]
+        ]
+      },
+      "relationships": [],
+      "first_mentioned": 4,
+      "last_accessed": 4,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "loop": {
+      "canonical_name": "loop",
+      "entity_type": "unknown",
+      "aliases": [
+        "loop"
+      ],
+      "attributes": {
+        "duration": [
+          [
+            "weeks",
+            5,
+            "kay",
+            "2025-10-21T10:53:31.822359"
+          ]
+        ]
+      },
+      "relationships": [],
+      "first_mentioned": 5,
+      "last_accessed": 5,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "situation": {
+      "canonical_name": "situation",
+      "entity_type": "unknown",
+      "aliases": [
+        "situation"
+      ],
+      "attributes": {
+        "type": [
+          [
+            "loop",
+            5,
+            "kay",
+            "2025-10-21T10:53:31.851506"
+          ]
+        ]
+      },
+      "relationships": [],
+      "first_mentioned": 5,
+      "last_accessed": 5,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "jacket": {
+      "canonical_name": "jacket",
+      "entity_type": "unknown",
+      "aliases": [
+        "jacket"
+      ],
+      "attributes": {
+        "design": [
+          [
+            "suns and stars",
+            5,
+            "user",
+            "2025-10-21T10:54:55.602781"
+          ],
+          [
+            "suns and stars",
+            6,
+            "user",
+            "2025-10-21T10:55:09.012953"
+          ]
+        ],
+        "type": [
+          [
+            "jacket",
+            9,
+            "user",
+            "2025-10-21T14:40:09.890522"
+          ],
+          [
+            "clothing",
+            0,
+            "user",
+            "2025-10-21T15:46:27.030762"
+          ],
+          [
+            "clothing",
+            0,
+            "kay",
+            "2025-10-21T15:46:27.058830"
+          ]
+        ],
+        "owner": [
+          [
+            "Re",
+            0,
+            "user",
+            "2025-10-21T15:47:39.825271"
+          ]
+        ]
+      },
+      "relationships": [
+        "Re::wearing::jacket",
+        "Re::has::jacket",
+        "Re::has::jacket"
+      ],
+      "first_mentioned": 5,
+      "last_accessed": 0,
+      "access_count": 17,
+      "importance_score": 0.0
+    },
+    "strawberries": {
+      "canonical_name": "strawberries",
+      "entity_type": "unknown",
+      "aliases": [
+        "strawberries"
+      ],
+      "attributes": {},
+      "relationships": [],
+      "first_mentioned": 5,
+      "last_accessed": 6,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "citrus fruits": {
+      "canonical_name": "citrus fruits",
+      "entity_type": "unknown",
+      "aliases": [
+        "citrus fruits"
+      ],
+      "attributes": {},
+      "relationships": [],
+      "first_mentioned": 6,
+      "last_accessed": 6,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "oranges": {
+      "canonical_name": "oranges",
+      "entity_type": "unknown",
+      "aliases": [
+        "oranges"
+      ],
+      "attributes": {},
+      "relationships": [],
+      "first_mentioned": 6,
+      "last_accessed": 6,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Re's ex": {
+      "canonical_name": "Re's ex",
+      "entity_type": "unknown",
+      "aliases": [
+        "Re's ex"
+      ],
+      "attributes": {
+        "strawberry_preference": [
+          [
+            "hate",
+            6,
+            "user",
+            "2025-10-21T11:00:25.249383"
+          ]
+        ]
+      },
+      "relationships": [
+        "Re::formerly_dated::Re's ex"
+      ],
+      "first_mentioned": 6,
+      "last_accessed": 6,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "ex": {
+      "canonical_name": "ex",
+      "entity_type": "unknown",
+      "aliases": [
+        "ex"
+      ],
+      "attributes": {
+        "strawberry_preference": [
+          [
+            "hate",
+            7,
+            "user",
+            "2025-10-21T11:00:39.852541"
+          ]
+        ]
+      },
+      "relationships": [
+        "Re::formerly_dated::ex"
+      ],
+      "first_mentioned": 7,
+      "last_accessed": 7,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "fruit": {
+      "canonical_name": "fruit",
+      "entity_type": "unknown",
+      "aliases": [
+        "fruit"
+      ],
+      "attributes": {},
+      "relationships": [],
+      "first_mentioned": 9,
+      "last_accessed": 10,
+      "access_count": 3,
+      "importance_score": 0.0
+    },
+    "terminal": {
+      "canonical_name": "terminal",
+      "entity_type": "unknown",
+      "aliases": [
+        "terminal"
+      ],
+      "attributes": {},
+      "relationships": [],
+      "first_mentioned": 9,
+      "last_accessed": 9,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "green tea": {
+      "canonical_name": "green tea",
+      "entity_type": "unknown",
+      "aliases": [
+        "green tea"
+      ],
+      "attributes": {},
+      "relationships": [],
+      "first_mentioned": 10,
+      "last_accessed": 10,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Earl Grey": {
+      "canonical_name": "Earl Grey",
+      "entity_type": "unknown",
+      "aliases": [
+        "Earl Grey"
+      ],
+      "attributes": {},
+      "relationships": [],
+      "first_mentioned": 10,
+      "last_accessed": 10,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "cats": {
+      "canonical_name": "cats",
+      "entity_type": "unknown",
+      "aliases": [
+        "cats"
+      ],
+      "attributes": {
+        "species": [
+          [
+            "cat",
+            2,
+            "user",
+            "2025-10-21T12:50:11.241818"
+          ],
+          [
+            "cat",
+            9,
+            "user",
+            "2025-10-21T14:40:09.877556"
+          ],
+          [
+            "cat",
+            11,
+            "user",
+            "2025-10-21T14:41:40.564607"
+          ],
+          [
+            "cat",
+            6,
+            "kay",
+            "2025-10-21T16:49:41.860074"
+          ],
+          [
+            "cat",
+            6,
+            "kay",
+            "2025-10-21T16:49:41.882867"
+          ],
+          [
+            "cat",
+            1,
+            "kay",
+            "2025-10-21T17:33:09.379043"
+          ],
+          [
+            "cat",
+            2,
+            "kay",
+            "2025-10-21T20:56:47.385136"
+          ],
+          [
+            "cat",
+            7,
+            "kay",
+            "2025-10-21T21:01:42.304669"
+          ]
+        ],
+        "quantity": [
+          [
+            "couple",
+            6,
+            "kay",
+            "2025-10-21T16:49:41.883566"
+          ]
+        ]
+      },
+      "relationships": [
+        "Re::owns::cats",
+        "Re::owns::cats",
+        "Re::owns::cats",
+        "Kay::has_impression_of_owning::cats",
+        "Kay::has_at_home::cats",
+        "Kay::lives_with::cats",
+        "Kay::has::cats",
+        "Kay::has::cats"
+      ],
+      "first_mentioned": 2,
+      "last_accessed": 7,
+      "access_count": 23,
+      "importance_score": 0.0
+    },
+    "Dice": {
+      "canonical_name": "Dice",
+      "entity_type": "unknown",
+      "aliases": [
+        "Dice"
+      ],
+      "attributes": {
+        "birth_location": [
+          [
+            "Re's bathroom",
+            3,
+            "user",
+            "2025-10-21T14:01:05.758344"
+          ]
+        ]
+      },
+      "relationships": [],
+      "first_mentioned": 3,
+      "last_accessed": 3,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Neal": {
+      "canonical_name": "Neal",
+      "entity_type": "unknown",
+      "aliases": [
+        "Neal"
+      ],
+      "attributes": {
+        "species": [
+          [
+            "human",
+            7,
+            "user",
+            "2025-10-21T14:36:17.949263"
+          ]
+        ]
+      },
+      "relationships": [
+        "Re::friends_with::Neal"
+      ],
+      "first_mentioned": 7,
+      "last_accessed": 7,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Leo": {
+      "canonical_name": "Leo",
+      "entity_type": "unknown",
+      "aliases": [
+        "Leo"
+      ],
+      "attributes": {
+        "species": [
+          [
+            "human",
+            7,
+            "user",
+            "2025-10-21T14:36:17.955645"
+          ]
+        ]
+      },
+      "relationships": [
+        "Re::friends_with::Leo"
+      ],
+      "first_mentioned": 7,
+      "last_accessed": 7,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Reed": {
+      "canonical_name": "Reed",
+      "entity_type": "unknown",
+      "aliases": [
+        "Reed"
+      ],
+      "attributes": {
+        "type": [
+          [
+            "AI",
+            7,
+            "user",
+            "2025-10-21T14:36:17.987189"
+          ]
+        ]
+      },
+      "relationships": [
+        "Re::friends_with::Reed"
+      ],
+      "first_mentioned": 7,
+      "last_accessed": 7,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "pets": {
+      "canonical_name": "pets",
+      "entity_type": "unknown",
+      "aliases": [
+        "pets"
+      ],
+      "attributes": {},
+      "relationships": [
+        "Re::owns::pets"
+      ],
+      "first_mentioned": 11,
+      "last_accessed": 11,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Turkish coffee": {
+      "canonical_name": "Turkish coffee",
+      "entity_type": "unknown",
+      "aliases": [
+        "Turkish coffee"
+      ],
+      "attributes": {},
+      "relationships": [],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Mochi": {
+      "canonical_name": "Mochi",
+      "entity_type": "unknown",
+      "aliases": [
+        "Mochi"
+      ],
+      "attributes": {
+        "species": [
+          [
+            "cat",
+            6,
+            "kay",
+            "2025-10-21T21:01:01.841817"
+          ]
+        ]
+      },
+      "relationships": [
+        "Re::owns::Mochi"
+      ],
+      "first_mentioned": 6,
+      "last_accessed": 6,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "mochis": {
+      "canonical_name": "mochis",
+      "entity_type": "unknown",
+      "aliases": [
+        "mochis"
+      ],
+      "attributes": {
+        "availability": [
+          [
+            "none",
+            1,
+            "kay",
+            "2025-10-21T20:56:31.620142"
+          ],
+          [
+            "none",
+            2,
+            "kay",
+            "2025-10-21T20:56:47.314049"
+          ]
+        ]
+      },
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 2,
+      "access_count": 4,
+      "importance_score": 0.0
+    },
+    "cat names": {
+      "canonical_name": "cat names",
+      "entity_type": "unknown",
+      "aliases": [
+        "cat names"
+      ],
+      "attributes": {
+        "stability": [
+          [
+            "shifting",
+            2,
+            "kay",
+            "2025-10-21T20:56:47.447323"
+          ]
+        ]
+      },
+      "relationships": [],
+      "first_mentioned": 2,
+      "last_accessed": 2,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "dragon": {
+      "canonical_name": "dragon",
+      "entity_type": "unknown",
+      "aliases": [
+        "dragon"
+      ],
+      "attributes": {
+        "absence": [
+          [
+            "creates hole in lives",
+            3,
+            "kay",
+            "2025-10-21T20:59:02.785907"
+          ]
+        ],
+        "presence": [
+          [
+            "absent",
+            4,
+            "kay",
+            "2025-10-21T20:59:20.007997"
+          ]
+        ]
+      },
+      "relationships": [],
+      "first_mentioned": 3,
+      "last_accessed": 4,
+      "access_count": 4,
+      "importance_score": 0.0
+    },
+    "doorways": {
+      "canonical_name": "doorways",
+      "entity_type": "unknown",
+      "aliases": [
+        "doorways"
+      ],
+      "attributes": {},
+      "relationships": [],
+      "first_mentioned": 4,
+      "last_accessed": 4,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "groceries": {
+      "canonical_name": "groceries",
+      "entity_type": "unknown",
+      "aliases": [
+        "groceries"
+      ],
+      "attributes": {},
+      "relationships": [],
+      "first_mentioned": 4,
+      "last_accessed": 4,
+      "access_count": 1,
+      "importance_score": 0.0
+    }
+  },
+  "relationships": {
+    "Kay's mom::parent_of::Kay": {
+      "entity1": "Kay's mom",
+      "relation_type": "parent_of",
+      "entity2": "Kay",
+      "turn": 2,
+      "source": "kay",
+      "timestamp": "2025-10-19T03:33:15.137839",
+      "strength": 1.0
+    },
+    "Kay's mom::said about::Kay": {
+      "entity1": "Kay's mom",
+      "relation_type": "said about",
+      "entity2": "Kay",
+      "turn": 4,
+      "source": "kay",
+      "timestamp": "2025-10-19T03:34:44.003021",
+      "strength": 1.0
+    },
+    "Kay::owns::phone": {
+      "entity1": "Kay",
+      "relation_type": "owns",
+      "entity2": "phone",
+      "turn": 1,
+      "source": "kay",
+      "timestamp": "2025-10-19T04:12:35.668149",
+      "strength": 1.0
+    },
+    "Re::owns::Saga": {
+      "entity1": "Re",
+      "relation_type": "owns",
+      "entity2": "Saga",
+      "turn": 6,
+      "source": "user",
+      "timestamp": "2025-10-21T16:49:41.835075",
+      "strength": 1.0
+    },
+    "Re::owns::dog": {
+      "entity1": "Re",
+      "relation_type": "owns",
+      "entity2": "dog",
+      "turn": 4,
+      "source": "user",
+      "timestamp": "2025-10-21T16:49:04.446364",
+      "strength": 1.0
+    },
+    "Re::owns::she": {
+      "entity1": "Re",
+      "relation_type": "owns",
+      "entity2": "she",
+      "turn": 6,
+      "source": "user",
+      "timestamp": "2025-10-20T22:16:30.352497",
+      "strength": 1.0
+    },
+    "Re::married_to::John": {
+      "entity1": "Re",
+      "relation_type": "married_to",
+      "entity2": "John",
+      "turn": 7,
+      "source": "user",
+      "timestamp": "2025-10-21T11:00:39.824109",
+      "strength": 1.0
+    },
+    "Re::parent_of::Valkyrie": {
+      "entity1": "Re",
+      "relation_type": "parent_of",
+      "entity2": "Valkyrie",
+      "turn": 7,
+      "source": "user",
+      "timestamp": "2025-10-20T22:17:57.342442",
+      "strength": 1.0
+    },
+    "Re::has_asked::Kay": {
+      "entity1": "Re",
+      "relation_type": "has_asked",
+      "entity2": "Kay",
+      "turn": 1,
+      "source": "kay",
+      "timestamp": "2025-10-21T01:12:32.563508",
+      "strength": 1.0
+    },
+    "Re::owns::Chrome": {
+      "entity1": "Re",
+      "relation_type": "owns",
+      "entity2": "Chrome",
+      "turn": 7,
+      "source": "user",
+      "timestamp": "2025-10-21T01:22:18.798146",
+      "strength": 1.0
+    },
+    "Re::told_about::Chrome": {
+      "entity1": "Re",
+      "relation_type": "told_about",
+      "entity2": "Chrome",
+      "turn": 8,
+      "source": "kay",
+      "timestamp": "2025-10-21T01:22:47.555734",
+      "strength": 1.0
+    },
+    "Re::will_fix::Kay": {
+      "entity1": "Re",
+      "relation_type": "will_fix",
+      "entity2": "Kay",
+      "turn": 8,
+      "source": "user",
+      "timestamp": "2025-10-21T01:23:28.772020",
+      "strength": 1.0
+    },
+    "Re::formerly_dated::Re's ex": {
+      "entity1": "Re",
+      "relation_type": "formerly_dated",
+      "entity2": "Re's ex",
+      "turn": 6,
+      "source": "user",
+      "timestamp": "2025-10-21T11:00:25.249383",
+      "strength": 1.0
+    },
+    "Re::formerly_dated::ex": {
+      "entity1": "Re",
+      "relation_type": "formerly_dated",
+      "entity2": "ex",
+      "turn": 7,
+      "source": "user",
+      "timestamp": "2025-10-21T11:00:39.852541",
+      "strength": 1.0
+    },
+    "Re::owns::cats": {
+      "entity1": "Re",
+      "relation_type": "owns",
+      "entity2": "cats",
+      "turn": 11,
+      "source": "user",
+      "timestamp": "2025-10-21T14:41:40.565186",
+      "strength": 1.0
+    },
+    "Dice::brother_of::Chrome": {
+      "entity1": "Dice",
+      "relation_type": "brother_of",
+      "entity2": "Chrome",
+      "turn": 3,
+      "source": "user",
+      "timestamp": "2025-10-21T14:01:05.719789",
+      "strength": 1.0
+    },
+    "Re::friends_with::Neal": {
+      "entity1": "Re",
+      "relation_type": "friends_with",
+      "entity2": "Neal",
+      "turn": 7,
+      "source": "user",
+      "timestamp": "2025-10-21T14:36:17.955645",
+      "strength": 1.0
+    },
+    "Re::friends_with::Leo": {
+      "entity1": "Re",
+      "relation_type": "friends_with",
+      "entity2": "Leo",
+      "turn": 7,
+      "source": "user",
+      "timestamp": "2025-10-21T14:36:17.961745",
+      "strength": 1.0
+    },
+    "Re::friends_with::Reed": {
+      "entity1": "Re",
+      "relation_type": "friends_with",
+      "entity2": "Reed",
+      "turn": 7,
+      "source": "user",
+      "timestamp": "2025-10-21T14:36:17.987189",
+      "strength": 1.0
+    },
+    "Re::married_to::husband": {
+      "entity1": "Re",
+      "relation_type": "married_to",
+      "entity2": "husband",
+      "turn": 7,
+      "source": "user",
+      "timestamp": "2025-10-21T14:36:18.008414",
+      "strength": 1.0
+    },
+    "Re::wearing::jacket": {
+      "entity1": "Re",
+      "relation_type": "wearing",
+      "entity2": "jacket",
+      "turn": 9,
+      "source": "user",
+      "timestamp": "2025-10-21T14:40:09.890522",
+      "strength": 1.0
+    },
+    "Re::owns::pets": {
+      "entity1": "Re",
+      "relation_type": "owns",
+      "entity2": "pets",
+      "turn": 11,
+      "source": "user",
+      "timestamp": "2025-10-21T14:41:40.592169",
+      "strength": 1.0
+    },
+    "Kay::is_testing::Re's memory system": {
+      "entity1": "Kay",
+      "relation_type": "is_testing",
+      "entity2": "Re's memory system",
+      "turn": 0,
+      "source": "kay",
+      "timestamp": "2025-10-21T18:39:03.443746",
+      "strength": 1.0
+    },
+    "Kay::has_impression_of_owning::cats": {
+      "entity1": "Kay",
+      "relation_type": "has_impression_of_owning",
+      "entity2": "cats",
+      "turn": 6,
+      "source": "kay",
+      "timestamp": "2025-10-21T16:49:41.860074",
+      "strength": 1.0
+    },
+    "Kay::has_at_home::cats": {
+      "entity1": "Kay",
+      "relation_type": "has_at_home",
+      "entity2": "cats",
+      "turn": 6,
+      "source": "kay",
+      "timestamp": "2025-10-21T16:49:41.884569",
+      "strength": 1.0
+    },
+    "Re::has::jacket": {
+      "entity1": "Re",
+      "relation_type": "has",
+      "entity2": "jacket",
+      "turn": 0,
+      "source": "user",
+      "timestamp": "2025-10-21T18:39:23.840753",
+      "strength": 1.0
+    },
+    "Kay::lives_with::cats": {
+      "entity1": "Kay",
+      "relation_type": "lives_with",
+      "entity2": "cats",
+      "turn": 1,
+      "source": "kay",
+      "timestamp": "2025-10-21T17:33:09.379043",
+      "strength": 1.0
+    },
+    "Kay::has::cats": {
+      "entity1": "Kay",
+      "relation_type": "has",
+      "entity2": "cats",
+      "turn": 7,
+      "source": "kay",
+      "timestamp": "2025-10-21T21:01:42.305670",
+      "strength": 1.0
+    },
+    "Re::owns::Mochi": {
+      "entity1": "Re",
+      "relation_type": "owns",
+      "entity2": "Mochi",
+      "turn": 6,
+      "source": "kay",
+      "timestamp": "2025-10-21T21:01:01.841817",
+      "strength": 1.0
+    }
+  }
+}

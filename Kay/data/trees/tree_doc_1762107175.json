@@ -1,0 +1,26 @@
+{
+  "trees": {
+    "doc_1762107175": {
+      "doc_id": "doc_1762107175",
+      "title": "test_import.txt",
+      "shape_description": "Document with 1 peripheral",
+      "access_count": 0,
+      "last_accessed": null,
+      "branches": [
+        {
+          "title": "Context & Details",
+          "chunk_indices": [
+            0
+          ],
+          "glyphs": "\ud83d\udcdd",
+          "access_tier": "cold",
+          "access_count": 0,
+          "last_accessed": null
+        }
+      ],
+      "total_chunks": 1,
+      "import_date": "2025-11-02T13:12:58.335548"
+    }
+  },
+  "saved_at": "2025-11-02T13:12:58.336545"
+}

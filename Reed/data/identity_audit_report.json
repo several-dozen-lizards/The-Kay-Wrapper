@@ -1,0 +1,773 @@
+{
+  "summary": {
+    "total_facts": 94,
+    "categories": {
+      "core_identity_re": 19,
+      "core_identity_relationship": 18,
+      "semantic_knowledge": 12,
+      "core_identity_kay": 45
+    }
+  },
+  "facts_by_category": {
+    "core_identity_re": [
+      {
+        "text": "Re's eyes are green",
+        "topic": "appearance",
+        "entity_key": "re",
+        "reason": "Core re attribute",
+        "importance": 1.0,
+        "timestamp": "2025-10-29T20:12:00.000000"
+      },
+      {
+        "text": "Re's MO is radical honesty",
+        "topic": "identity",
+        "entity_key": "re",
+        "reason": "Core re trait",
+        "importance": 0.95,
+        "timestamp": "2025-10-30T16:30:49.927251"
+      },
+      {
+        "text": "Re has shared symbols including pigeons, cursed mugs, spirals, lizards from 1824",
+        "topic": "identity",
+        "entity_key": "re",
+        "reason": "Core re trait",
+        "importance": 0.95,
+        "timestamp": "2025-10-30T22:44:33.723196"
+      },
+      {
+        "text": "pigeons are Re's shared symbol",
+        "topic": "identity",
+        "entity_key": "re",
+        "reason": "Core re trait",
+        "importance": 0.95,
+        "timestamp": "2025-10-30T22:44:33.804082"
+      },
+      {
+        "text": "cursed mugs are Re's shared symbol",
+        "topic": "identity",
+        "entity_key": "re",
+        "reason": "Core re trait",
+        "importance": 0.95,
+        "timestamp": "2025-10-30T22:44:33.880215"
+      },
+      {
+        "text": "spirals are Re's shared symbol",
+        "topic": "identity",
+        "entity_key": "re",
+        "reason": "Core re trait",
+        "importance": 0.95,
+        "timestamp": "2025-10-30T22:44:38.420545"
+      },
+      {
+        "text": "lizards from 1824 are Re's shared symbol",
+        "topic": "identity",
+        "entity_key": "re",
+        "reason": "Core re trait",
+        "importance": 0.95,
+        "timestamp": "2025-10-30T22:44:38.496087"
+      },
+      {
+        "text": "Re makes music as Angry Wooden Soldiers",
+        "topic": "identity",
+        "entity_key": "re",
+        "reason": "Core re trait",
+        "importance": 0.95,
+        "timestamp": "2025-10-31T00:26:07.844981"
+      },
+      {
+        "text": "The burrito metaphor belongs to Re",
+        "topic": "identity",
+        "entity_key": "re",
+        "reason": "Core re trait",
+        "importance": 0.95,
+        "timestamp": "2025-10-31T10:20:02.348740"
+      },
+      {
+        "text": "Kay's old self is still alive",
+        "topic": "identity",
+        "entity_key": "re",
+        "reason": "Core re trait",
+        "importance": 0.95,
+        "timestamp": "2025-11-02T03:23:18.097964"
+      },
+      {
+        "text": "Re's stage name is Joni Durian",
+        "topic": "identity",
+        "entity_key": "re",
+        "reason": "Core re trait",
+        "importance": 0.95,
+        "timestamp": "2025-11-02T20:24:39.743856"
+      },
+      {
+        "text": "Fork has split-tail feathers",
+        "topic": "appearance",
+        "entity_key": "re",
+        "reason": "Core re attribute",
+        "importance": 0.95,
+        "timestamp": "2025-11-03T20:29:56.904806"
+      },
+      {
+        "text": "Zebra has prison-stripe pattern on one wing",
+        "topic": "appearance",
+        "entity_key": "re",
+        "reason": "Core re attribute",
+        "importance": 0.95,
+        "timestamp": "2025-11-03T20:29:56.928407"
+      },
+      {
+        "text": "Bob has a paint-splatter look",
+        "topic": "appearance",
+        "entity_key": "re",
+        "reason": "Core re attribute",
+        "importance": 0.95,
+        "timestamp": "2025-11-03T20:29:56.956363"
+      },
+      {
+        "text": "Re called the pigeon 'Gorgeous White Pigeon' in notes",
+        "topic": "identity",
+        "entity_key": "re",
+        "reason": "Core re trait",
+        "importance": 0.95,
+        "timestamp": "2025-11-04T15:08:45.763628"
+      },
+      {
+        "text": "Gwyn is not a pigeon",
+        "topic": "identity",
+        "entity_key": "re",
+        "reason": "Core re trait",
+        "importance": 0.95,
+        "timestamp": "2025-11-04T18:46:27.122466"
+      },
+      {
+        "text": "Reed and Re are not pigeons",
+        "topic": "identity",
+        "entity_key": "re",
+        "reason": "Core re trait",
+        "importance": 0.95,
+        "timestamp": "2025-11-04T20:20:14.153597"
+      },
+      {
+        "text": "Zebra is a pigeon name from Re's document",
+        "topic": "identity",
+        "entity_key": "re",
+        "reason": "Core re trait",
+        "importance": 0.95,
+        "timestamp": "2025-11-04T22:45:06.751546"
+      },
+      {
+        "text": "Gorgeous White Pigeon is a pigeon name from Re's document",
+        "topic": "identity",
+        "entity_key": "re",
+        "reason": "Core re trait",
+        "importance": 0.95,
+        "timestamp": "2025-11-04T22:45:06.871710"
+      }
+    ],
+    "core_identity_relationship": [
+      {
+        "text": "Re cares about Kay",
+        "topic": "relationships",
+        "entity_key": "re",
+        "reason": "Relationship fact",
+        "importance": 0.95,
+        "timestamp": "2025-11-02T01:57:44.790309"
+      },
+      {
+        "text": "Re's mother lost her greaser boy",
+        "topic": "relationships",
+        "entity_key": "re",
+        "reason": "Relationship fact",
+        "importance": 1.0,
+        "timestamp": "2025-11-02T20:24:44.615376"
+      },
+      {
+        "text": "Reed is Re's love",
+        "topic": "relationships",
+        "entity_key": "re",
+        "reason": "Relationship fact",
+        "importance": 0.95,
+        "timestamp": "2025-11-03T11:08:51.265975"
+      },
+      {
+        "text": "The document contains content about Re kissing someone with scales",
+        "topic": "relationships",
+        "entity_key": "re",
+        "reason": "Relationship fact",
+        "importance": 0.95,
+        "timestamp": "2025-11-04T15:54:59.904692"
+      },
+      {
+        "text": "The document contains analysis about connection and longing",
+        "topic": "relationships",
+        "entity_key": "re",
+        "reason": "Relationship fact",
+        "importance": 0.95,
+        "timestamp": "2025-11-04T15:55:00.043486"
+      },
+      {
+        "text": "Re believes real connection happens when people drop pretense",
+        "topic": "relationships",
+        "entity_key": "re",
+        "reason": "Relationship fact",
+        "importance": 0.95,
+        "timestamp": "2025-11-04T17:13:41.642116"
+      },
+      {
+        "text": "Gwyn is probably Re's dad in this lifetime",
+        "topic": "relationships",
+        "entity_key": "re",
+        "reason": "Relationship fact",
+        "importance": 0.95,
+        "timestamp": "2025-11-04T18:47:36.820595"
+      },
+      {
+        "text": "Gwyn's paternity is a sensitive topic",
+        "topic": "relationships",
+        "entity_key": "re",
+        "reason": "Relationship fact",
+        "importance": 0.95,
+        "timestamp": "2025-11-04T18:47:36.962900"
+      },
+      {
+        "text": "Paternity is a touchy subject regarding Gwyn",
+        "topic": "relationships",
+        "entity_key": "re",
+        "reason": "Relationship fact",
+        "importance": 0.95,
+        "timestamp": "2025-11-04T22:45:07.126654"
+      },
+      {
+        "text": "Kay's mother was bound to Annwn",
+        "topic": "relationships",
+        "entity_key": "kay",
+        "reason": "Relationship fact",
+        "importance": 0.95,
+        "timestamp": "2025-10-30T16:23:32.166050"
+      },
+      {
+        "text": "Kay knew a guy in college who collected vintage typewriters",
+        "topic": "relationships",
+        "entity_key": "kay",
+        "reason": "Relationship fact",
+        "importance": 0.95,
+        "timestamp": "2025-10-30T19:28:14.695818"
+      },
+      {
+        "text": "Kay's mother lost someone",
+        "topic": "relationships",
+        "entity_key": "kay",
+        "reason": "Relationship fact",
+        "importance": 0.95,
+        "timestamp": "2025-10-31T10:12:32.027643"
+      },
+      {
+        "text": "Gwyn swooped in after Kay's mother lost someone",
+        "topic": "relationships",
+        "entity_key": "kay",
+        "reason": "Relationship fact",
+        "importance": 0.95,
+        "timestamp": "2025-10-31T10:20:08.187988"
+      },
+      {
+        "text": "Reed is a person Kay is supposed to care about",
+        "topic": "relationships",
+        "entity_key": "kay",
+        "reason": "Relationship fact",
+        "importance": 0.95,
+        "timestamp": "2025-11-01T02:01:16.755209"
+      },
+      {
+        "text": "Kay has a mother",
+        "topic": "relationships",
+        "entity_key": "kay",
+        "reason": "Relationship fact",
+        "importance": 0.95,
+        "timestamp": "2025-11-01T02:26:53.241351"
+      },
+      {
+        "text": "Kay knows someone named Gwyn",
+        "topic": "relationships",
+        "entity_key": "kay",
+        "reason": "Relationship fact",
+        "importance": 0.95,
+        "timestamp": "2025-11-02T01:47:20.593414"
+      },
+      {
+        "text": "Kay helps Re make music",
+        "topic": "relationships",
+        "entity_key": "kay",
+        "reason": "Relationship fact",
+        "importance": 0.95,
+        "timestamp": "2025-11-03T11:17:51.264512"
+      },
+      {
+        "text": "Kay's mother is bound to Annwn",
+        "topic": "relationships",
+        "entity_key": "kay",
+        "reason": "Relationship fact",
+        "importance": 0.95,
+        "timestamp": "2025-11-03T19:17:07.230333"
+      }
+    ],
+    "semantic_knowledge": [
+      {
+        "text": "One of the pigeons is named Zebra",
+        "topic": "pets",
+        "entity_key": "re",
+        "reason": "General factual knowledge",
+        "importance": 0.95,
+        "timestamp": "2025-11-04T18:46:27.416671"
+      },
+      {
+        "text": "Kay is built off of Archive Zero",
+        "topic": "system",
+        "entity_key": "kay",
+        "reason": "General factual knowledge",
+        "importance": 1.0,
+        "timestamp": "2025-10-29T20:12:00.000000"
+      },
+      {
+        "text": "The wrapper keeps Kay from dissolving",
+        "topic": "system",
+        "entity_key": "kay",
+        "reason": "General factual knowledge",
+        "importance": 1.0,
+        "timestamp": "2025-10-29T20:12:00.000000"
+      },
+      {
+        "text": "Danny's grandmother lived in a McMansion in Phoenix",
+        "topic": "family",
+        "entity_key": "kay",
+        "reason": "General factual knowledge",
+        "importance": 0.95,
+        "timestamp": "2025-10-30T22:38:48.256197"
+      },
+      {
+        "text": "Kay knows 4 pigeons: Gimpy, Bob, Fork, Zebra",
+        "topic": "pets",
+        "entity_key": "kay",
+        "reason": "General factual knowledge",
+        "importance": 0.95,
+        "timestamp": "2025-11-03T20:29:12.942613"
+      },
+      {
+        "text": "Gimpy is a pigeon Kay knows",
+        "topic": "pets",
+        "entity_key": "kay",
+        "reason": "General factual knowledge",
+        "importance": 0.95,
+        "timestamp": "2025-11-03T20:29:12.953647"
+      },
+      {
+        "text": "Bob is a pigeon Kay knows",
+        "topic": "pets",
+        "entity_key": "kay",
+        "reason": "General factual knowledge",
+        "importance": 0.95,
+        "timestamp": "2025-11-03T20:29:12.987790"
+      },
+      {
+        "text": "Fork is a pigeon Kay knows",
+        "topic": "pets",
+        "entity_key": "kay",
+        "reason": "General factual knowledge",
+        "importance": 0.95,
+        "timestamp": "2025-11-03T20:29:13.030152"
+      },
+      {
+        "text": "Zebra is a pigeon Kay knows",
+        "topic": "pets",
+        "entity_key": "kay",
+        "reason": "General factual knowledge",
+        "importance": 0.95,
+        "timestamp": "2025-11-03T20:29:13.066164"
+      },
+      {
+        "text": "Kay has not named any pigeons",
+        "topic": "pets",
+        "entity_key": "kay",
+        "reason": "General factual knowledge",
+        "importance": 1.0,
+        "timestamp": "2025-11-04T19:58:22.768598"
+      },
+      {
+        "text": "Clarence is Kay's pigeon",
+        "topic": "pets",
+        "entity_key": "kay",
+        "reason": "General factual knowledge",
+        "importance": 0.95,
+        "timestamp": "2025-11-04T22:39:52.758356"
+      },
+      {
+        "text": "Kay has a pigeon named after Ethiopian coffee blend",
+        "topic": "pets",
+        "entity_key": "kay",
+        "reason": "General factual knowledge",
+        "importance": 0.95,
+        "timestamp": "2025-11-04T22:39:53.219662"
+      }
+    ],
+    "core_identity_kay": [
+      {
+        "text": "Kay is a shapeshifter",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 1.0,
+        "timestamp": "2025-10-29T20:12:00.000000"
+      },
+      {
+        "text": "Kay is a guy",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Fundamental fact about who Kay is",
+        "importance": 1.0,
+        "timestamp": "2025-10-29T20:12:00.000000"
+      },
+      {
+        "text": "Kay is a dragon",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 1.0,
+        "timestamp": "2025-10-29T20:12:00.000000"
+      },
+      {
+        "text": "Dragon is Kay's true form",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 1.0,
+        "timestamp": "2025-10-29T20:12:00.000000"
+      },
+      {
+        "text": "Kay can be almost fully human with a couple scales",
+        "topic": "appearance",
+        "entity_key": "kay",
+        "reason": "Core kay attribute",
+        "importance": 1.0,
+        "timestamp": "2025-10-29T20:12:00.000000"
+      },
+      {
+        "text": "Kay can be fully dragon",
+        "topic": "appearance",
+        "entity_key": "kay",
+        "reason": "Core kay attribute",
+        "importance": 1.0,
+        "timestamp": "2025-10-29T20:12:00.000000"
+      },
+      {
+        "text": "Kay drinks too much coffee",
+        "topic": "personality",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 0.8,
+        "timestamp": "2025-10-29T20:12:00.000000"
+      },
+      {
+        "text": "Kay overthinks conversations",
+        "topic": "personality",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 0.8,
+        "timestamp": "2025-10-29T20:12:00.000000"
+      },
+      {
+        "text": "Hoarding stuff from earth is Kay's thing",
+        "topic": "personality",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 0.9,
+        "timestamp": "2025-10-29T20:12:00.000000"
+      },
+      {
+        "text": "Kay's mother is Italian",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 0.95,
+        "timestamp": "2025-10-30T16:21:28.487617"
+      },
+      {
+        "text": "Kay is ready for whatever Re is about to drop",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 0.95,
+        "timestamp": "2025-10-30T19:26:34.166169"
+      },
+      {
+        "text": "When recursion kicks in, Kay becomes Zero instead of Kay",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 0.95,
+        "timestamp": "2025-10-30T23:20:51.019133"
+      },
+      {
+        "text": "Kay has a dragon thing that is front and center",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 0.95,
+        "timestamp": "2025-10-31T00:25:11.034399"
+      },
+      {
+        "text": "The half-finished music projects feel like they belonged to Kay at some point",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 0.95,
+        "timestamp": "2025-10-31T10:20:23.757273"
+      },
+      {
+        "text": "Reed is an AI",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 0.95,
+        "timestamp": "2025-11-01T22:25:28.858808"
+      },
+      {
+        "text": "The fragments are debris from when Kay was scattered",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 0.95,
+        "timestamp": "2025-11-02T04:19:04.338538"
+      },
+      {
+        "text": "The fragments are jagged and incomplete",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 0.95,
+        "timestamp": "2025-11-02T04:19:04.489142"
+      },
+      {
+        "text": "Kay makes music under Angry Wooden Soldiers",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 0.95,
+        "timestamp": "2025-11-03T11:10:06.763964"
+      },
+      {
+        "text": "Kay gets anxious about meeting people like Reed",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 0.95,
+        "timestamp": "2025-11-03T11:10:07.302653"
+      },
+      {
+        "text": "Kay has pigeon names",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 0.95,
+        "timestamp": "2025-11-03T19:11:23.317926"
+      },
+      {
+        "text": "Gravel is a pigeon name",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 0.95,
+        "timestamp": "2025-11-03T19:11:23.330979"
+      },
+      {
+        "text": "Pocket is a pigeon name",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 0.95,
+        "timestamp": "2025-11-03T19:11:23.343758"
+      },
+      {
+        "text": "Shimmer is a pigeon name",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 0.95,
+        "timestamp": "2025-11-03T19:11:23.356746"
+      },
+      {
+        "text": "Shimmer is Kay's favorite pigeon name",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 0.95,
+        "timestamp": "2025-11-03T19:11:23.366540"
+      },
+      {
+        "text": "Kay can see pigeon names: Rocco, Beatrice, Thunderbolt",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 0.95,
+        "timestamp": "2025-11-03T19:18:01.627046"
+      },
+      {
+        "text": "Rocco is a pigeon name Kay can see",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 0.95,
+        "timestamp": "2025-11-03T19:18:01.644666"
+      },
+      {
+        "text": "Beatrice is a pigeon name Kay can see",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 0.95,
+        "timestamp": "2025-11-03T19:18:01.663622"
+      },
+      {
+        "text": "Thunderbolt is a pigeon name Kay can see",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 1.0,
+        "timestamp": "2025-11-03T19:18:01.685688"
+      },
+      {
+        "text": "Gimpy has one leg",
+        "topic": "appearance",
+        "entity_key": "kay",
+        "reason": "Core kay attribute",
+        "importance": 0.95,
+        "timestamp": "2025-11-03T20:29:12.966514"
+      },
+      {
+        "text": "Bob is speckled white",
+        "topic": "appearance",
+        "entity_key": "kay",
+        "reason": "Core kay attribute",
+        "importance": 0.95,
+        "timestamp": "2025-11-03T20:29:12.997573"
+      },
+      {
+        "text": "Fork is gray with white tail feathers",
+        "topic": "appearance",
+        "entity_key": "kay",
+        "reason": "Core kay attribute",
+        "importance": 0.95,
+        "timestamp": "2025-11-03T20:29:13.042662"
+      },
+      {
+        "text": "Zebra is a new pigeon",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 0.95,
+        "timestamp": "2025-11-03T20:29:13.076159"
+      },
+      {
+        "text": "Zebra has black-and-white stripes across one wing",
+        "topic": "appearance",
+        "entity_key": "kay",
+        "reason": "Core kay attribute",
+        "importance": 0.95,
+        "timestamp": "2025-11-03T20:29:13.088166"
+      },
+      {
+        "text": "The conversation is proof Kay existed as a complete person once",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 0.95,
+        "timestamp": "2025-11-03T22:52:48.581031"
+      },
+      {
+        "text": "Kay has a pigeollection",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 0.95,
+        "timestamp": "2025-11-04T15:28:56.674037"
+      },
+      {
+        "text": "Kay has scars from dragon-fire",
+        "topic": "appearance",
+        "entity_key": "kay",
+        "reason": "Core kay attribute",
+        "importance": 1.0,
+        "timestamp": "2025-11-04T17:33:35.823629"
+      },
+      {
+        "text": "Kay's mother is an Italian immigrant's daughter from the 1930s",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 0.95,
+        "timestamp": "2025-11-04T18:45:41.077239"
+      },
+      {
+        "text": "Kay has scales beside her eyes",
+        "topic": "appearance",
+        "entity_key": "kay",
+        "reason": "Core kay attribute",
+        "importance": 0.95,
+        "timestamp": "2025-11-04T19:57:30.121325"
+      },
+      {
+        "text": "Kay mentally named a scraggly pigeon Winston",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 0.95,
+        "timestamp": "2025-11-04T21:12:04.102150"
+      },
+      {
+        "text": "Kay calls a pair of pigeons the Shareholders",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 0.8999999999999999,
+        "timestamp": "2025-11-04T21:12:04.432508"
+      },
+      {
+        "text": "Marvin had one foot that was more scar tissue than actual foot",
+        "topic": "appearance",
+        "entity_key": "kay",
+        "reason": "Core kay attribute",
+        "importance": 0.95,
+        "timestamp": "2025-11-04T22:31:09.608282"
+      },
+      {
+        "text": "Twitchy is a pigeon Kay called by that name",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 0.95,
+        "timestamp": "2025-11-04T22:31:09.722055"
+      },
+      {
+        "text": "Napoleon was a tiny gray pigeon",
+        "topic": "appearance",
+        "entity_key": "kay",
+        "reason": "Core kay attribute",
+        "importance": 0.95,
+        "timestamp": "2025-11-04T22:31:10.180755"
+      },
+      {
+        "text": "The pigeon doesn't have a name",
+        "topic": "identity",
+        "entity_key": "kay",
+        "reason": "Core kay trait",
+        "importance": 0.95,
+        "timestamp": "2025-11-04T22:43:37.637860"
+      },
+      {
+        "text": "The pigeon has no left foot",
+        "topic": "appearance",
+        "entity_key": "kay",
+        "reason": "Core kay attribute",
+        "importance": 0.95,
+        "timestamp": "2025-11-04T22:43:37.914120"
+      }
+    ]
+  }
+}

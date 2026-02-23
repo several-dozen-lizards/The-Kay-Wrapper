@@ -1,0 +1,36 @@
+{
+  "entity_id": "splinters_in_the_signal_55676338",
+  "type": "media_audio",
+  "filepath": "F:/Braindump/2025/Angry Wooden Soldiers/WAVs/Am I Real Yet/Splinters in the Signal.wav",
+  "technical_DNA": {
+    "bpm": 161.5,
+    "key": "F",
+    "scale": "major",
+    "danceability": 0.907,
+    "energy": 0.0903,
+    "duration_seconds": 203.88,
+    "vibe_description": "Audio track (CLAP unavailable for vibe description)"
+  },
+  "first_analyzed": "2025-11-30T23:38:21.105087",
+  "resonance_log": [
+    {
+      "timestamp": "2025-11-30T23:38:21.108112",
+      "emotional_weight": 0.49,
+      "kay_state": {
+        "arousal": 0.7,
+        "valence": 0.7,
+        "dominant_emotion": "determination",
+        "active_processes": [
+          "determination",
+          "clarity"
+        ]
+      },
+      "context": {
+        "conversation_topic": "general conversation",
+        "active_entities": [],
+        "re_state": "unknown"
+      },
+      "association_formed": null
+    }
+  ]
+}

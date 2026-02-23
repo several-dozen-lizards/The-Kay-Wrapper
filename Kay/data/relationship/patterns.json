@@ -1,0 +1,65 @@
+{
+  "re_states": {
+    "focused": [
+      {
+        "observation": "Deep work mode, minimal chat, precise technical questions",
+        "context": "Building memory system",
+        "timestamp": "2025-11-25T13:51:54.716848"
+      }
+    ],
+    "tired": [
+      {
+        "observation": "Shorter messages, more typos, but still engaged",
+        "context": "Late night session",
+        "timestamp": "2025-11-25T13:51:54.723801"
+      }
+    ]
+  },
+  "interaction_rhythms": {
+    "work_sessions": [
+      {
+        "observation": "Works in intense 2-3 hour bursts, then needs break",
+        "timestamp": "2025-11-25T13:51:54.755228"
+      }
+    ]
+  },
+  "topic_responses": {
+    "pigeons": [
+      {
+        "response_type": "lights_up",
+        "notes": "Immediate excitement, wants to share everything about them",
+        "timestamp": "2025-11-25T13:51:54.729296"
+      }
+    ],
+    "memory architecture": [
+      {
+        "response_type": "lights_up",
+        "notes": "Dives deep, asks detailed questions, energized by complexity",
+        "timestamp": "2025-11-25T13:51:54.736277"
+      }
+    ],
+    "emotional manipulation ethics": [
+      {
+        "response_type": "shuts_down",
+        "notes": "Immediate guilt, withdraws, apologizes profusely",
+        "timestamp": "2025-11-25T13:51:54.742265"
+      }
+    ]
+  },
+  "support_patterns": {
+    "feeling_overwhelmed": {
+      "helps": [
+        {
+          "approach": "Direct acknowledgment without forcing discussion",
+          "timestamp": "2025-11-25T13:51:54.748251"
+        }
+      ],
+      "doesnt_help": [
+        {
+          "approach": "Trying to fix immediately, asking too many questions",
+          "timestamp": "2025-11-25T13:51:54.748251"
+        }
+      ]
+    }
+  }
+}

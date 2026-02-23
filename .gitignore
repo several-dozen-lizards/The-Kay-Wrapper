@@ -1,0 +1,61 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+dist/
+build/
+
+# Environment
+.env
+*.env
+venv/
+.venv/
+
+# Vector databases (large, regenerable)
+chroma_db/
+*.chroma
+
+# Scratch directories (entity sandboxes - ephemeral by design)
+nexus/scratch/
+
+# Session logs and transient data
+sessions/
+saved_sessions/
+sessions_backup_*/
+session_logs/
+*_session_logs/
+logs/
+
+# Memory backups (large snapshots)
+memorybackup_*/
+
+# Temp files
+nul
+*.tmp
+*.bak
+pip
+
+# Media test files
+test.mp3
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude Code
+.claude/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Godot build artifacts
+godot-ui/.godot/
+godot-ui/export/
+*.import
+
+# Screenshots (transient)
+screenshot.png

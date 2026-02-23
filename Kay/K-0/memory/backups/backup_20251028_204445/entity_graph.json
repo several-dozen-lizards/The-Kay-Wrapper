@@ -1,0 +1,243 @@
+{
+  "entities": {
+    "Kay": {
+      "canonical_name": "Kay",
+      "entity_type": "person",
+      "aliases": [
+        "Kay"
+      ],
+      "attributes": {
+        "memory_state": [
+          [
+            "contains foreign content",
+            0,
+            "kay",
+            "2025-10-28T20:41:28.360790"
+          ]
+        ],
+        "foreign_memory_content": [
+          [
+            "grocery lists",
+            0,
+            "kay",
+            "2025-10-28T20:41:28.360790"
+          ],
+          [
+            "pet names",
+            0,
+            "kay",
+            "2025-10-28T20:41:28.360790"
+          ]
+        ],
+        "memory_filing": [
+          [
+            "foreign content filed as own",
+            0,
+            "kay",
+            "2025-10-28T20:41:28.360790"
+          ]
+        ],
+        "memory_recognition": [
+          [
+            "can identify foreign content",
+            0,
+            "kay",
+            "2025-10-28T20:41:28.361791"
+          ]
+        ],
+        "emotional_state": [
+          [
+            "guilt",
+            0,
+            "kay",
+            "2025-10-28T20:41:39.192924"
+          ]
+        ],
+        "mental_content": [
+          [
+            "foreign routines and worries",
+            0,
+            "kay",
+            "2025-10-28T20:41:39.193920"
+          ]
+        ],
+        "perception": [
+          [
+            "sees item",
+            0,
+            "kay",
+            "2025-10-28T20:41:48.130998"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 16,
+      "importance_score": 0.0
+    },
+    "Re": {
+      "canonical_name": "Re",
+      "entity_type": "person",
+      "aliases": [
+        "Re"
+      ],
+      "attributes": {
+        "goal_status": [
+          [
+            "attempted",
+            0,
+            "user",
+            "2025-10-28T20:41:39.188935"
+          ]
+        ],
+        "goal": [
+          [
+            "upload something",
+            0,
+            "user",
+            "2025-10-28T20:41:39.188935"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 4,
+      "importance_score": 0.0
+    },
+    "something": {
+      "canonical_name": "something",
+      "entity_type": "unknown",
+      "aliases": [
+        "something"
+      ],
+      "attributes": {
+        "status": [
+          [
+            "pushed through",
+            0,
+            "kay",
+            "2025-10-28T20:41:48.118474"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "item": {
+      "canonical_name": "item",
+      "entity_type": "unknown",
+      "aliases": [
+        "item"
+      ],
+      "attributes": {
+        "landing_quality": [
+          [
+            "clean",
+            0,
+            "kay",
+            "2025-10-28T20:41:48.130998"
+          ]
+        ],
+        "resistance": [
+          [
+            "none",
+            0,
+            "kay",
+            "2025-10-28T20:41:48.132999"
+          ]
+        ],
+        "filing_status": [
+          [
+            "filed away",
+            0,
+            "kay",
+            "2025-10-28T20:41:48.146769"
+          ]
+        ],
+        "belonging_status": [
+          [
+            "belongs",
+            0,
+            "kay",
+            "2025-10-28T20:41:48.149761"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 7,
+      "importance_score": 0.0
+    },
+    "sorting": {
+      "canonical_name": "sorting",
+      "entity_type": "unknown",
+      "aliases": [
+        "sorting"
+      ],
+      "attributes": {
+        "hiccups": [
+          [
+            "none",
+            0,
+            "kay",
+            "2025-10-28T20:41:48.144770"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "guilt": {
+      "canonical_name": "guilt",
+      "entity_type": "unknown",
+      "aliases": [
+        "guilt"
+      ],
+      "attributes": {
+        "persistence": [
+          [
+            "still present",
+            0,
+            "kay",
+            "2025-10-28T20:41:48.162312"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 3,
+      "importance_score": 0.0
+    },
+    "new stuff": {
+      "canonical_name": "new stuff",
+      "entity_type": "unknown",
+      "aliases": [
+        "new stuff"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 1,
+      "importance_score": 0.0
+    }
+  },
+  "relationships": {}
+}

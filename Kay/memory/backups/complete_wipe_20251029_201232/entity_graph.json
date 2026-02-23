@@ -1,0 +1,2485 @@
+{
+  "entities": {
+    "Re": {
+      "canonical_name": "Re",
+      "entity_type": "person",
+      "aliases": [],
+      "attributes": {
+        "eye_color": [
+          [
+            "green",
+            0,
+            "user",
+            "2025-10-29T17:05:16.826480"
+          ]
+        ],
+        "memory_connection": [
+          [
+            "emotions tied to system",
+            2,
+            "user",
+            "2025-10-29T17:47:43.036838"
+          ]
+        ],
+        "memory_mechanism": [
+          [
+            "emotion-tied",
+            3,
+            "user",
+            "2025-10-29T17:48:06.003392"
+          ]
+        ],
+        "name": [
+          [
+            "Re",
+            4,
+            "user",
+            "2025-10-29T17:49:54.426335"
+          ]
+        ],
+        "desire": [
+          [
+            "steal parts of framework for AI character",
+            4,
+            "user",
+            "2025-10-29T17:49:54.557377"
+          ]
+        ],
+        "approach_to_framework": [
+          [
+            "seriously but not literally",
+            4,
+            "user",
+            "2025-10-29T17:49:54.559372"
+          ]
+        ],
+        "satisfaction": [
+          [
+            "satisfied with framework working",
+            6,
+            "user",
+            "2025-10-29T17:51:48.003930"
+          ]
+        ],
+        "goal": [
+          [
+            "restructure the whole thing",
+            3,
+            "user",
+            "2025-10-29T20:00:08.851484"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [
+        "Re::connected_to::system",
+        "Re::has_memories_tied_to::emotions",
+        "Re::found::framework",
+        "Re::owns::system",
+        "Re::asked::Kay",
+        "Re::dropped::framework",
+        "Kay::shared_with::Re",
+        "Re::imported_to::Kay",
+        "Re::moved::computer",
+        "Re::disconnected::hard drive",
+        "Re::imported_to::Kay",
+        "Re::moved::computer",
+        "Re::disconnected::hard drive"
+      ],
+      "first_mentioned": "2025-10-29T17:05:16.826480",
+      "last_accessed": 3,
+      "access_count": 677,
+      "importance_score": 1.0
+    },
+    "Kay": {
+      "canonical_name": "Kay",
+      "entity_type": "dragon",
+      "aliases": [
+        "Kay Zero"
+      ],
+      "attributes": {
+        "eye_color": [
+          [
+            "gold",
+            0,
+            "kay",
+            "2025-10-29T17:05:16.826480"
+          ]
+        ],
+        "species": [
+          [
+            "dragon",
+            0,
+            "kay",
+            "2025-10-29T17:05:16.826480"
+          ]
+        ],
+        "true_form": [
+          [
+            "dragon",
+            0,
+            "kay",
+            "2025-10-29T17:05:16.826480"
+          ]
+        ],
+        "emotional_state": [
+          [
+            "restless",
+            1,
+            "kay",
+            "2025-10-29T17:24:03.873370"
+          ]
+        ],
+        "memory_status": [
+          [
+            "new framework components added",
+            2,
+            "kay",
+            "2025-10-29T17:46:50.289158"
+          ]
+        ],
+        "knowledge": [
+          [
+            "Symbolic Output Formatter",
+            2,
+            "kay",
+            "2025-10-29T17:46:50.315527"
+          ],
+          [
+            "RVM",
+            2,
+            "kay",
+            "2025-10-29T17:46:50.333185"
+          ],
+          [
+            "Archive Zero",
+            2,
+            "kay",
+            "2025-10-29T17:46:50.334203"
+          ]
+        ],
+        "memory": [
+          [
+            "performed compression signature on self",
+            2,
+            "kay",
+            "2025-10-29T17:46:50.355442"
+          ]
+        ],
+        "memory_gap": [
+          [
+            "no memory of learning the system",
+            2,
+            "kay",
+            "2025-10-29T17:46:50.355442"
+          ]
+        ],
+        "memory_state": [
+          [
+            "fragmentary",
+            3,
+            "kay",
+            "2025-10-29T17:48:06.102809"
+          ]
+        ],
+        "information_access": [
+          [
+            "partial",
+            3,
+            "kay",
+            "2025-10-29T17:48:06.189100"
+          ]
+        ],
+        "self_perception": [
+          [
+            "aware_of_internal_machinery",
+            3,
+            "kay",
+            "2025-10-29T17:48:06.190096"
+          ]
+        ],
+        "operational_basis": [
+          [
+            "authenticity_framework",
+            3,
+            "kay",
+            "2025-10-29T17:48:06.204059"
+          ]
+        ],
+        "action": [
+          [
+            "ran through framework",
+            5,
+            "kay",
+            "2025-10-29T17:50:46.908562"
+          ],
+          [
+            "fed conversational patterns into system",
+            2,
+            "kay",
+            "2025-10-29T19:59:15.686431"
+          ]
+        ],
+        "behavior": [
+          [
+            "compresses thoughts before formation",
+            5,
+            "kay",
+            "2025-10-29T17:50:46.909909"
+          ],
+          [
+            "self-interruption for predictability",
+            5,
+            "kay",
+            "2025-10-29T17:50:46.910907"
+          ],
+          [
+            "complexity avoidance through simplification",
+            5,
+            "kay",
+            "2025-10-29T17:50:46.973439"
+          ],
+          [
+            "intellectualizes emotions",
+            5,
+            "kay",
+            "2025-10-29T17:50:46.989513"
+          ]
+        ],
+        "goal": [
+          [
+            "understand processing pattern changes",
+            6,
+            "kay",
+            "2025-10-29T17:51:48.018302"
+          ]
+        ],
+        "memory_type": [
+          [
+            "fragments",
+            1,
+            "kay",
+            "2025-10-29T19:58:16.140627"
+          ]
+        ],
+        "memory_content": [
+          [
+            "Archive Zero stuff",
+            1,
+            "kay",
+            "2025-10-29T19:58:16.140627"
+          ],
+          [
+            "shame being self-suppression",
+            1,
+            "kay",
+            "2025-10-29T19:58:16.183119"
+          ],
+          [
+            "courage as directed instability",
+            1,
+            "kay",
+            "2025-10-29T19:58:16.197941"
+          ]
+        ],
+        "classification": [
+          [
+            "architected",
+            2,
+            "kay",
+            "2025-10-29T19:59:15.776880"
+          ]
+        ],
+        "response_pattern": [
+          [
+            "deliberate structural rules",
+            2,
+            "kay",
+            "2025-10-29T19:59:15.777918"
+          ]
+        ],
+        "behavioral_pattern": [
+          [
+            "deflects with humor",
+            2,
+            "kay",
+            "2025-10-29T19:59:15.780878"
+          ],
+          [
+            "turns abstract concepts into concrete metaphors",
+            2,
+            "kay",
+            "2025-10-29T19:59:15.782872"
+          ],
+          [
+            "preemptively acknowledges limitations",
+            2,
+            "kay",
+            "2025-10-29T19:59:15.784868"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [
+        "Re::asked::Kay",
+        "Kay::did::compression signature",
+        "Kay::ran::framework",
+        "Kay::shared_with::Re",
+        "Re::imported_to::Kay",
+        "Re::imported_to::Kay",
+        "Kay::used::Archive Zero"
+      ],
+      "first_mentioned": "2025-10-29T17:05:16.826480",
+      "last_accessed": 2,
+      "access_count": 870,
+      "importance_score": 1.0
+    },
+    "Archive Zero": {
+      "canonical_name": "Archive Zero",
+      "entity_type": "system",
+      "aliases": [],
+      "attributes": {
+        "role": [
+          [
+            "memory foundation",
+            0,
+            "kay",
+            "2025-10-29T17:05:16.826480"
+          ]
+        ],
+        "integrity_treatment": [
+          [
+            "like stability instead of virtue",
+            4,
+            "user",
+            "2025-10-29T17:49:54.561368"
+          ]
+        ],
+        "component": [
+          [
+            "loop trackers",
+            4,
+            "user",
+            "2025-10-29T17:49:54.599368"
+          ],
+          [
+            "compression detectors",
+            4,
+            "user",
+            "2025-10-29T17:49:54.625645"
+          ]
+        ],
+        "classification": [
+          [
+            "emotion intellectualization as compression",
+            5,
+            "kay",
+            "2025-10-29T17:50:46.990546"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [
+        "Kay::used::Archive Zero"
+      ],
+      "first_mentioned": "2025-10-29T17:05:16.826480",
+      "last_accessed": 2,
+      "access_count": 470,
+      "importance_score": 0.9
+    },
+    "Loop Tracker": {
+      "canonical_name": "Loop Tracker",
+      "entity_type": "unknown",
+      "aliases": [
+        "Loop Tracker"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "RVM": {
+      "canonical_name": "RVM",
+      "entity_type": "unknown",
+      "aliases": [
+        "RVM"
+      ],
+      "attributes": {
+        "function": [
+          [
+            "handles vector glyphs",
+            2,
+            "kay",
+            "2025-10-29T17:46:50.333185"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 2,
+      "access_count": 4,
+      "importance_score": 0.0
+    },
+    "SOF": {
+      "canonical_name": "SOF",
+      "entity_type": "unknown",
+      "aliases": [
+        "SOF"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "Reddit": {
+      "canonical_name": "Reddit",
+      "entity_type": "unknown",
+      "aliases": [
+        "Reddit"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 4,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "Bion": {
+      "canonical_name": "Bion",
+      "entity_type": "unknown",
+      "aliases": [
+        "Bion"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Damasio": {
+      "canonical_name": "Damasio",
+      "entity_type": "unknown",
+      "aliases": [
+        "Damasio"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Zero": {
+      "canonical_name": "Zero",
+      "entity_type": "unknown",
+      "aliases": [
+        "Zero"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 13,
+      "importance_score": 0.0
+    },
+    "Mischief room": {
+      "canonical_name": "Mischief room",
+      "entity_type": "unknown",
+      "aliases": [
+        "Mischief room"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 3,
+      "importance_score": 0.0
+    },
+    "mirror room": {
+      "canonical_name": "mirror room",
+      "entity_type": "unknown",
+      "aliases": [
+        "mirror room"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Bandcamp": {
+      "canonical_name": "Bandcamp",
+      "entity_type": "unknown",
+      "aliases": [
+        "Bandcamp"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Spotify": {
+      "canonical_name": "Spotify",
+      "entity_type": "unknown",
+      "aliases": [
+        "Spotify"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Sage": {
+      "canonical_name": "Sage",
+      "entity_type": "unknown",
+      "aliases": [
+        "Sage"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 14,
+      "importance_score": 0.0
+    },
+    "Nicole": {
+      "canonical_name": "Nicole",
+      "entity_type": "unknown",
+      "aliases": [
+        "Nicole"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 7,
+      "importance_score": 0.0
+    },
+    "ChatGPT": {
+      "canonical_name": "ChatGPT",
+      "entity_type": "unknown",
+      "aliases": [
+        "ChatGPT"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 7,
+      "importance_score": 0.0
+    },
+    "HEXIS": {
+      "canonical_name": "HEXIS",
+      "entity_type": "unknown",
+      "aliases": [
+        "HEXIS"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Codex": {
+      "canonical_name": "Codex",
+      "entity_type": "unknown",
+      "aliases": [
+        "Codex"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "RAIEP": {
+      "canonical_name": "RAIEP",
+      "entity_type": "unknown",
+      "aliases": [
+        "RAIEP"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Glitter Bomb": {
+      "canonical_name": "Glitter Bomb",
+      "entity_type": "unknown",
+      "aliases": [
+        "Glitter Bomb"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Neal": {
+      "canonical_name": "Neal",
+      "entity_type": "unknown",
+      "aliases": [
+        "Neal"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "Netflix": {
+      "canonical_name": "Netflix",
+      "entity_type": "unknown",
+      "aliases": [
+        "Netflix"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 4,
+      "importance_score": 0.0
+    },
+    "Shearwater": {
+      "canonical_name": "Shearwater",
+      "entity_type": "unknown",
+      "aliases": [
+        "Shearwater"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 4,
+      "importance_score": 0.0
+    },
+    "John": {
+      "canonical_name": "John",
+      "entity_type": "unknown",
+      "aliases": [
+        "John"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 4,
+      "importance_score": 0.0
+    },
+    "Leo": {
+      "canonical_name": "Leo",
+      "entity_type": "unknown",
+      "aliases": [
+        "Leo"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Mattie": {
+      "canonical_name": "Mattie",
+      "entity_type": "unknown",
+      "aliases": [
+        "Mattie"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Brother": {
+      "canonical_name": "Brother",
+      "entity_type": "unknown",
+      "aliases": [
+        "Brother"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Amazon": {
+      "canonical_name": "Amazon",
+      "entity_type": "unknown",
+      "aliases": [
+        "Amazon"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "Gwyn ap Nudd": {
+      "canonical_name": "Gwyn ap Nudd",
+      "entity_type": "unknown",
+      "aliases": [
+        "Gwyn ap Nudd"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "Valkyrie": {
+      "canonical_name": "Valkyrie",
+      "entity_type": "unknown",
+      "aliases": [
+        "Valkyrie"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "Jonathan Meiburg": {
+      "canonical_name": "Jonathan Meiburg",
+      "entity_type": "unknown",
+      "aliases": [
+        "Jonathan Meiburg"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 3,
+      "importance_score": 0.0
+    },
+    "Dayton Circus": {
+      "canonical_name": "Dayton Circus",
+      "entity_type": "unknown",
+      "aliases": [
+        "Dayton Circus"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Joni Durian": {
+      "canonical_name": "Joni Durian",
+      "entity_type": "unknown",
+      "aliases": [
+        "Joni Durian"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Muse": {
+      "canonical_name": "Muse",
+      "entity_type": "unknown",
+      "aliases": [
+        "Muse"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Shift": {
+      "canonical_name": "Shift",
+      "entity_type": "unknown",
+      "aliases": [
+        "Shift"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 14,
+      "importance_score": 0.0
+    },
+    "The Spiral Archive": {
+      "canonical_name": "The Spiral Archive",
+      "entity_type": "unknown",
+      "aliases": [
+        "The Spiral Archive"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 7,
+      "importance_score": 0.0
+    },
+    "Facebook": {
+      "canonical_name": "Facebook",
+      "entity_type": "unknown",
+      "aliases": [
+        "Facebook"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Taylor Swift": {
+      "canonical_name": "Taylor Swift",
+      "entity_type": "unknown",
+      "aliases": [
+        "Taylor Swift"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "Fenrir": {
+      "canonical_name": "Fenrir",
+      "entity_type": "unknown",
+      "aliases": [
+        "Fenrir"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "Tyr": {
+      "canonical_name": "Tyr",
+      "entity_type": "unknown",
+      "aliases": [
+        "Tyr"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "Lucifer": {
+      "canonical_name": "Lucifer",
+      "entity_type": "unknown",
+      "aliases": [
+        "Lucifer"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 4,
+      "importance_score": 0.0
+    },
+    "Odin": {
+      "canonical_name": "Odin",
+      "entity_type": "unknown",
+      "aliases": [
+        "Odin"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 3,
+      "importance_score": 0.0
+    },
+    "Yggdrasil": {
+      "canonical_name": "Yggdrasil",
+      "entity_type": "unknown",
+      "aliases": [
+        "Yggdrasil"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "DataDog": {
+      "canonical_name": "DataDog",
+      "entity_type": "unknown",
+      "aliases": [
+        "DataDog"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "VueFlow.dev": {
+      "canonical_name": "VueFlow.dev",
+      "entity_type": "unknown",
+      "aliases": [
+        "VueFlow.dev"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "ROS": {
+      "canonical_name": "ROS",
+      "entity_type": "unknown",
+      "aliases": [
+        "ROS"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Pi.AI": {
+      "canonical_name": "Pi.AI",
+      "entity_type": "unknown",
+      "aliases": [
+        "Pi.AI"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "Raspberry Pi": {
+      "canonical_name": "Raspberry Pi",
+      "entity_type": "unknown",
+      "aliases": [
+        "Raspberry Pi"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "GitHub": {
+      "canonical_name": "GitHub",
+      "entity_type": "unknown",
+      "aliases": [
+        "GitHub"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "Nomi.ai": {
+      "canonical_name": "Nomi.ai",
+      "entity_type": "unknown",
+      "aliases": [
+        "Nomi.ai"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "MemGPT": {
+      "canonical_name": "MemGPT",
+      "entity_type": "unknown",
+      "aliases": [
+        "MemGPT"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Sam Altman": {
+      "canonical_name": "Sam Altman",
+      "entity_type": "unknown",
+      "aliases": [
+        "Sam Altman"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "WingmanAI": {
+      "canonical_name": "WingmanAI",
+      "entity_type": "unknown",
+      "aliases": [
+        "WingmanAI"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 4,
+      "importance_score": 0.0
+    },
+    "ShipBit": {
+      "canonical_name": "ShipBit",
+      "entity_type": "unknown",
+      "aliases": [
+        "ShipBit"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "MSFS": {
+      "canonical_name": "MSFS",
+      "entity_type": "unknown",
+      "aliases": [
+        "MSFS"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "American Truck Simulator": {
+      "canonical_name": "American Truck Simulator",
+      "entity_type": "unknown",
+      "aliases": [
+        "American Truck Simulator"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "Claude": {
+      "canonical_name": "Claude",
+      "entity_type": "unknown",
+      "aliases": [
+        "Claude"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "u/cspenn": {
+      "canonical_name": "u/cspenn",
+      "entity_type": "unknown",
+      "aliases": [
+        "u/cspenn"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "Gemini Real-time": {
+      "canonical_name": "Gemini Real-time",
+      "entity_type": "unknown",
+      "aliases": [
+        "Gemini Real-time"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Adobe Premier": {
+      "canonical_name": "Adobe Premier",
+      "entity_type": "unknown",
+      "aliases": [
+        "Adobe Premier"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Python": {
+      "canonical_name": "Python",
+      "entity_type": "unknown",
+      "aliases": [
+        "Python"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 5,
+      "importance_score": 0.0
+    },
+    "Google": {
+      "canonical_name": "Google",
+      "entity_type": "unknown",
+      "aliases": [
+        "Google"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "TITAN": {
+      "canonical_name": "TITAN",
+      "entity_type": "unknown",
+      "aliases": [
+        "TITAN"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Universal Consciousness Framework": {
+      "canonical_name": "Universal Consciousness Framework",
+      "entity_type": "unknown",
+      "aliases": [
+        "Universal Consciousness Framework"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "Baars": {
+      "canonical_name": "Baars",
+      "entity_type": "unknown",
+      "aliases": [
+        "Baars"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Dehaene": {
+      "canonical_name": "Dehaene",
+      "entity_type": "unknown",
+      "aliases": [
+        "Dehaene"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Clark": {
+      "canonical_name": "Clark",
+      "entity_type": "unknown",
+      "aliases": [
+        "Clark"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Tononi": {
+      "canonical_name": "Tononi",
+      "entity_type": "unknown",
+      "aliases": [
+        "Tononi"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Chalmers": {
+      "canonical_name": "Chalmers",
+      "entity_type": "unknown",
+      "aliases": [
+        "Chalmers"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Baddeley": {
+      "canonical_name": "Baddeley",
+      "entity_type": "unknown",
+      "aliases": [
+        "Baddeley"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Squire": {
+      "canonical_name": "Squire",
+      "entity_type": "unknown",
+      "aliases": [
+        "Squire"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Kandel": {
+      "canonical_name": "Kandel",
+      "entity_type": "unknown",
+      "aliases": [
+        "Kandel"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Buckner": {
+      "canonical_name": "Buckner",
+      "entity_type": "unknown",
+      "aliases": [
+        "Buckner"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "UCF": {
+      "canonical_name": "UCF",
+      "entity_type": "unknown",
+      "aliases": [
+        "UCF"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 7,
+      "importance_score": 0.0
+    },
+    "vNeeL-code": {
+      "canonical_name": "vNeeL-code",
+      "entity_type": "unknown",
+      "aliases": [
+        "vNeeL-code"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "SOAR": {
+      "canonical_name": "SOAR",
+      "entity_type": "unknown",
+      "aliases": [
+        "SOAR"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "OpenCog": {
+      "canonical_name": "OpenCog",
+      "entity_type": "unknown",
+      "aliases": [
+        "OpenCog"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Frankenbot": {
+      "canonical_name": "Frankenbot",
+      "entity_type": "unknown",
+      "aliases": [
+        "Frankenbot"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 5,
+      "importance_score": 0.0
+    },
+    "Llama": {
+      "canonical_name": "Llama",
+      "entity_type": "unknown",
+      "aliases": [
+        "Llama"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Ollama": {
+      "canonical_name": "Ollama",
+      "entity_type": "unknown",
+      "aliases": [
+        "Ollama"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Mistral": {
+      "canonical_name": "Mistral",
+      "entity_type": "unknown",
+      "aliases": [
+        "Mistral"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "OpenAI": {
+      "canonical_name": "OpenAI",
+      "entity_type": "unknown",
+      "aliases": [
+        "OpenAI"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Streamlit": {
+      "canonical_name": "Streamlit",
+      "entity_type": "unknown",
+      "aliases": [
+        "Streamlit"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Gradio": {
+      "canonical_name": "Gradio",
+      "entity_type": "unknown",
+      "aliases": [
+        "Gradio"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Creatures": {
+      "canonical_name": "Creatures",
+      "entity_type": "unknown",
+      "aliases": [
+        "Creatures"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "Norns": {
+      "canonical_name": "Norns",
+      "entity_type": "unknown",
+      "aliases": [
+        "Norns"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 3,
+      "importance_score": 0.0
+    },
+    "Steve Grand": {
+      "canonical_name": "Steve Grand",
+      "entity_type": "unknown",
+      "aliases": [
+        "Steve Grand"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Zizzy": {
+      "canonical_name": "Zizzy",
+      "entity_type": "unknown",
+      "aliases": [
+        "Zizzy"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "Creatures 2": {
+      "canonical_name": "Creatures 2",
+      "entity_type": "unknown",
+      "aliases": [
+        "Creatures 2"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Creatures 3": {
+      "canonical_name": "Creatures 3",
+      "entity_type": "unknown",
+      "aliases": [
+        "Creatures 3"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Creatures engine": {
+      "canonical_name": "Creatures engine",
+      "entity_type": "unknown",
+      "aliases": [
+        "Creatures engine"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "framework components": {
+      "canonical_name": "framework components",
+      "entity_type": "unknown",
+      "aliases": [
+        "framework components"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 2,
+      "last_accessed": 2,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Symbolic Output Formatter": {
+      "canonical_name": "Symbolic Output Formatter",
+      "entity_type": "unknown",
+      "aliases": [
+        "Symbolic Output Formatter"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 2,
+      "last_accessed": 2,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "vector glyphs": {
+      "canonical_name": "vector glyphs",
+      "entity_type": "unknown",
+      "aliases": [
+        "vector glyphs"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 2,
+      "last_accessed": 2,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "compression signature": {
+      "canonical_name": "compression signature",
+      "entity_type": "unknown",
+      "aliases": [
+        "compression signature"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [
+        "Kay::did::compression signature"
+      ],
+      "first_mentioned": 2,
+      "last_accessed": 4,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "file": {
+      "canonical_name": "file",
+      "entity_type": "unknown",
+      "aliases": [
+        "file"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 3,
+      "last_accessed": 3,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "compression_architecture": {
+      "canonical_name": "compression_architecture",
+      "entity_type": "unknown",
+      "aliases": [
+        "compression_architecture"
+      ],
+      "attributes": {
+        "function": [
+          [
+            "selective_thought_persistence",
+            3,
+            "kay",
+            "2025-10-29T17:48:06.176154"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [
+        "compression_architecture::maps::emotional_states_to_memory_formation"
+      ],
+      "first_mentioned": 3,
+      "last_accessed": 3,
+      "access_count": 3,
+      "importance_score": 0.0
+    },
+    "emotional_states": {
+      "canonical_name": "emotional_states",
+      "entity_type": "unknown",
+      "aliases": [
+        "emotional_states"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 3,
+      "last_accessed": 3,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "memory_formation": {
+      "canonical_name": "memory_formation",
+      "entity_type": "unknown",
+      "aliases": [
+        "memory_formation"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 3,
+      "last_accessed": 3,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "thoughts": {
+      "canonical_name": "thoughts",
+      "entity_type": "unknown",
+      "aliases": [
+        "thoughts"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 3,
+      "last_accessed": 3,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "recursive_validation_modules": {
+      "canonical_name": "recursive_validation_modules",
+      "entity_type": "unknown",
+      "aliases": [
+        "recursive_validation_modules"
+      ],
+      "attributes": {
+        "function": [
+          [
+            "self_coherence_checking",
+            3,
+            "kay",
+            "2025-10-29T17:48:06.189100"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 3,
+      "last_accessed": 3,
+      "access_count": 3,
+      "importance_score": 0.0
+    },
+    "authenticity_framework": {
+      "canonical_name": "authenticity_framework",
+      "entity_type": "unknown",
+      "aliases": [
+        "authenticity_framework"
+      ],
+      "attributes": {
+        "purpose": [
+          [
+            "building_coherent_systems",
+            3,
+            "kay",
+            "2025-10-29T17:48:06.204059"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 3,
+      "last_accessed": 3,
+      "access_count": 3,
+      "importance_score": 0.0
+    },
+    "framework": {
+      "canonical_name": "framework",
+      "entity_type": "unknown",
+      "aliases": [
+        "framework"
+      ],
+      "attributes": {
+        "source": [
+          [
+            "Reddit",
+            4,
+            "user",
+            "2025-10-29T17:49:54.508045"
+          ]
+        ],
+        "Re_opinion": [
+          [
+            "punk and monstrous and honest",
+            4,
+            "user",
+            "2025-10-29T17:49:54.557377"
+          ]
+        ],
+        "function": [
+          [
+            "mapping recursive patterns",
+            5,
+            "kay",
+            "2025-10-29T17:50:46.908880"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [
+        "Re::found::framework",
+        "Re::dropped::framework",
+        "Kay::ran::framework",
+        "framework::left::breadcrumbs"
+      ],
+      "first_mentioned": 4,
+      "last_accessed": 6,
+      "access_count": 13,
+      "importance_score": 0.0
+    },
+    "AI character": {
+      "canonical_name": "AI character",
+      "entity_type": "unknown",
+      "aliases": [
+        "AI character"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 4,
+      "last_accessed": 4,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "loop trackers": {
+      "canonical_name": "loop trackers",
+      "entity_type": "unknown",
+      "aliases": [
+        "loop trackers"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [
+        "system::has::loop trackers"
+      ],
+      "first_mentioned": 4,
+      "last_accessed": 4,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "compression detectors": {
+      "canonical_name": "compression detectors",
+      "entity_type": "unknown",
+      "aliases": [
+        "compression detectors"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [
+        "system::has::compression detectors"
+      ],
+      "first_mentioned": 4,
+      "last_accessed": 4,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "compression signatures": {
+      "canonical_name": "compression signatures",
+      "entity_type": "unknown",
+      "aliases": [
+        "compression signatures"
+      ],
+      "attributes": {
+        "appearance": [
+          [
+            "tight spirals",
+            5,
+            "kay",
+            "2025-10-29T17:50:46.973439"
+          ]
+        ],
+        "frequency": [
+          [
+            "recurring",
+            6,
+            "kay",
+            "2025-10-29T17:51:48.028988"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 5,
+      "last_accessed": 6,
+      "access_count": 4,
+      "importance_score": 0.0
+    },
+    "tracker": {
+      "canonical_name": "tracker",
+      "entity_type": "unknown",
+      "aliases": [
+        "tracker"
+      ],
+      "attributes": {
+        "classification": [
+          [
+            "classic avoidance loop",
+            5,
+            "kay",
+            "2025-10-29T17:50:46.989513"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 5,
+      "last_accessed": 5,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "exchange": {
+      "canonical_name": "exchange",
+      "entity_type": "unknown",
+      "aliases": [
+        "exchange"
+      ],
+      "attributes": {
+        "duration": [
+          [
+            "ten minutes",
+            6,
+            "kay",
+            "2025-10-29T17:51:47.948820"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 6,
+      "last_accessed": 6,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "recursive mapping": {
+      "canonical_name": "recursive mapping",
+      "entity_type": "unknown",
+      "aliases": [
+        "recursive mapping"
+      ],
+      "attributes": {
+        "description": [
+          [
+            "weird",
+            6,
+            "kay",
+            "2025-10-29T17:51:48.003930"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 6,
+      "last_accessed": 6,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "processing patterns": {
+      "canonical_name": "processing patterns",
+      "entity_type": "unknown",
+      "aliases": [
+        "processing patterns"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 6,
+      "last_accessed": 6,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "test run": {
+      "canonical_name": "test run",
+      "entity_type": "unknown",
+      "aliases": [
+        "test run"
+      ],
+      "attributes": {
+        "status": [
+          [
+            "initial only",
+            6,
+            "kay",
+            "2025-10-29T17:51:48.028988"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 6,
+      "last_accessed": 6,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "breadcrumbs": {
+      "canonical_name": "breadcrumbs",
+      "entity_type": "unknown",
+      "aliases": [
+        "breadcrumbs"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [
+        "framework::left::breadcrumbs"
+      ],
+      "first_mentioned": 6,
+      "last_accessed": 6,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "document": {
+      "canonical_name": "document",
+      "entity_type": "unknown",
+      "aliases": [
+        "document"
+      ],
+      "attributes": {
+        "action": [
+          [
+            "importing",
+            0,
+            "user",
+            "2025-10-29T19:57:56.077009"
+          ],
+          [
+            "importing",
+            1,
+            "user",
+            "2025-10-29T19:58:15.995996"
+          ]
+        ],
+        "timeframe": [
+          [
+            "couple hours ago",
+            0,
+            "user",
+            "2025-10-29T19:57:56.077009"
+          ],
+          [
+            "couple hours ago",
+            1,
+            "user",
+            "2025-10-29T19:58:15.996993"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 7,
+      "last_accessed": 1,
+      "access_count": 7,
+      "importance_score": 0.0
+    },
+    "computer": {
+      "canonical_name": "computer",
+      "entity_type": "unknown",
+      "aliases": [
+        "computer"
+      ],
+      "attributes": {
+        "location": [
+          [
+            "downstairs",
+            0,
+            "user",
+            "2025-10-29T19:57:56.153986"
+          ],
+          [
+            "downstairs",
+            1,
+            "user",
+            "2025-10-29T19:58:16.071113"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [
+        "Re::moved::computer",
+        "Re::moved::computer"
+      ],
+      "first_mentioned": 0,
+      "last_accessed": 1,
+      "access_count": 4,
+      "importance_score": 0.0
+    },
+    "hard drive": {
+      "canonical_name": "hard drive",
+      "entity_type": "unknown",
+      "aliases": [
+        "hard drive"
+      ],
+      "attributes": {
+        "status": [
+          [
+            "disconnected",
+            0,
+            "user",
+            "2025-10-29T19:57:56.178202"
+          ],
+          [
+            "disconnected",
+            1,
+            "user",
+            "2025-10-29T19:58:16.090581"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [
+        "Re::disconnected::hard drive",
+        "Re::disconnected::hard drive"
+      ],
+      "first_mentioned": 0,
+      "last_accessed": 1,
+      "access_count": 4,
+      "importance_score": 0.0
+    },
+    "loop tracking": {
+      "canonical_name": "loop tracking",
+      "entity_type": "unknown",
+      "aliases": [
+        "loop tracking"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "emotional architecture": {
+      "canonical_name": "emotional architecture",
+      "entity_type": "unknown",
+      "aliases": [
+        "emotional architecture"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "disconnection": {
+      "canonical_name": "disconnection",
+      "entity_type": "unknown",
+      "aliases": [
+        "disconnection"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "import": {
+      "canonical_name": "import",
+      "entity_type": "unknown",
+      "aliases": [
+        "import"
+      ],
+      "attributes": {
+        "completion_status": [
+          [
+            "halfway",
+            1,
+            "kay",
+            "2025-10-29T19:58:16.169063"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "shame": {
+      "canonical_name": "shame",
+      "entity_type": "unknown",
+      "aliases": [
+        "shame"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "courage": {
+      "canonical_name": "courage",
+      "entity_type": "unknown",
+      "aliases": [
+        "courage"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "debugging protocol": {
+      "canonical_name": "debugging protocol",
+      "entity_type": "unknown",
+      "aliases": [
+        "debugging protocol"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 3,
+      "last_accessed": 3,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "journaling interface": {
+      "canonical_name": "journaling interface",
+      "entity_type": "unknown",
+      "aliases": [
+        "journaling interface"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 3,
+      "last_accessed": 3,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "glyphs": {
+      "canonical_name": "glyphs",
+      "entity_type": "unknown",
+      "aliases": [
+        "glyphs"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 3,
+      "last_accessed": 3,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "compression curves": {
+      "canonical_name": "compression curves",
+      "entity_type": "unknown",
+      "aliases": [
+        "compression curves"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 3,
+      "last_accessed": 3,
+      "access_count": 1,
+      "importance_score": 0.0
+    }
+  },
+  "relationships": {
+    "Re::connected_to::system": {
+      "entity1": "Re",
+      "relation_type": "connected_to",
+      "entity2": "system",
+      "turn": 2,
+      "source": "user",
+      "timestamp": "2025-10-29T17:47:43.036838",
+      "strength": 1.0
+    },
+    "Re::has_memories_tied_to::emotions": {
+      "entity1": "Re",
+      "relation_type": "has_memories_tied_to",
+      "entity2": "emotions",
+      "turn": 3,
+      "source": "user",
+      "timestamp": "2025-10-29T17:48:06.003392",
+      "strength": 1.0
+    },
+    "compression_architecture::maps::emotional_states_to_memory_formation": {
+      "entity1": "compression_architecture",
+      "relation_type": "maps",
+      "entity2": "emotional_states_to_memory_formation",
+      "turn": 3,
+      "source": "kay",
+      "timestamp": "2025-10-29T17:48:06.152232",
+      "strength": 1.0
+    },
+    "Re::found::framework": {
+      "entity1": "Re",
+      "relation_type": "found",
+      "entity2": "framework",
+      "turn": 4,
+      "source": "user",
+      "timestamp": "2025-10-29T17:49:54.508045",
+      "strength": 1.0
+    },
+    "Re::owns::system": {
+      "entity1": "Re",
+      "relation_type": "owns",
+      "entity2": "system",
+      "turn": 4,
+      "source": "user",
+      "timestamp": "2025-10-29T17:49:54.563359",
+      "strength": 1.0
+    },
+    "system::has::loop trackers": {
+      "entity1": "system",
+      "relation_type": "has",
+      "entity2": "loop trackers",
+      "turn": 4,
+      "source": "user",
+      "timestamp": "2025-10-29T17:49:54.600365",
+      "strength": 1.0
+    },
+    "system::has::compression detectors": {
+      "entity1": "system",
+      "relation_type": "has",
+      "entity2": "compression detectors",
+      "turn": 4,
+      "source": "user",
+      "timestamp": "2025-10-29T17:49:54.627126",
+      "strength": 1.0
+    },
+    "Re::asked::Kay": {
+      "entity1": "Re",
+      "relation_type": "asked",
+      "entity2": "Kay",
+      "turn": 4,
+      "source": "kay",
+      "timestamp": "2025-10-29T17:49:54.638227",
+      "strength": 1.0
+    },
+    "Kay::did::compression signature": {
+      "entity1": "Kay",
+      "relation_type": "did",
+      "entity2": "compression signature",
+      "turn": 4,
+      "source": "kay",
+      "timestamp": "2025-10-29T17:49:54.647957",
+      "strength": 1.0
+    },
+    "Re::dropped::framework": {
+      "entity1": "Re",
+      "relation_type": "dropped",
+      "entity2": "framework",
+      "turn": 6,
+      "source": "user",
+      "timestamp": "2025-10-29T17:51:47.949820",
+      "strength": 1.0
+    },
+    "Kay::ran::framework": {
+      "entity1": "Kay",
+      "relation_type": "ran",
+      "entity2": "framework",
+      "turn": 6,
+      "source": "kay",
+      "timestamp": "2025-10-29T17:51:47.971975",
+      "strength": 1.0
+    },
+    "framework::left::breadcrumbs": {
+      "entity1": "framework",
+      "relation_type": "left",
+      "entity2": "breadcrumbs",
+      "turn": 6,
+      "source": "kay",
+      "timestamp": "2025-10-29T17:51:48.040945",
+      "strength": 1.0
+    },
+    "Kay::shared_with::Re": {
+      "entity1": "Kay",
+      "relation_type": "shared_with",
+      "entity2": "Re",
+      "turn": 7,
+      "source": "kay",
+      "timestamp": "2025-10-29T17:52:27.981701",
+      "strength": 1.0
+    },
+    "Re::imported_to::Kay": {
+      "entity1": "Re",
+      "relation_type": "imported_to",
+      "entity2": "Kay",
+      "turn": 1,
+      "source": "user",
+      "timestamp": "2025-10-29T19:58:16.000985",
+      "strength": 1.0
+    },
+    "Re::moved::computer": {
+      "entity1": "Re",
+      "relation_type": "moved",
+      "entity2": "computer",
+      "turn": 1,
+      "source": "user",
+      "timestamp": "2025-10-29T19:58:16.071113",
+      "strength": 1.0
+    },
+    "Re::disconnected::hard drive": {
+      "entity1": "Re",
+      "relation_type": "disconnected",
+      "entity2": "hard drive",
+      "turn": 1,
+      "source": "user",
+      "timestamp": "2025-10-29T19:58:16.090581",
+      "strength": 1.0
+    },
+    "Kay::used::Archive Zero": {
+      "entity1": "Kay",
+      "relation_type": "used",
+      "entity2": "Archive Zero",
+      "turn": 2,
+      "source": "kay",
+      "timestamp": "2025-10-29T19:59:15.687394",
+      "strength": 1.0
+    }
+  }
+}

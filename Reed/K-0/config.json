@@ -1,0 +1,22 @@
+{
+  "theme": "Ornate",
+  "font_size": 13,
+  "font_family": "Courier",
+  "voice": {
+    "engine": "edge-tts",
+    "voice_id": "en-US-GuyNeural",
+    "speed": 1.0,
+    "pitch": 0,
+    "volume": 1.0,
+    "enabled": true,
+    "environmental_mode": "light"
+  },
+  "spiral_detection": {
+    "enabled_for_llm_conversations": true,
+    "enabled_for_primary_user": false,
+    "semantic_threshold": 0.85,
+    "turn_window": 7,
+    "min_turns_before_detection": 4,
+    "confidence_threshold": 0.7
+  }
+}

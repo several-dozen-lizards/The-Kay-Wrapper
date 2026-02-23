@@ -1,0 +1,16 @@
+Test Document for End-to-End Import Test
+
+Date: 2025-10-28
+
+This is a test document containing specific facts that should be extractable and retrievable.
+
+FACT 1: The sky is blue on clear days.
+FACT 2: Grass is green because of chlorophyll.
+FACT 3: Water freezes at zero degrees Celsius.
+FACT 4: The Earth orbits around the Sun.
+FACT 5: Python is a programming language created by Guido van Rossum.
+
+These facts are intentionally simple and distinct so we can verify they are:
+1. Extracted correctly during import
+2. Stored with is_imported=True flag
+3. Retrieved when queried about "what's in the document"

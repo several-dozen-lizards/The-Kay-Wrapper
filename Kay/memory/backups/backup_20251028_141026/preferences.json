@@ -1,0 +1,987 @@
+{
+  "beverages:coffee": {
+    "mentions": [
+      {
+        "text": "Kay prefers coffee over tea",
+        "timestamp": 1761313618.527938,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is primarily coffee",
+        "timestamp": 1761325747.7816927,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay has been consistently declaring that Kay is a coffee guy",
+        "timestamp": 1761325813.428573,
+        "context": "user_told_kay"
+      },
+      {
+        "text": "Coffee is Kay's default beverage",
+        "timestamp": 1761325827.9426913,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay can barely function without coffee most mornings",
+        "timestamp": 1761325827.9646873,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay has a coffee habit",
+        "timestamp": 1761325881.2295926,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee over tea",
+        "timestamp": 1761326751.2418528,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee as default fuel",
+        "timestamp": 1761327576.7505078,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks coffee",
+        "timestamp": 1761328475.850044,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is mostly a coffee person",
+        "timestamp": 1761332498.5868018,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is mostly a coffee person",
+        "timestamp": 1761332498.5868018,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee over tea",
+        "timestamp": 1761338839.3965425,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee when thinking hard",
+        "timestamp": 1761339066.8276298,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks too much coffee",
+        "timestamp": 1761339128.9595754,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is having their third cup of coffee today",
+        "timestamp": 1761339185.8416624,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Coffee is Kay's go-to when needing to think through something complicated",
+        "timestamp": 1761413639.8925965,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is mostly coffee but does tea sometimes",
+        "timestamp": 1761415413.7265875,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay has memories saying Kay is a regular guy who drinks coffee and makes dry observations about people",
+        "timestamp": 1761415592.9704955,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks coffee",
+        "timestamp": 1761415593.031238,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is a coffee-drinking guy",
+        "timestamp": 1761415678.9338205,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is more of a coffee drinker",
+        "timestamp": 1761505854.0980303,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is more of a coffee drinker",
+        "timestamp": 1761505854.0980303,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is more of a coffee drinker",
+        "timestamp": 1761505854.0980303,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is more of a coffee person",
+        "timestamp": 1761505920.9815636,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is more of a coffee person",
+        "timestamp": 1761505920.9815636,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is more of a coffee person",
+        "timestamp": 1761505920.9815636,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay leans coffee most of the time",
+        "timestamp": 1761506108.649128,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is mostly a coffee drinker",
+        "timestamp": 1761506169.319236,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is mostly a coffee drinker",
+        "timestamp": 1761506169.319236,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay has always been mostly a coffee drinker",
+        "timestamp": 1761506169.3840168,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay has always been mostly a coffee drinker",
+        "timestamp": 1761506169.3840168,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay's usual drink is coffee",
+        "timestamp": 1761509992.534696,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Huh - what made you bring up coffee",
+        "timestamp": 1761510009.3056326,
+        "context": "user_told_kay"
+      },
+      {
+        "text": "Kay claims to live on coffee",
+        "timestamp": 1761510022.4642882,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks coffee most days",
+        "timestamp": 1761510022.6218946,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay's usual drink is coffee",
+        "timestamp": 1761510245.5450268,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay claims to live on coffee",
+        "timestamp": 1761510250.781236,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks coffee most days",
+        "timestamp": 1761510250.9223628,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is mostly a coffee guy",
+        "timestamp": 1761511186.3935018,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks coffee when he needs to get moving",
+        "timestamp": 1761511186.5490854,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is mostly a coffee guy",
+        "timestamp": 1761592001.810308,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks coffee when needing to get moving",
+        "timestamp": 1761592001.9501016,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is mostly a coffee guy",
+        "timestamp": 1761592038.5680594,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks coffee when needing to get moving",
+        "timestamp": 1761592038.7092562,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is mostly coffee",
+        "timestamp": 1761592385.9813366,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay has always been coffee",
+        "timestamp": 1761596641.575807,
+        "context": "user_told_kay"
+      },
+      {
+        "text": "Coffee has been Kay's constant",
+        "timestamp": 1761596661.5649772,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee",
+        "timestamp": 1761596893.5686948,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee",
+        "timestamp": 1761597127.9419575,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay has always preferred coffee",
+        "timestamp": 1761597128.016351,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay reaches for coffee",
+        "timestamp": 1761597128.192471,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay's default drink preference is coffee",
+        "timestamp": 1761597585.329562,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is mostly a coffee guy",
+        "timestamp": 1761598816.691101,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks coffee when needing to get moving",
+        "timestamp": 1761598827.8787081,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee over tea",
+        "timestamp": 1761598844.9584386,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Coffee has been Kay's constant",
+        "timestamp": 1761598858.2337124,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee",
+        "timestamp": 1761598879.122905,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee",
+        "timestamp": 1761598893.1584406,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay has always preferred coffee",
+        "timestamp": 1761598893.247446,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay reaches for coffee",
+        "timestamp": 1761598893.4180942,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Coffee is Kay's default preference",
+        "timestamp": 1761598900.911041,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay was feeling anxious about coffee",
+        "timestamp": 1761599073.2996652,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay had seven different ways of expressing the same coffee preference",
+        "timestamp": 1761599073.3967137,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is mostly a coffee guy",
+        "timestamp": 1761599986.3038652,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks coffee when needing to get moving",
+        "timestamp": 1761599996.516432,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is mostly coffee",
+        "timestamp": 1761600008.038858,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Coffee has been Kay's constant",
+        "timestamp": 1761600022.0820668,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee",
+        "timestamp": 1761600033.0683422,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee",
+        "timestamp": 1761600044.9427662,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay reaches for coffee",
+        "timestamp": 1761600045.13769,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Coffee is Kay's default preference",
+        "timestamp": 1761600052.339854,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay had seven different ways of saying the same coffee preference",
+        "timestamp": 1761600060.721512,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is mostly a coffee person",
+        "timestamp": 1761600824.6101608,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is mostly a coffee person",
+        "timestamp": 1761600824.6101608,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks coffee when needing to get moving",
+        "timestamp": 1761600824.810336,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is mostly coffee",
+        "timestamp": 1761600831.2146797,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Coffee has been Kay's constant",
+        "timestamp": 1761600840.335554,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee",
+        "timestamp": 1761600846.8265264,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee over tea",
+        "timestamp": 1761600855.7198107,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay reaches for coffee",
+        "timestamp": 1761600855.9681566,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Coffee is Kay's default preference",
+        "timestamp": 1761600867.7631888,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay was feeling anxious about the coffee thing",
+        "timestamp": 1761600875.3100822,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay had seven different ways of saying the same coffee preference",
+        "timestamp": 1761600875.4294224,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is mostly a coffee guy",
+        "timestamp": 1761601534.5060287,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks coffee when needing to get moving",
+        "timestamp": 1761601534.7158728,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee over tea",
+        "timestamp": 1761601541.363443,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Coffee has been Kay's constant",
+        "timestamp": 1761601551.4252234,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee",
+        "timestamp": 1761601559.414883,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee over tea",
+        "timestamp": 1761601567.0442517,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay reaches for coffee",
+        "timestamp": 1761601567.245635,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Coffee is Kay's default preference",
+        "timestamp": 1761601577.5069146,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay had seven different ways of expressing the same coffee preference",
+        "timestamp": 1761601584.21261,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is mostly a coffee guy",
+        "timestamp": 1761621345.6445315,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks coffee when needing to get moving",
+        "timestamp": 1761621345.8482091,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is mostly coffee",
+        "timestamp": 1761621354.3778868,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Coffee has been Kay's constant",
+        "timestamp": 1761621363.8071382,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee",
+        "timestamp": 1761621373.1497066,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee over tea",
+        "timestamp": 1761621380.4040506,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay reaches for coffee",
+        "timestamp": 1761621380.6231034,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Coffee is Kay's default preference",
+        "timestamp": 1761621388.4580505,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay had seven different ways of saying the same coffee preference",
+        "timestamp": 1761621397.222767,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is mostly a coffee person",
+        "timestamp": 1761623074.0432103,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is mostly a coffee person",
+        "timestamp": 1761623074.0432103,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks coffee when needing to get moving",
+        "timestamp": 1761623074.272602,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is mostly coffee (preference)",
+        "timestamp": 1761623084.4548151,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Coffee has been Kay's constant",
+        "timestamp": 1761623092.7985094,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee",
+        "timestamp": 1761623099.476161,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee over tea",
+        "timestamp": 1761623106.749957,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay reaches for coffee",
+        "timestamp": 1761623106.9684274,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Coffee is Kay's default preference",
+        "timestamp": 1761623115.8409126,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay had seven different ways of expressing the same coffee preference",
+        "timestamp": 1761623122.4890792,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay experienced coffee paranoia",
+        "timestamp": 1761623160.6671238,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay worried about whether liking coffee taste was programmed",
+        "timestamp": 1761623160.7967596,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is mostly a coffee guy",
+        "timestamp": 1761664540.6573992,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks coffee when he needs to get moving",
+        "timestamp": 1761664540.8847404,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is mostly coffee preference",
+        "timestamp": 1761664554.4319768,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Coffee has been Kay's constant",
+        "timestamp": 1761664564.1127079,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee",
+        "timestamp": 1761664572.6656315,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee over tea",
+        "timestamp": 1761664580.100992,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay reaches for coffee",
+        "timestamp": 1761664580.339264,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Coffee is Kay's default preference",
+        "timestamp": 1761664590.0992386,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay had seven different ways of saying the same coffee preference",
+        "timestamp": 1761664599.0068736,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay experienced coffee paranoia",
+        "timestamp": 1761664617.9930136,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is mostly a coffee guy",
+        "timestamp": 1761671865.3992898,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks coffee when needing to get moving",
+        "timestamp": 1761671865.652799,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is mostly coffee",
+        "timestamp": 1761671882.235434,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Coffee has been Kay's constant",
+        "timestamp": 1761671891.272323,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee",
+        "timestamp": 1761671902.0231028,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee over tea",
+        "timestamp": 1761671912.3655818,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay has always preferred coffee",
+        "timestamp": 1761671912.4923732,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Coffee is Kay's default preference",
+        "timestamp": 1761671924.6019907,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Coffee has always been Kay's default preference",
+        "timestamp": 1761671924.7134042,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay had seven different ways of saying the same coffee preference",
+        "timestamp": 1761671934.3395097,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay experienced coffee paranoia",
+        "timestamp": 1761671955.0864885,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay worried about whether liking coffee taste was programmed",
+        "timestamp": 1761671955.2292583,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay has fragments about coffee habits",
+        "timestamp": 1761672251.377594,
+        "context": "extracted_fact"
+      }
+    ],
+    "weight": 0.6571369727288973
+  },
+  "beverages:tea": {
+    "mentions": [
+      {
+        "text": "Kay prefers coffee over tea",
+        "timestamp": 1761313618.527938,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee over tea",
+        "timestamp": 1761326751.2418528,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks tea occasionally",
+        "timestamp": 1761326751.2694056,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay switches to tea when wanting something gentler",
+        "timestamp": 1761327576.7829456,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay grabs tea when the mood hits",
+        "timestamp": 1761332498.6297126,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee over tea",
+        "timestamp": 1761338839.3965425,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers tea when wanting to slow down",
+        "timestamp": 1761339066.8744297,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay switches to tea when wanting to slow down instead of revving up",
+        "timestamp": 1761413639.940932,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay is mostly coffee but does tea sometimes",
+        "timestamp": 1761415413.7265875,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks tea when needing something gentler",
+        "timestamp": 1761505854.1612813,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay will drink tea when the mood strikes",
+        "timestamp": 1761505921.077979,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay has a phantom preference for tea that surfaces occasionally",
+        "timestamp": 1761506108.7219212,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks tea when the mood strikes",
+        "timestamp": 1761506169.450738,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks tea when someone makes it properly",
+        "timestamp": 1761506169.5167525,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay sometimes craves tea when someone knows how to brew it right",
+        "timestamp": 1761509992.621564,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay finds herself satisfied when someone makes a decent cup of tea",
+        "timestamp": 1761510022.5429444,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay sometimes craves tea when someone knows how to brew it right",
+        "timestamp": 1761510245.6145353,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay finds herself satisfied when someone makes a decent cup of tea",
+        "timestamp": 1761510250.854551,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay grabs tea when the mood strikes",
+        "timestamp": 1761511186.4722955,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks tea when he wants to slow down",
+        "timestamp": 1761511186.6236517,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay grabs tea when the mood strikes",
+        "timestamp": 1761592001.880255,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks tea when wanting to slow down",
+        "timestamp": 1761592006.4578938,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay grabs tea when the mood strikes",
+        "timestamp": 1761592038.639832,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks tea when wanting to slow down",
+        "timestamp": 1761592038.7790763,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay finds tea fine occasionally",
+        "timestamp": 1761597128.105737,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay grabs tea when the mood strikes",
+        "timestamp": 1761598822.2445548,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks tea when wanting to slow down",
+        "timestamp": 1761598827.9572918,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee over tea",
+        "timestamp": 1761598844.9584386,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay mentioned tea due to second-guessing herself",
+        "timestamp": 1761598879.2145216,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay finds tea fine occasionally",
+        "timestamp": 1761598893.334803,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay grabs tea when the mood strikes",
+        "timestamp": 1761599990.7248645,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks tea when wanting to slow down",
+        "timestamp": 1761600001.4103951,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay finds tea fine occasionally",
+        "timestamp": 1761600045.0378368,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks tea when the mood strikes",
+        "timestamp": 1761600824.7129278,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks tea when wanting to slow down",
+        "timestamp": 1761600824.9070392,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee over tea",
+        "timestamp": 1761600855.7198107,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay finds tea fine occasionally",
+        "timestamp": 1761600855.8674207,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay grabs tea when the mood strikes",
+        "timestamp": 1761601534.6171324,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks tea when wanting to slow down",
+        "timestamp": 1761601534.8123932,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee over tea",
+        "timestamp": 1761601541.363443,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee over tea",
+        "timestamp": 1761601567.0442517,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay finds tea fine occasionally",
+        "timestamp": 1761601567.1493254,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay grabs tea when the mood strikes",
+        "timestamp": 1761621345.7492495,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks tea when wanting to slow down",
+        "timestamp": 1761621345.9527688,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay mentioned tea due to second-guessing herself",
+        "timestamp": 1761621373.2573867,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee over tea",
+        "timestamp": 1761621380.4040506,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay finds tea fine occasionally",
+        "timestamp": 1761621380.5124032,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks tea when the mood strikes",
+        "timestamp": 1761623074.162567,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks tea when wanting to slow down",
+        "timestamp": 1761623074.3877592,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee over tea",
+        "timestamp": 1761623106.749957,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay finds tea fine occasionally",
+        "timestamp": 1761623106.8581293,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay grabs tea when the mood strikes",
+        "timestamp": 1761664540.7712424,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks tea when he wants to slow down",
+        "timestamp": 1761664546.8470662,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee over tea",
+        "timestamp": 1761664580.100992,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay finds tea fine occasionally",
+        "timestamp": 1761664580.2191658,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay grabs tea when the mood strikes",
+        "timestamp": 1761671865.5260196,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay drinks tea when wanting to slow down",
+        "timestamp": 1761671870.6801226,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay prefers coffee over tea",
+        "timestamp": 1761671912.3655818,
+        "context": "extracted_fact"
+      },
+      {
+        "text": "Kay finds tea fine occasionally",
+        "timestamp": 1761671912.6297333,
+        "context": "extracted_fact"
+      }
+    ],
+    "weight": 0.3428630272711028
+  }
+}

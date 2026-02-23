@@ -1,0 +1,36 @@
+{
+  "entity_id": "epitaph_16a21b82",
+  "type": "media_audio",
+  "filepath": "F:/Braindump/2025/Angry Wooden Soldiers/WAVs/Just Hit Generate/Epitaph.wav",
+  "technical_DNA": {
+    "bpm": 123.0,
+    "key": "C",
+    "scale": "major",
+    "danceability": 1.0,
+    "energy": 0.1165,
+    "duration_seconds": 144.92,
+    "vibe_description": "Audio track (CLAP unavailable for vibe description)"
+  },
+  "first_analyzed": "2025-12-01T00:38:45.967336",
+  "resonance_log": [
+    {
+      "timestamp": "2025-12-01T00:38:45.969362",
+      "emotional_weight": 0.49,
+      "kay_state": {
+        "arousal": 0.7,
+        "valence": 0.7,
+        "dominant_emotion": "determination",
+        "active_processes": [
+          "determination",
+          "clarity"
+        ]
+      },
+      "context": {
+        "conversation_topic": "general conversation",
+        "active_entities": [],
+        "re_state": "unknown"
+      },
+      "association_formed": null
+    }
+  ]
+}

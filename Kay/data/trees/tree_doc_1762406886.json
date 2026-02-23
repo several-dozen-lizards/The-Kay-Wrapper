@@ -1,0 +1,52 @@
+{
+  "doc_id": "doc_1762406886",
+  "title": "GPTmemories11-5-2025.txt",
+  "shape_description": "Document with 2 core identity, 9 emotional, 3 relational",
+  "access_count": 0,
+  "last_accessed": null,
+  "branches": [
+    {
+      "title": "Core Identity",
+      "chunk_indices": [
+        5,
+        10
+      ],
+      "glyphs": "\ud83d\udd34",
+      "access_tier": "cold",
+      "access_count": 0,
+      "last_accessed": null
+    },
+    {
+      "title": "Emotional Moments",
+      "chunk_indices": [
+        0,
+        2,
+        3,
+        4,
+        6,
+        7,
+        8,
+        12,
+        13
+      ],
+      "glyphs": "\ud83d\udcab",
+      "access_tier": "cold",
+      "access_count": 0,
+      "last_accessed": null
+    },
+    {
+      "title": "Relationships",
+      "chunk_indices": [
+        1,
+        9,
+        11
+      ],
+      "glyphs": "\ud83e\udd1d",
+      "access_tier": "cold",
+      "access_count": 0,
+      "last_accessed": null
+    }
+  ],
+  "total_chunks": 14,
+  "created_at": "2025-11-06T00:29:10.274554"
+}

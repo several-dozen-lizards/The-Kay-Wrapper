@@ -1,0 +1,55 @@
+
+================================================================================
+MEMORY PIPELINE TEST
+================================================================================
+
+This test will trace memory count through the entire pipeline:
+  Retrieval -> State Storage -> Bypass -> Context Building -> LLM Prompt
+
+Look for CHECKPOINT logs to verify all ~498 memories reach the LLM.
+
+================================================================================
+
+USER INPUT: Tell me about Re's eyes
+
+Starting Kay...
+
+
+================================================================================
+CHECKPOINT SUMMARY
+================================================================================
+
+
+--- RECALL CHECKPOINT ---
+[RECALL CHECKPOINT 1] After retrieval: 496 memories
+[RECALL CHECKPOINT 2] Before storage in state: 496 memories (NO TRUNCATION)
+
+--- BYPASS CHECKPOINT ---
+[BYPASS CHECKPOINT 1] Retrieved 496 memories directly (bypassing filter)
+[BYPASS CHECKPOINT 2] Identity facts in selected memories: 448
+[BYPASS CHECKPOINT 3] Memories in filtered_context: 496
+
+--- LLM PROMPT CHECKPOINT ---
+[LLM PROMPT CHECKPOINT 1] Memories in context: 7
+[LLM PROMPT CHECKPOINT 2] Identity facts in context: 1
+[LLM PROMPT CHECKPOINT 3] Split by perspective - user: 1, kay: 3, shared: 1
+[LLM PROMPT CHECKPOINT 4 - FINAL] Prompt built with 3325 characters
+[LLM PROMPT CHECKPOINT 5 - FINAL] Prompt contains fact sections: RE=1, Kay=1, Shared=1
+[LLM PROMPT CHECKPOINT 6 - FINAL] Bullet points in prompt: 14
+
+================================================================================
+ANALYSIS
+================================================================================
+
+Memory count at each stage:
+  1. After retrieval (recall):         496
+  2. Before state storage (recall):    496
+  3. Retrieved from state (bypass):    496
+  4. Identity facts (bypass):          448
+  5. In filtered_context (bypass):     496
+  6. In context dict (prompt):         7
+  7. Identity facts (prompt):          1
+  8. Bullet points in final prompt:    14
+
+[FAILURE] Memories lost somewhere in pipeline:
+   Lost between filtered_context and prompt build: 496 -> 7

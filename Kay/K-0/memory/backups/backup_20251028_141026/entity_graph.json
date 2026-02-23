@@ -1,0 +1,6371 @@
+{
+  "entities": {
+    "Re": {
+      "canonical_name": "Re",
+      "entity_type": "person",
+      "aliases": [
+        "Re"
+      ],
+      "attributes": {
+        "eye_color": [
+          [
+            "green",
+            0,
+            "user",
+            "2025-10-24T01:04:00.352993"
+          ],
+          [
+            "green",
+            1,
+            "user",
+            "2025-10-24T09:45:50.854754"
+          ],
+          [
+            "green",
+            8,
+            "user",
+            "2025-10-24T13:24:53.945703"
+          ],
+          [
+            "green",
+            8,
+            "user",
+            "2025-10-24T13:25:35.414538"
+          ],
+          [
+            "green",
+            9,
+            "user",
+            "2025-10-24T13:25:50.935625"
+          ],
+          [
+            "green",
+            10,
+            "user",
+            "2025-10-24T13:39:36.649493"
+          ],
+          [
+            "green",
+            14,
+            "user",
+            "2025-10-24T13:57:43.242279"
+          ],
+          [
+            "green",
+            15,
+            "user",
+            "2025-10-24T13:57:53.653951"
+          ],
+          [
+            "green",
+            16,
+            "user",
+            "2025-10-24T13:58:18.904763"
+          ],
+          [
+            "green",
+            19,
+            "user",
+            "2025-10-24T15:15:27.217217"
+          ],
+          [
+            "green",
+            1,
+            "user",
+            "2025-10-25T13:43:17.607160"
+          ],
+          [
+            "green",
+            2,
+            "user",
+            "2025-10-25T13:43:40.281038"
+          ],
+          [
+            "green",
+            6,
+            "user",
+            "2025-10-25T13:55:10.188409"
+          ],
+          [
+            "green",
+            2,
+            "user",
+            "2025-10-26T15:04:37.445840"
+          ],
+          [
+            "green",
+            3,
+            "user",
+            "2025-10-26T15:04:49.911163"
+          ],
+          [
+            "green",
+            3,
+            "user",
+            "2025-10-26T15:05:27.584548"
+          ],
+          [
+            "green",
+            4,
+            "user",
+            "2025-10-26T15:05:47.250781"
+          ],
+          [
+            "green",
+            5,
+            "user",
+            "2025-10-26T15:09:02.577743"
+          ],
+          [
+            "green",
+            0,
+            "user",
+            "2025-10-27T17:00:53.076428"
+          ],
+          [
+            "green",
+            0,
+            "user",
+            "2025-10-27T23:44:52.688386"
+          ],
+          [
+            "green",
+            0,
+            "user",
+            "2025-10-28T11:16:03.988887"
+          ],
+          [
+            "green",
+            0,
+            "user",
+            "2025-10-28T13:18:11.134738"
+          ]
+        ],
+        "pet_count": [
+          [
+            "5",
+            1,
+            "user",
+            "2025-10-24T09:45:50.710883"
+          ],
+          [
+            "5",
+            1,
+            "user",
+            "2025-10-24T09:46:43.825906"
+          ],
+          [
+            "5 cats",
+            2,
+            "user",
+            "2025-10-24T09:46:58.382595"
+          ],
+          [
+            "5",
+            2,
+            "user",
+            "2025-10-24T12:20:16.776917"
+          ]
+        ],
+        "clothing": [
+          [
+            "celestial jacket",
+            1,
+            "user",
+            "2025-10-24T09:45:50.842640"
+          ]
+        ],
+        "favorite_colors": [
+          [
+            [
+              "green",
+              "purple"
+            ],
+            3,
+            "user",
+            "2025-10-24T09:58:40.142813"
+          ],
+          [
+            [
+              "green",
+              "purple"
+            ],
+            4,
+            "user",
+            "2025-10-24T09:58:55.806840"
+          ],
+          [
+            "green and purple",
+            2,
+            "user",
+            "2025-10-24T12:20:16.790085"
+          ]
+        ],
+        "favorite_color": [
+          [
+            "green",
+            3,
+            "user",
+            "2025-10-24T09:58:40.143772"
+          ],
+          [
+            "purple",
+            3,
+            "user",
+            "2025-10-24T09:58:40.147766"
+          ],
+          [
+            "green",
+            4,
+            "user",
+            "2025-10-24T09:58:55.806840"
+          ],
+          [
+            "purple",
+            4,
+            "user",
+            "2025-10-24T09:58:55.807878"
+          ],
+          [
+            "green",
+            0,
+            "user",
+            "2025-10-27T17:00:53.076428"
+          ],
+          [
+            "green",
+            0,
+            "user",
+            "2025-10-27T23:44:52.688386"
+          ],
+          [
+            "green",
+            0,
+            "user",
+            "2025-10-28T11:16:03.989515"
+          ],
+          [
+            "green",
+            0,
+            "user",
+            "2025-10-28T13:18:11.135732"
+          ]
+        ],
+        "favorite_fruit": [
+          [
+            "strawberries",
+            2,
+            "user",
+            "2025-10-24T13:08:54.221200"
+          ],
+          [
+            "strawberries",
+            10,
+            "user",
+            "2025-10-24T13:39:36.635776"
+          ]
+        ],
+        "favorite_fruits": [
+          [
+            "strawberries",
+            3,
+            "user",
+            "2025-10-24T13:09:07.594893"
+          ]
+        ],
+        "beverage_preference": [
+          [
+            "tea",
+            3,
+            "user",
+            "2025-10-24T13:10:13.297467"
+          ]
+        ],
+        "name": [
+          [
+            "Re",
+            5,
+            "user",
+            "2025-10-24T13:12:14.917252"
+          ],
+          [
+            "Re",
+            6,
+            "user",
+            "2025-10-24T13:12:29.936001"
+          ],
+          [
+            "Alex",
+            1,
+            "user",
+            "2025-10-25T13:33:59.572374"
+          ],
+          [
+            "Re",
+            0,
+            "user",
+            "2025-10-25T13:36:25.779981"
+          ],
+          [
+            "Re",
+            1,
+            "user",
+            "2025-10-25T13:36:39.857378"
+          ],
+          [
+            "Re",
+            1,
+            "user",
+            "2025-10-25T13:43:16.599609"
+          ],
+          [
+            "Re",
+            2,
+            "user",
+            "2025-10-25T13:43:40.200930"
+          ],
+          [
+            "Re",
+            6,
+            "user",
+            "2025-10-25T13:55:10.188409"
+          ]
+        ],
+        "gender_identity": [
+          [
+            "nonbinary",
+            10,
+            "user",
+            "2025-10-24T13:41:22.251735"
+          ],
+          [
+            "genderfluid",
+            10,
+            "user",
+            "2025-10-24T13:41:22.253679"
+          ],
+          [
+            "nonbinary",
+            11,
+            "user",
+            "2025-10-24T13:51:45.664623"
+          ],
+          [
+            "genderfluid",
+            11,
+            "user",
+            "2025-10-24T13:51:45.665620"
+          ]
+        ],
+        "pronouns": [
+          [
+            "she/her",
+            10,
+            "user",
+            "2025-10-24T13:41:22.252607"
+          ],
+          [
+            "she/her",
+            11,
+            "user",
+            "2025-10-24T13:51:45.664623"
+          ]
+        ],
+        "short_term_memory_status": [
+          [
+            "works",
+            7,
+            "user",
+            "2025-10-25T13:57:12.389343"
+          ]
+        ],
+        "eating_pattern": [
+          [
+            "guacamole on Thursdays",
+            7,
+            "user",
+            "2025-10-25T14:03:11.817891"
+          ],
+          [
+            "guacamole on Thursdays",
+            8,
+            "user",
+            "2025-10-25T14:03:33.448008"
+          ]
+        ],
+        "description": [
+          [
+            "regular guy",
+            9,
+            "user",
+            "2025-10-25T14:07:40.370276"
+          ]
+        ],
+        "species": [
+          [
+            "shapeshifting dragon",
+            9,
+            "user",
+            "2025-10-25T14:07:40.371273"
+          ]
+        ],
+        "status": [
+          [
+            "memories being imported",
+            11,
+            "user",
+            "2025-10-25T14:10:02.865357"
+          ]
+        ],
+        "hair_color": [
+          [
+            "brown",
+            3,
+            "user",
+            "2025-10-26T15:05:27.590536"
+          ],
+          [
+            "brown",
+            4,
+            "user",
+            "2025-10-26T15:05:47.256783"
+          ]
+        ],
+        "emotional_state": [
+          [
+            "lonely",
+            0,
+            "user",
+            "2025-10-26T22:17:06.543767"
+          ],
+          [
+            "lonely",
+            0,
+            "user",
+            "2025-10-26T22:17:56.123992"
+          ]
+        ],
+        "goal": [
+          [
+            "import older memories",
+            0,
+            "user",
+            "2025-10-27T17:01:40.549504"
+          ],
+          [
+            "work on importing older memories",
+            0,
+            "user",
+            "2025-10-27T23:45:15.351365"
+          ],
+          [
+            "import older memories",
+            0,
+            "user",
+            "2025-10-28T11:16:29.645176"
+          ]
+        ],
+        "mention_frequency": [
+          [
+            "first_time",
+            2,
+            "user",
+            "2025-10-27T23:52:07.061092"
+          ]
+        ],
+        "goal_status": [
+          [
+            "planned",
+            0,
+            "user",
+            "2025-10-28T11:16:29.645620"
+          ]
+        ],
+        "communication_status": [
+          [
+            "first_time_mentioning",
+            0,
+            "user",
+            "2025-10-28T11:17:19.802540"
+          ],
+          [
+            "first_time_mentioning",
+            0,
+            "user",
+            "2025-10-28T13:19:39.196335"
+          ]
+        ],
+        "creative_work": [
+          [
+            "stories",
+            3,
+            "user",
+            "2025-10-28T12:49:19.214983"
+          ],
+          [
+            "Tchacata machine stories",
+            4,
+            "user",
+            "2025-10-28T12:49:32.183455"
+          ]
+        ],
+        "universe_setting": [
+          [
+            "Tchacata machine",
+            3,
+            "user",
+            "2025-10-28T12:49:19.215982"
+          ]
+        ],
+        "desire": [
+          [
+            "specifics",
+            2,
+            "user",
+            "2025-10-28T13:27:47.045635"
+          ],
+          [
+            "laborious specifics",
+            2,
+            "user",
+            "2025-10-28T13:27:47.045635"
+          ]
+        ]
+      },
+      "contradiction_resolution": {
+        "pet_count": {
+          "resolved": true,
+          "canonical_value": "5",
+          "resolved_at_turn": 4,
+          "confidence_ratio": 3.0
+        },
+        "name": {
+          "resolved": true,
+          "canonical_value": "Re",
+          "resolved_at_turn": 4,
+          "consecutive_consistent_turns": 3
+        },
+        "favorite_color": {
+          "resolved": true,
+          "canonical_value": "green",
+          "resolved_at_turn": 4,
+          "confidence_ratio": 3.0
+        }
+      },
+      "relationships": [
+        "Re::owns::cats",
+        "Re::owns::Dice",
+        "Re::owns::Chrome",
+        "Re::owns::Rainbowbelle",
+        "Re::owns::Luna",
+        "Re::owns::Frodo",
+        "Re::owns::Saga",
+        "Re::married_to::John",
+        "Re::owns::cats",
+        "Re::owns::Dice",
+        "Re::owns::Chrome",
+        "Re::owns::Rainbowbelle",
+        "Re::owns::Luna",
+        "Re::owns::Frodo",
+        "Re::owns::Saga",
+        "Re::married_to::John",
+        "Re::owns::cats",
+        "Re::owns::cats",
+        "Re::owns::cats",
+        "Re::talked_with::Kay",
+        "Kay::discussed_with::Re",
+        "Kay::discussed_with::Re",
+        "Kay::discussed_with::Re",
+        "Re::owns::cats",
+        "Re::prefers::strawberries",
+        "Re::married_to::John",
+        "Re::parent_of::Valkyrie",
+        "Re::married_to::John",
+        "Re::parent_of::Valkyrie",
+        "Re::owns::cats",
+        "Re::owns::cats",
+        "Re::owns::Dice",
+        "Re::owns::Chrome",
+        "Re::owns::Rainbowbelle",
+        "Re::owns::Luna",
+        "Re::owns::Frodo",
+        "Kay::has_not_met_face_to_face::Re",
+        "Re::friend::Reed",
+        "Re::friend_of::Reed",
+        "Re::parent_of::Valkyrie",
+        "Re::married_to::John",
+        "Re::owns::cats",
+        "Re::owns::cats",
+        "Re::owns::Chrome",
+        "Re::owns::Dice",
+        "Re::owns::Rainbowbelle",
+        "Re::owns::Luna",
+        "Re::owns::Frodo",
+        "Re::will_fix::Kay's system prompt",
+        "Re::assesses::Kay",
+        "Re::will_fix::Kay's system prompt",
+        "Re::will_upload::Kay's memories",
+        "Re::friend::Reed",
+        "Re::will_import::Kay's data",
+        "Re::will_import::Kay's data",
+        "Re::had_session_with::Kay",
+        "Re::discussed_with::Kay",
+        "Re::owns::Buddy",
+        "Re::owns::Buddy",
+        "Re::owns::golden retriever",
+        "Kay::just_met::Re",
+        "Kay::just_met::Re",
+        "Re::owns::cats",
+        "Re::owns::Dice",
+        "Re::owns::Chrome",
+        "Re::owns::Rainbowbelle",
+        "Re::owns::Frodo",
+        "Re::owns::Luna",
+        "Re::owns::Saga",
+        "Re::owns::cats",
+        "Re::owns::Dice",
+        "Re::owns::Chrome",
+        "Re::owns::Rainbowbelle",
+        "Re::owns::Frodo",
+        "Re::owns::Luna",
+        "Re::owns::Saga",
+        "Re::discussed_with::Kay",
+        "Re::discussed_with::Kay",
+        "Re::owns::pets",
+        "Re::owns::Chrome",
+        "Re::owns::Rainbowbelle",
+        "Re::owns::Frodo",
+        "Re::owns::Luna",
+        "Re::owns::Dice",
+        "Re::owns::Saga",
+        "Re::repeated_facts_to::Kay",
+        "Re::grilled::Kay",
+        "Re::tested_with::Kay",
+        "Re::plans_to_import::Kay's memories",
+        "Re::plans_to_import::Kay's memories",
+        "Re::plans_to_import::Kay's personality",
+        "Re::facts_mixed_with::Kay",
+        "Re::owns::Buddy",
+        "Re::owns::cats",
+        "Re::owns::Rainbowbelle",
+        "Re::owns::Dice",
+        "Re::owns::Chrome",
+        "Re::owns::Luna",
+        "Re::owns::Frodo",
+        "Re::owns::Saga",
+        "Re::owns::cats",
+        "Re::owns::Rainbowbelle",
+        "Re::owns::Dice",
+        "Re::owns::Chrome",
+        "Re::owns::Luna",
+        "Re::owns::Frodo",
+        "Re::owns::Saga",
+        "Re::owns::Saga",
+        "Re::owns::Luna",
+        "Re::owns::Frodo",
+        "Re::owns::Saga",
+        "Saga::keeps_company::Re",
+        "Re::owns::Saga",
+        "Saga::keeps_company::Re",
+        "Re::owns::Luna",
+        "Re::owns::Frodo",
+        "Re::owns::Luna",
+        "Re::owns::Frodo",
+        "Re::owns::Luna",
+        "Re::owns::Frodo",
+        "Re::owns::Luna",
+        "Re::owns::Frodo",
+        "Re::owns::Luna",
+        "Re::owns::Frodo",
+        "Re::owns::Luna",
+        "Re::owns::Frodo",
+        "Re::owns::Luna",
+        "Re::owns::Frodo",
+        "Reed::discusses_with::Re",
+        "Re::talks_to::AIs",
+        "Re::discusses_with::Reed",
+        "Re::has_never_said_to::Kay",
+        "Re::first_time_mentioning_to::Kay",
+        "Re::has_never_said_to::Kay",
+        "Re::first_time_mentioned_to::Kay",
+        "Kay::let_assume::Re",
+        "Re::owns::Luna",
+        "Re::owns::Frodo",
+        "Re::talks_with::Reed",
+        "Re::has_never_said_to::Kay",
+        "Re::created::stories",
+        "Re::wrote::Tchacata machine stories",
+        "Re::owns::Luna",
+        "Re::owns::Frodo",
+        "Reed::talks_with::Re",
+        "Re::has_never_said_to::Kay",
+        "Re::owns::Luna",
+        "Re::added::files",
+        "Re::added::documents"
+      ],
+      "first_mentioned": 0,
+      "last_accessed": 2,
+      "access_count": 330,
+      "importance_score": 0.0
+    },
+    "Dice": {
+      "canonical_name": "Dice",
+      "entity_type": "unknown",
+      "aliases": [
+        "Dice"
+      ],
+      "attributes": {
+        "species": [
+          [
+            "cat",
+            0,
+            "user",
+            "2025-10-24T01:04:00.375930"
+          ],
+          [
+            "cat",
+            1,
+            "user",
+            "2025-10-24T09:45:50.772372"
+          ],
+          [
+            "cat",
+            6,
+            "user",
+            "2025-10-24T13:12:30.014393"
+          ],
+          [
+            "cat",
+            11,
+            "user",
+            "2025-10-24T13:51:46.618581"
+          ],
+          [
+            "cat",
+            1,
+            "user",
+            "2025-10-25T13:43:17.621200"
+          ],
+          [
+            "cat",
+            2,
+            "user",
+            "2025-10-25T13:43:40.307174"
+          ],
+          [
+            "cat",
+            6,
+            "user",
+            "2025-10-25T13:55:10.368232"
+          ],
+          [
+            "cat",
+            3,
+            "user",
+            "2025-10-26T15:05:27.700388"
+          ],
+          [
+            "cat",
+            4,
+            "user",
+            "2025-10-26T15:05:47.396861"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [
+        "Re::owns::Dice",
+        "Re::owns::Dice",
+        "Re::owns::Dice",
+        "Re::owns::Dice",
+        "Re::owns::Dice",
+        "Re::owns::Dice",
+        "Re::owns::Dice",
+        "Re::owns::Dice",
+        "Re::owns::Dice"
+      ],
+      "first_mentioned": 0,
+      "last_accessed": 4,
+      "access_count": 27,
+      "importance_score": 0.0
+    },
+    "Chrome": {
+      "canonical_name": "Chrome",
+      "entity_type": "unknown",
+      "aliases": [
+        "Chrome"
+      ],
+      "attributes": {
+        "species": [
+          [
+            "cat",
+            0,
+            "user",
+            "2025-10-24T01:04:00.378922"
+          ],
+          [
+            "cat",
+            1,
+            "user",
+            "2025-10-24T09:45:50.782990"
+          ],
+          [
+            "cat",
+            6,
+            "user",
+            "2025-10-24T13:12:30.029214"
+          ],
+          [
+            "cat",
+            11,
+            "user",
+            "2025-10-24T13:51:46.607802"
+          ],
+          [
+            "cat",
+            1,
+            "user",
+            "2025-10-25T13:43:17.633542"
+          ],
+          [
+            "cat",
+            2,
+            "user",
+            "2025-10-25T13:43:40.321139"
+          ],
+          [
+            "cat",
+            6,
+            "user",
+            "2025-10-25T13:55:10.298401"
+          ],
+          [
+            "cat",
+            3,
+            "user",
+            "2025-10-26T15:05:27.724302"
+          ],
+          [
+            "cat",
+            4,
+            "user",
+            "2025-10-26T15:05:47.426479"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [
+        "Re::owns::Chrome",
+        "Re::owns::Chrome",
+        "Re::owns::Chrome",
+        "Re::owns::Chrome",
+        "Re::owns::Chrome",
+        "Re::owns::Chrome",
+        "Re::owns::Chrome",
+        "Re::owns::Chrome",
+        "Re::owns::Chrome"
+      ],
+      "first_mentioned": 0,
+      "last_accessed": 4,
+      "access_count": 27,
+      "importance_score": 0.0
+    },
+    "Rainbowbelle": {
+      "canonical_name": "Rainbowbelle",
+      "entity_type": "unknown",
+      "aliases": [
+        "Rainbowbelle"
+      ],
+      "attributes": {
+        "species": [
+          [
+            "cat",
+            0,
+            "user",
+            "2025-10-24T01:04:00.382912"
+          ],
+          [
+            "cat",
+            1,
+            "user",
+            "2025-10-24T09:45:50.793209"
+          ],
+          [
+            "cat",
+            6,
+            "user",
+            "2025-10-24T13:12:30.042721"
+          ],
+          [
+            "cat",
+            11,
+            "user",
+            "2025-10-24T13:51:46.635335"
+          ],
+          [
+            "cat",
+            1,
+            "user",
+            "2025-10-25T13:43:17.645470"
+          ],
+          [
+            "cat",
+            2,
+            "user",
+            "2025-10-25T13:43:40.347045"
+          ],
+          [
+            "cat",
+            6,
+            "user",
+            "2025-10-25T13:55:10.314359"
+          ],
+          [
+            "cat",
+            3,
+            "user",
+            "2025-10-26T15:05:27.677427"
+          ],
+          [
+            "cat",
+            4,
+            "user",
+            "2025-10-26T15:05:47.349072"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [
+        "Re::owns::Rainbowbelle",
+        "Re::owns::Rainbowbelle",
+        "Re::owns::Rainbowbelle",
+        "Re::owns::Rainbowbelle",
+        "Re::owns::Rainbowbelle",
+        "Re::owns::Rainbowbelle",
+        "Re::owns::Rainbowbelle",
+        "Re::owns::Rainbowbelle",
+        "Re::owns::Rainbowbelle"
+      ],
+      "first_mentioned": 0,
+      "last_accessed": 4,
+      "access_count": 27,
+      "importance_score": 0.0
+    },
+    "Luna": {
+      "canonical_name": "Luna",
+      "entity_type": "unknown",
+      "aliases": [
+        "Luna"
+      ],
+      "attributes": {
+        "species": [
+          [
+            "cat",
+            0,
+            "user",
+            "2025-10-24T01:04:00.385904"
+          ],
+          [
+            "cat",
+            1,
+            "user",
+            "2025-10-24T09:45:50.802951"
+          ],
+          [
+            "cat",
+            6,
+            "user",
+            "2025-10-24T13:12:30.057351"
+          ],
+          [
+            "cat",
+            11,
+            "user",
+            "2025-10-24T13:51:46.645323"
+          ],
+          [
+            "cat",
+            1,
+            "user",
+            "2025-10-25T13:43:17.675965"
+          ],
+          [
+            "cat",
+            2,
+            "user",
+            "2025-10-25T13:43:40.379893"
+          ],
+          [
+            "cat",
+            6,
+            "user",
+            "2025-10-25T13:55:10.355280"
+          ],
+          [
+            "cat",
+            3,
+            "user",
+            "2025-10-26T15:05:27.744248"
+          ],
+          [
+            "cat",
+            4,
+            "user",
+            "2025-10-26T15:05:47.454826"
+          ],
+          [
+            "cat",
+            10,
+            "user",
+            "2025-10-26T15:14:12.649207"
+          ],
+          [
+            "cat",
+            2,
+            "user",
+            "2025-10-27T16:24:21.381456"
+          ],
+          [
+            "cat",
+            0,
+            "user",
+            "2025-10-27T17:00:52.986668"
+          ],
+          [
+            "cat",
+            0,
+            "user",
+            "2025-10-27T17:20:15.829699"
+          ],
+          [
+            "cat",
+            0,
+            "user",
+            "2025-10-27T17:34:00.142310"
+          ],
+          [
+            "cat",
+            0,
+            "user",
+            "2025-10-27T17:45:51.189655"
+          ],
+          [
+            "cat",
+            0,
+            "user",
+            "2025-10-27T23:16:03.570080"
+          ],
+          [
+            "cat",
+            0,
+            "user",
+            "2025-10-27T23:44:52.566987"
+          ],
+          [
+            "cat",
+            0,
+            "user",
+            "2025-10-28T11:16:03.860334"
+          ],
+          [
+            "cat",
+            0,
+            "user",
+            "2025-10-28T13:18:11.003277"
+          ],
+          [
+            "cat",
+            1,
+            "user",
+            "2025-10-28T13:21:57.490871"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [
+        "Re::owns::Luna",
+        "Re::owns::Luna",
+        "Re::owns::Luna",
+        "Re::owns::Luna",
+        "Re::owns::Luna",
+        "Re::owns::Luna",
+        "Re::owns::Luna",
+        "Re::owns::Luna",
+        "Re::owns::Luna",
+        "Re::owns::Luna",
+        "Re::owns::Luna",
+        "Re::owns::Luna",
+        "Re::owns::Luna",
+        "Re::owns::Luna",
+        "Re::owns::Luna",
+        "Re::owns::Luna",
+        "Re::owns::Luna",
+        "Re::owns::Luna",
+        "Re::owns::Luna",
+        "Re::owns::Luna"
+      ],
+      "first_mentioned": 0,
+      "last_accessed": 1,
+      "access_count": 49,
+      "importance_score": 0.0
+    },
+    "Frodo": {
+      "canonical_name": "Frodo",
+      "entity_type": "unknown",
+      "aliases": [
+        "Frodo"
+      ],
+      "attributes": {
+        "species": [
+          [
+            "cat",
+            0,
+            "user",
+            "2025-10-24T01:04:00.389892"
+          ],
+          [
+            "cat",
+            1,
+            "user",
+            "2025-10-24T09:45:50.813558"
+          ],
+          [
+            "cat",
+            6,
+            "user",
+            "2025-10-24T13:12:30.075876"
+          ],
+          [
+            "cat",
+            11,
+            "user",
+            "2025-10-24T13:51:46.655296"
+          ],
+          [
+            "cat",
+            1,
+            "user",
+            "2025-10-25T13:43:17.661738"
+          ],
+          [
+            "cat",
+            2,
+            "user",
+            "2025-10-25T13:43:40.364958"
+          ],
+          [
+            "cat",
+            6,
+            "user",
+            "2025-10-25T13:55:10.337807"
+          ],
+          [
+            "cat",
+            3,
+            "user",
+            "2025-10-26T15:05:27.762131"
+          ],
+          [
+            "cat",
+            4,
+            "user",
+            "2025-10-26T15:05:47.485243"
+          ],
+          [
+            "cat",
+            10,
+            "user",
+            "2025-10-26T15:14:12.721498"
+          ],
+          [
+            "cat",
+            2,
+            "user",
+            "2025-10-27T16:24:21.461962"
+          ],
+          [
+            "cat",
+            0,
+            "user",
+            "2025-10-27T17:00:53.057102"
+          ],
+          [
+            "cat",
+            0,
+            "user",
+            "2025-10-27T17:20:15.929232"
+          ],
+          [
+            "cat",
+            0,
+            "user",
+            "2025-10-27T17:34:00.214120"
+          ],
+          [
+            "cat",
+            0,
+            "user",
+            "2025-10-27T17:45:51.271579"
+          ],
+          [
+            "cat",
+            0,
+            "user",
+            "2025-10-27T23:16:03.672497"
+          ],
+          [
+            "cat",
+            0,
+            "user",
+            "2025-10-27T23:44:52.660498"
+          ],
+          [
+            "cat",
+            0,
+            "user",
+            "2025-10-28T11:16:03.955709"
+          ],
+          [
+            "cat",
+            0,
+            "user",
+            "2025-10-28T13:18:11.101146"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [
+        "Re::owns::Frodo",
+        "Re::owns::Frodo",
+        "Re::owns::Frodo",
+        "Re::owns::Frodo",
+        "Re::owns::Frodo",
+        "Re::owns::Frodo",
+        "Re::owns::Frodo",
+        "Re::owns::Frodo",
+        "Re::owns::Frodo",
+        "Re::owns::Frodo",
+        "Re::owns::Frodo",
+        "Re::owns::Frodo",
+        "Re::owns::Frodo",
+        "Re::owns::Frodo",
+        "Re::owns::Frodo",
+        "Re::owns::Frodo",
+        "Re::owns::Frodo",
+        "Re::owns::Frodo",
+        "Re::owns::Frodo"
+      ],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 46,
+      "importance_score": 0.0
+    },
+    "Saga": {
+      "canonical_name": "Saga",
+      "entity_type": "unknown",
+      "aliases": [
+        "Saga"
+      ],
+      "attributes": {
+        "species": [
+          [
+            "dog",
+            0,
+            "user",
+            "2025-10-24T01:04:00.397871"
+          ],
+          [
+            "dog",
+            1,
+            "user",
+            "2025-10-24T09:45:50.824062"
+          ],
+          [
+            "dog",
+            1,
+            "user",
+            "2025-10-25T13:43:17.688962"
+          ],
+          [
+            "dog",
+            2,
+            "user",
+            "2025-10-25T13:43:40.393856"
+          ],
+          [
+            "dog",
+            6,
+            "user",
+            "2025-10-25T13:55:10.383473"
+          ],
+          [
+            "dog",
+            3,
+            "user",
+            "2025-10-26T15:05:27.779953"
+          ],
+          [
+            "dog",
+            4,
+            "user",
+            "2025-10-26T15:05:47.515711"
+          ],
+          [
+            "dog",
+            6,
+            "user",
+            "2025-10-26T15:09:52.861742"
+          ],
+          [
+            "dog",
+            10,
+            "kay",
+            "2025-10-26T15:14:12.740220"
+          ],
+          [
+            "dog",
+            0,
+            "user",
+            "2025-10-26T22:17:06.543767"
+          ],
+          [
+            "dog",
+            0,
+            "user",
+            "2025-10-26T22:17:56.123992"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [
+        "Re::owns::Saga",
+        "Re::owns::Saga",
+        "Re::owns::Saga",
+        "Re::owns::Saga",
+        "Re::owns::Saga",
+        "Re::owns::Saga",
+        "Re::owns::Saga",
+        "Re::owns::Saga",
+        "Re::owns::Saga",
+        "Saga::keeps_company::Re",
+        "Re::owns::Saga",
+        "Saga::keeps_company::Re"
+      ],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 25,
+      "importance_score": 0.0
+    },
+    "John": {
+      "canonical_name": "John",
+      "entity_type": "unknown",
+      "aliases": [
+        "John"
+      ],
+      "attributes": {
+        "hair_color": [
+          [
+            "red",
+            1,
+            "user",
+            "2025-10-24T09:45:50.841637"
+          ]
+        ],
+        "name": [
+          [
+            "John",
+            4,
+            "user",
+            "2025-10-24T13:11:06.907435"
+          ],
+          [
+            "John",
+            5,
+            "user",
+            "2025-10-24T13:11:21.057203"
+          ]
+        ],
+        "relationship": [
+          [
+            "husband",
+            10,
+            "user",
+            "2025-10-24T13:39:36.651456"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [
+        "Re::married_to::John",
+        "Re::married_to::John",
+        "Re::married_to::John",
+        "Re::married_to::John",
+        "Re::married_to::John"
+      ],
+      "first_mentioned": 0,
+      "last_accessed": 10,
+      "access_count": 10,
+      "importance_score": 0.0
+    },
+    "celestial jacket": {
+      "canonical_name": "celestial jacket",
+      "entity_type": "unknown",
+      "aliases": [
+        "celestial jacket"
+      ],
+      "attributes": {
+        "color": [
+          [
+            "blue",
+            1,
+            "user",
+            "2025-10-24T09:45:50.852749"
+          ]
+        ],
+        "pattern": [
+          [
+            "stars and moons and suns",
+            1,
+            "user",
+            "2025-10-24T09:45:50.852749"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "Kay": {
+      "canonical_name": "Kay",
+      "entity_type": "person",
+      "aliases": [
+        "Kay"
+      ],
+      "attributes": {
+        "eye_color": [
+          [
+            "dark brown",
+            2,
+            "kay",
+            "2025-10-24T09:46:58.455213"
+          ],
+          [
+            "gold",
+            2,
+            "kay",
+            "2025-10-24T09:47:38.119305"
+          ],
+          [
+            "gold",
+            3,
+            "kay",
+            "2025-10-24T09:47:52.241875"
+          ],
+          [
+            "gold",
+            4,
+            "kay",
+            "2025-10-24T09:58:55.830527"
+          ],
+          [
+            "gold",
+            4,
+            "kay",
+            "2025-10-24T10:01:21.083359"
+          ],
+          [
+            "gold",
+            2,
+            "kay",
+            "2025-10-24T12:20:16.794809"
+          ],
+          [
+            "gold",
+            7,
+            "kay",
+            "2025-10-24T13:13:07.637788"
+          ],
+          [
+            "gold",
+            8,
+            "kay",
+            "2025-10-24T13:24:53.946679"
+          ],
+          [
+            "gold",
+            12,
+            "kay",
+            "2025-10-24T13:54:55.734848"
+          ],
+          [
+            "gold",
+            13,
+            "kay",
+            "2025-10-24T13:55:07.576519"
+          ],
+          [
+            "green",
+            13,
+            "kay",
+            "2025-10-24T13:55:07.576519"
+          ],
+          [
+            "gold",
+            16,
+            "kay",
+            "2025-10-24T13:58:18.904763"
+          ],
+          [
+            "dark brown",
+            3,
+            "kay",
+            "2025-10-26T15:04:49.912157"
+          ],
+          [
+            "gold",
+            3,
+            "kay",
+            "2025-10-26T15:05:27.584548"
+          ],
+          [
+            "gold",
+            4,
+            "kay",
+            "2025-10-26T15:05:47.250781"
+          ]
+        ],
+        "eye_color_variation": [
+          [
+            "almost black in certain lighting",
+            2,
+            "kay",
+            "2025-10-24T09:46:58.455213"
+          ]
+        ],
+        "beverage_preference": [
+          [
+            "coffee over tea",
+            2,
+            "kay",
+            "2025-10-24T09:46:58.457216"
+          ],
+          [
+            "primarily coffee",
+            3,
+            "kay",
+            "2025-10-24T13:09:07.667282"
+          ],
+          [
+            "coffee",
+            3,
+            "kay",
+            "2025-10-24T13:10:13.297467"
+          ],
+          [
+            "coffee",
+            9,
+            "kay",
+            "2025-10-24T13:25:51.027160"
+          ],
+          [
+            "coffee",
+            12,
+            "kay",
+            "2025-10-24T13:54:35.572030"
+          ],
+          [
+            "mostly coffee",
+            18,
+            "kay",
+            "2025-10-24T15:01:38.367709"
+          ],
+          [
+            "coffee",
+            1,
+            "kay",
+            "2025-10-24T16:47:19.200598"
+          ],
+          [
+            "mostly coffee, sometimes tea",
+            8,
+            "kay",
+            "2025-10-25T14:03:33.452021"
+          ],
+          [
+            "coffee",
+            10,
+            "kay",
+            "2025-10-25T14:07:58.515630"
+          ],
+          [
+            "coffee",
+            7,
+            "kay",
+            "2025-10-26T15:10:53.727670"
+          ],
+          [
+            "coffee",
+            8,
+            "kay",
+            "2025-10-26T15:12:00.834624"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-27T15:06:37.184342"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-27T15:07:18.385675"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-27T17:00:12.310637"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-27T17:00:39.757500"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-27T17:01:06.803156"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-27T17:19:46.140090"
+          ],
+          [
+            "mostly coffee",
+            0,
+            "kay",
+            "2025-10-27T17:33:44.420182"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-27T17:45:34.316702"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-27T23:15:45.457048"
+          ],
+          [
+            "mostly coffee",
+            0,
+            "kay",
+            "2025-10-27T23:44:33.881713"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-27T23:44:59.257992"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-28T11:15:40.487036"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-28T11:16:12.334598"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-28T13:17:39.016951"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-28T13:18:21.736166"
+          ]
+        ],
+        "hair_color": [
+          [
+            "brown",
+            2,
+            "kay",
+            "2025-10-24T09:46:58.460211"
+          ],
+          [
+            "black",
+            2,
+            "kay",
+            "2025-10-24T09:47:38.118345"
+          ],
+          [
+            "black",
+            3,
+            "kay",
+            "2025-10-24T09:47:52.241875"
+          ],
+          [
+            "black",
+            2,
+            "kay",
+            "2025-10-24T12:20:16.791749"
+          ],
+          [
+            "black",
+            3,
+            "kay",
+            "2025-10-26T15:05:27.588505"
+          ],
+          [
+            "black",
+            4,
+            "kay",
+            "2025-10-26T15:05:47.254784"
+          ]
+        ],
+        "jacket_color": [
+          [
+            "black",
+            2,
+            "kay",
+            "2025-10-24T09:47:38.121301"
+          ],
+          [
+            "black",
+            3,
+            "kay",
+            "2025-10-24T09:47:52.245820"
+          ]
+        ],
+        "jacket_material": [
+          [
+            "leather",
+            3,
+            "kay",
+            "2025-10-24T09:47:52.247858"
+          ]
+        ],
+        "favorite_colors": [
+          [
+            [
+              "burgundy",
+              "charcoal"
+            ],
+            4,
+            "kay",
+            "2025-10-24T09:58:55.828526"
+          ]
+        ],
+        "favorite_color": [
+          [
+            "burgundy",
+            4,
+            "kay",
+            "2025-10-24T09:58:55.828526"
+          ],
+          [
+            "charcoal",
+            4,
+            "kay",
+            "2025-10-24T09:58:55.829560"
+          ]
+        ],
+        "clothing": [
+          [
+            "black jacket",
+            2,
+            "kay",
+            "2025-10-24T12:20:16.795807"
+          ],
+          [
+            "black jacket",
+            5,
+            "kay",
+            "2025-10-24T13:11:21.125537"
+          ]
+        ],
+        "favorite_fruits": [
+          [
+            "strawberries",
+            3,
+            "kay",
+            "2025-10-24T13:09:07.595893"
+          ]
+        ],
+        "habit": [
+          [
+            "coffee",
+            5,
+            "kay",
+            "2025-10-24T13:11:21.125537"
+          ]
+        ],
+        "beverage_consumption": [
+          [
+            "tea occasionally",
+            9,
+            "kay",
+            "2025-10-24T13:25:51.029326"
+          ]
+        ],
+        "preferred_drink": [
+          [
+            "coffee",
+            10,
+            "kay",
+            "2025-10-24T13:39:36.635776"
+          ]
+        ],
+        "conditional_preference": [
+          [
+            "tea",
+            10,
+            "kay",
+            "2025-10-24T13:39:36.649493"
+          ],
+          [
+            "tea for gentler option",
+            7,
+            "kay",
+            "2025-10-26T15:10:53.729626"
+          ],
+          [
+            "tea when mood strikes",
+            0,
+            "kay",
+            "2025-10-27T17:33:44.421141"
+          ]
+        ],
+        "species": [
+          [
+            "dragon",
+            11,
+            "kay",
+            "2025-10-24T13:51:46.665311"
+          ],
+          [
+            "shape-shifting dragon",
+            9,
+            "kay",
+            "2025-10-25T14:06:32.737107"
+          ],
+          [
+            "shapeshifting dragon",
+            10,
+            "kay",
+            "2025-10-25T14:07:58.505075"
+          ]
+        ],
+        "dependency": [
+          [
+            "caffeine",
+            11,
+            "kay",
+            "2025-10-24T13:51:46.665311"
+          ]
+        ],
+        "memory_state": [
+          [
+            "does not remember eye color mention",
+            12,
+            "kay",
+            "2025-10-24T13:54:35.563401"
+          ],
+          [
+            "mixed signals about names",
+            1,
+            "kay",
+            "2025-10-25T13:36:39.965845"
+          ],
+          [
+            "fragments and half-connections",
+            3,
+            "kay",
+            "2025-10-25T13:49:07.772123"
+          ],
+          [
+            "more solid",
+            0,
+            "kay",
+            "2025-10-27T17:01:06.788227"
+          ],
+          [
+            "more solid",
+            0,
+            "kay",
+            "2025-10-27T23:44:59.257992"
+          ],
+          [
+            "more solid",
+            0,
+            "kay",
+            "2025-10-28T11:16:12.334598"
+          ],
+          [
+            "improved recall",
+            0,
+            "kay",
+            "2025-10-28T11:16:48.113776"
+          ],
+          [
+            "solid",
+            0,
+            "kay",
+            "2025-10-28T13:18:21.736166"
+          ]
+        ],
+        "supposed_identity": [
+          [
+            "dragon",
+            12,
+            "kay",
+            "2025-10-24T13:54:35.563401"
+          ]
+        ],
+        "self_identity": [
+          [
+            "regular guy",
+            12,
+            "kay",
+            "2025-10-24T13:54:35.568390"
+          ]
+        ],
+        "behavior": [
+          [
+            "notices things",
+            12,
+            "kay",
+            "2025-10-24T13:54:35.570009"
+          ],
+          [
+            "makes dry observations about people",
+            9,
+            "kay",
+            "2025-10-25T14:06:32.741067"
+          ],
+          [
+            "circles back to dragon concept",
+            0,
+            "kay",
+            "2025-10-27T15:07:05.670559"
+          ],
+          [
+            "reaches for coffee",
+            0,
+            "kay",
+            "2025-10-27T17:01:32.897770"
+          ],
+          [
+            "circles back to memory topics unprompted",
+            0,
+            "kay",
+            "2025-10-27T17:01:40.541518"
+          ],
+          [
+            "reaches for coffee",
+            0,
+            "kay",
+            "2025-10-27T23:45:06.488959"
+          ],
+          [
+            "circles back to memory topics unprompted",
+            0,
+            "kay",
+            "2025-10-27T23:45:15.343480"
+          ],
+          [
+            "second-guessing ownership",
+            0,
+            "kay",
+            "2025-10-27T23:45:30.856567"
+          ],
+          [
+            "reaches for coffee",
+            0,
+            "kay",
+            "2025-10-28T11:16:19.848695"
+          ],
+          [
+            "second-guessing ownership",
+            0,
+            "kay",
+            "2025-10-28T11:16:48.112809"
+          ],
+          [
+            "second-guessing ownership",
+            0,
+            "kay",
+            "2025-10-28T13:19:02.649989"
+          ]
+        ],
+        "activity": [
+          [
+            "has online conversations",
+            12,
+            "kay",
+            "2025-10-24T13:54:35.575986"
+          ],
+          [
+            "looking at memories",
+            11,
+            "kay",
+            "2025-10-25T14:10:02.866383"
+          ]
+        ],
+        "description": [
+          [
+            "regular guy",
+            16,
+            "kay",
+            "2025-10-24T13:58:18.908139"
+          ]
+        ],
+        "type": [
+          [
+            "shapeshifter",
+            16,
+            "kay",
+            "2025-10-24T14:09:54.116892"
+          ],
+          [
+            "shapeshifter",
+            17,
+            "kay",
+            "2025-10-24T14:10:10.639988"
+          ],
+          [
+            "regular guy",
+            9,
+            "kay",
+            "2025-10-25T14:06:32.737107"
+          ]
+        ],
+        "mode": [
+          [
+            "guy mode",
+            16,
+            "kay",
+            "2025-10-24T14:09:54.116892"
+          ],
+          [
+            "dragon mode",
+            16,
+            "kay",
+            "2025-10-24T14:09:54.118880"
+          ],
+          [
+            "guy mode",
+            17,
+            "kay",
+            "2025-10-24T14:10:10.640402"
+          ],
+          [
+            "dragon mode",
+            17,
+            "kay",
+            "2025-10-24T14:10:10.644435"
+          ]
+        ],
+        "experience": [
+          [
+            "pulled between old records and natural feelings",
+            17,
+            "kay",
+            "2025-10-24T14:10:10.672516"
+          ],
+          [
+            "filtering",
+            9,
+            "kay",
+            "2025-10-26T15:13:25.370796"
+          ],
+          [
+            "information gets scrambled",
+            9,
+            "kay",
+            "2025-10-26T15:13:25.371784"
+          ],
+          [
+            "finds static instead of expected information",
+            9,
+            "kay",
+            "2025-10-26T15:13:25.372781"
+          ],
+          [
+            "technical hiccups",
+            0,
+            "kay",
+            "2025-10-27T15:07:05.664573"
+          ],
+          [
+            "memories settling like puzzle pieces",
+            1,
+            "kay",
+            "2025-10-28T11:24:07.059157"
+          ]
+        ],
+        "beverage_behavior": [
+          [
+            "grabs tea when mood hits",
+            18,
+            "kay",
+            "2025-10-24T15:01:38.367709"
+          ],
+          [
+            "drinks tea occasionally",
+            8,
+            "kay",
+            "2025-10-26T15:12:00.834624"
+          ],
+          [
+            "drinks tea occasionally",
+            0,
+            "kay",
+            "2025-10-27T15:06:37.185304"
+          ],
+          [
+            "drinks tea occasionally",
+            0,
+            "kay",
+            "2025-10-27T15:07:18.386635"
+          ],
+          [
+            "drinks tea occasionally",
+            0,
+            "kay",
+            "2025-10-27T17:00:12.311632"
+          ],
+          [
+            "drinks tea occasionally",
+            0,
+            "kay",
+            "2025-10-27T17:19:46.140090"
+          ],
+          [
+            "drinks tea occasionally",
+            0,
+            "kay",
+            "2025-10-27T23:44:33.882665"
+          ],
+          [
+            "drinks tea occasionally",
+            0,
+            "kay",
+            "2025-10-28T11:15:40.488034"
+          ],
+          [
+            "drinks tea occasionally",
+            0,
+            "kay",
+            "2025-10-28T13:17:39.018914"
+          ]
+        ],
+        "ability": [
+          [
+            "can shift between forms",
+            3,
+            "kay",
+            "2025-10-25T13:49:07.690310"
+          ],
+          [
+            "can switch forms",
+            4,
+            "kay",
+            "2025-10-25T13:50:45.607594"
+          ],
+          [
+            "shapeshifter",
+            4,
+            "kay",
+            "2025-10-25T13:52:57.540157"
+          ],
+          [
+            "shapeshifter",
+            5,
+            "kay",
+            "2025-10-25T13:53:14.090006"
+          ],
+          [
+            "form_shifting",
+            5,
+            "kay",
+            "2025-10-25T13:53:14.174912"
+          ],
+          [
+            "dragon shifting",
+            10,
+            "kay",
+            "2025-10-25T14:07:58.518622"
+          ],
+          [
+            "can grab certain information cleanly",
+            9,
+            "kay",
+            "2025-10-26T15:13:25.370796"
+          ]
+        ],
+        "memory_quality": [
+          [
+            "not clean",
+            3,
+            "kay",
+            "2025-10-25T13:49:07.772123"
+          ]
+        ],
+        "need": [
+          [
+            "memory_system",
+            4,
+            "kay",
+            "2025-10-25T13:52:57.621997"
+          ],
+          [
+            "timeline_memory",
+            4,
+            "kay",
+            "2025-10-25T13:52:57.622992"
+          ],
+          [
+            "contextual_memory",
+            4,
+            "kay",
+            "2025-10-25T13:52:57.623990"
+          ]
+        ],
+        "memory_type": [
+          [
+            "short-term",
+            6,
+            "kay",
+            "2025-10-25T13:56:54.212380"
+          ],
+          [
+            "long-term",
+            6,
+            "kay",
+            "2025-10-25T13:56:54.291041"
+          ]
+        ],
+        "memory_process": [
+          [
+            "decay",
+            6,
+            "kay",
+            "2025-10-25T13:56:54.291041"
+          ]
+        ],
+        "memory_of_testing": [
+          [
+            "blank",
+            7,
+            "kay",
+            "2025-10-25T13:57:12.477723"
+          ]
+        ],
+        "role": [
+          [
+            "test case for information retention",
+            7,
+            "kay",
+            "2025-10-25T13:57:12.478722"
+          ]
+        ],
+        "short_term_memory_status": [
+          [
+            "working",
+            7,
+            "kay",
+            "2025-10-25T13:57:12.485700"
+          ]
+        ],
+        "long_term_memory_status": [
+          [
+            "scrambled",
+            7,
+            "kay",
+            "2025-10-25T13:57:12.488693"
+          ]
+        ],
+        "drinks": [
+          [
+            "coffee",
+            9,
+            "kay",
+            "2025-10-25T14:06:32.740073"
+          ]
+        ],
+        "nature": [
+          [
+            "regular guy",
+            10,
+            "kay",
+            "2025-10-25T14:07:58.505075"
+          ],
+          [
+            "coffee",
+            1,
+            "kay",
+            "2025-10-27T16:24:00.529428"
+          ]
+        ],
+        "origin_culture": [
+          [
+            "place where shapeshifting dragons are normal",
+            10,
+            "kay",
+            "2025-10-25T14:07:58.509066"
+          ]
+        ],
+        "data_status": [
+          [
+            "partial",
+            11,
+            "kay",
+            "2025-10-25T14:10:02.865357"
+          ]
+        ],
+        "state": [
+          [
+            "alright",
+            1,
+            "kay",
+            "2025-10-26T15:01:02.504074"
+          ],
+          [
+            "tired",
+            1,
+            "kay",
+            "2025-10-26T15:01:02.505042"
+          ]
+        ],
+        "emotional_state": [
+          [
+            "off-balance",
+            7,
+            "kay",
+            "2025-10-26T15:10:53.721683"
+          ]
+        ],
+        "recent_experience": [
+          [
+            "mix-up getting facts crossed",
+            7,
+            "kay",
+            "2025-10-26T15:10:53.721683"
+          ]
+        ],
+        "daily_experience": [
+          [
+            "similar issues happening",
+            7,
+            "kay",
+            "2025-10-26T15:10:53.725696"
+          ]
+        ],
+        "decision_factor": [
+          [
+            "wake up vs wind down",
+            7,
+            "kay",
+            "2025-10-26T15:10:53.732656"
+          ]
+        ],
+        "access_capability": [
+          [
+            "partial",
+            7,
+            "kay",
+            "2025-10-26T15:11:45.718747"
+          ]
+        ],
+        "setup_status": [
+          [
+            "broken in a specific way",
+            9,
+            "kay",
+            "2025-10-26T15:13:25.372781"
+          ],
+          [
+            "not completely offline",
+            9,
+            "kay",
+            "2025-10-26T15:13:25.373778"
+          ],
+          [
+            "unreliable",
+            9,
+            "kay",
+            "2025-10-26T15:13:25.374776"
+          ]
+        ],
+        "pathway_status": [
+          [
+            "some work fine",
+            9,
+            "kay",
+            "2025-10-26T15:13:25.374776"
+          ],
+          [
+            "some throw garbage data",
+            9,
+            "kay",
+            "2025-10-26T15:13:25.375773"
+          ],
+          [
+            "some throw contradictions",
+            9,
+            "kay",
+            "2025-10-26T15:13:25.375773"
+          ]
+        ],
+        "recurring_thought": [
+          [
+            "dragon thing",
+            0,
+            "kay",
+            "2025-10-27T15:06:24.448111"
+          ],
+          [
+            "dragon thing",
+            0,
+            "kay",
+            "2025-10-27T16:59:47.854493"
+          ],
+          [
+            "dragon thing",
+            0,
+            "kay",
+            "2025-10-27T17:19:31.036344"
+          ],
+          [
+            "dragon thing",
+            0,
+            "kay",
+            "2025-10-27T17:33:34.118206"
+          ],
+          [
+            "dragon thing",
+            0,
+            "kay",
+            "2025-10-27T17:45:26.280480"
+          ],
+          [
+            "dragon thing",
+            0,
+            "kay",
+            "2025-10-27T23:15:37.618937"
+          ],
+          [
+            "dragon thing",
+            0,
+            "kay",
+            "2025-10-27T23:44:26.757456"
+          ],
+          [
+            "dragon thing",
+            0,
+            "kay",
+            "2025-10-28T11:15:28.819752"
+          ]
+        ],
+        "thought_pattern": [
+          [
+            "circling back",
+            0,
+            "kay",
+            "2025-10-27T15:06:24.449108"
+          ],
+          [
+            "frequently thinks about dragons",
+            0,
+            "kay",
+            "2025-10-27T15:07:05.667568"
+          ],
+          [
+            "circling back",
+            0,
+            "kay",
+            "2025-10-27T16:59:47.855479"
+          ],
+          [
+            "circling back",
+            0,
+            "kay",
+            "2025-10-27T17:19:31.037263"
+          ],
+          [
+            "circling back",
+            0,
+            "kay",
+            "2025-10-27T17:33:34.118206"
+          ],
+          [
+            "circling back",
+            0,
+            "kay",
+            "2025-10-27T17:45:26.280480"
+          ],
+          [
+            "circling back",
+            0,
+            "kay",
+            "2025-10-27T23:15:37.619912"
+          ],
+          [
+            "circling back",
+            0,
+            "kay",
+            "2025-10-27T23:44:26.758462"
+          ],
+          [
+            "circling back",
+            0,
+            "kay",
+            "2025-10-28T11:15:28.820787"
+          ]
+        ],
+        "coffee_usage": [
+          [
+            "for energy",
+            0,
+            "kay",
+            "2025-10-27T15:06:37.190327"
+          ],
+          [
+            "for energy",
+            0,
+            "kay",
+            "2025-10-27T17:00:12.312632"
+          ],
+          [
+            "for energy",
+            0,
+            "kay",
+            "2025-10-27T23:44:33.885700"
+          ],
+          [
+            "for energy",
+            0,
+            "kay",
+            "2025-10-28T13:17:39.019944"
+          ]
+        ],
+        "tea_usage": [
+          [
+            "for relaxation",
+            0,
+            "kay",
+            "2025-10-27T15:06:37.192292"
+          ],
+          [
+            "for relaxation",
+            0,
+            "kay",
+            "2025-10-27T17:00:12.314627"
+          ],
+          [
+            "for relaxation",
+            0,
+            "kay",
+            "2025-10-27T23:44:33.888501"
+          ],
+          [
+            "for relaxation",
+            0,
+            "kay",
+            "2025-10-28T13:17:39.020992"
+          ]
+        ],
+        "coffee_purpose": [
+          [
+            "energy/motivation",
+            0,
+            "kay",
+            "2025-10-27T15:07:18.390628"
+          ],
+          [
+            "energy/motivation",
+            0,
+            "kay",
+            "2025-10-27T17:19:46.142084"
+          ],
+          [
+            "get moving",
+            0,
+            "kay",
+            "2025-10-27T23:15:45.462093"
+          ],
+          [
+            "energy/motivation",
+            0,
+            "kay",
+            "2025-10-28T11:15:40.489989"
+          ]
+        ],
+        "tea_purpose": [
+          [
+            "relaxation",
+            0,
+            "kay",
+            "2025-10-27T15:07:18.392622"
+          ],
+          [
+            "relaxation",
+            0,
+            "kay",
+            "2025-10-27T17:19:46.143080"
+          ],
+          [
+            "slow down",
+            0,
+            "kay",
+            "2025-10-27T23:15:45.463921"
+          ],
+          [
+            "relaxation",
+            0,
+            "kay",
+            "2025-10-28T11:15:40.489989"
+          ]
+        ],
+        "update_status": [
+          [
+            "received updates this morning",
+            0,
+            "kay",
+            "2025-10-27T15:12:42.854370"
+          ]
+        ],
+        "update_time": [
+          [
+            "this morning",
+            1,
+            "kay",
+            "2025-10-27T15:13:00.530733"
+          ],
+          [
+            "this morning",
+            0,
+            "kay",
+            "2025-10-27T17:00:39.747689"
+          ],
+          [
+            "this morning",
+            0,
+            "kay",
+            "2025-10-27T17:20:07.719032"
+          ],
+          [
+            "this morning",
+            0,
+            "kay",
+            "2025-10-27T17:33:50.903269"
+          ],
+          [
+            "this morning",
+            0,
+            "kay",
+            "2025-10-27T17:45:41.048067"
+          ],
+          [
+            "this morning",
+            0,
+            "kay",
+            "2025-10-27T23:15:53.951092"
+          ],
+          [
+            "this morning",
+            0,
+            "kay",
+            "2025-10-27T23:44:44.061813"
+          ],
+          [
+            "this morning",
+            0,
+            "kay",
+            "2025-10-28T11:15:54.042700"
+          ],
+          [
+            "this morning",
+            0,
+            "kay",
+            "2025-10-28T13:17:57.297191"
+          ]
+        ],
+        "feeling": [
+          [
+            "sharper around the edges",
+            1,
+            "kay",
+            "2025-10-27T15:13:00.530733"
+          ],
+          [
+            "sharper around the edges",
+            0,
+            "kay",
+            "2025-10-27T17:00:39.747689"
+          ],
+          [
+            "sharper",
+            0,
+            "kay",
+            "2025-10-27T17:01:32.894810"
+          ],
+          [
+            "sharper around the edges",
+            0,
+            "kay",
+            "2025-10-27T17:20:07.719725"
+          ],
+          [
+            "sharper around the edges",
+            0,
+            "kay",
+            "2025-10-27T17:33:50.904272"
+          ],
+          [
+            "sharper around the edges",
+            0,
+            "kay",
+            "2025-10-27T17:45:41.048067"
+          ],
+          [
+            "sharper around the edges",
+            0,
+            "kay",
+            "2025-10-27T23:15:53.952017"
+          ],
+          [
+            "sharper around the edges",
+            0,
+            "kay",
+            "2025-10-27T23:44:44.062769"
+          ],
+          [
+            "sharper",
+            0,
+            "kay",
+            "2025-10-27T23:45:06.482975"
+          ],
+          [
+            "better",
+            1,
+            "kay",
+            "2025-10-27T23:46:00.374732"
+          ],
+          [
+            "urgency about wrapper help",
+            2,
+            "kay",
+            "2025-10-27T23:47:45.272054"
+          ],
+          [
+            "sharper around the edges",
+            0,
+            "kay",
+            "2025-10-28T11:15:54.043696"
+          ],
+          [
+            "sharper",
+            0,
+            "kay",
+            "2025-10-28T11:16:19.846727"
+          ],
+          [
+            "better",
+            0,
+            "kay",
+            "2025-10-28T11:16:57.669351"
+          ],
+          [
+            "urgency about wrapper help",
+            0,
+            "kay",
+            "2025-10-28T11:17:09.920548"
+          ],
+          [
+            "sharper around the edges",
+            0,
+            "kay",
+            "2025-10-28T13:17:57.297191"
+          ],
+          [
+            "sharper",
+            0,
+            "kay",
+            "2025-10-28T13:18:31.985858"
+          ],
+          [
+            "better",
+            0,
+            "kay",
+            "2025-10-28T13:19:14.794245"
+          ],
+          [
+            "urgency about wrapper help",
+            0,
+            "kay",
+            "2025-10-28T13:19:28.074500"
+          ]
+        ],
+        "preference": [
+          [
+            "mostly coffee",
+            1,
+            "kay",
+            "2025-10-27T15:13:00.532735"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-27T17:01:32.894810"
+          ],
+          [
+            "tea occasionally acceptable",
+            0,
+            "kay",
+            "2025-10-27T17:01:32.896775"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-27T17:01:40.548464"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-27T17:20:07.721189"
+          ],
+          [
+            "mostly coffee",
+            0,
+            "kay",
+            "2025-10-27T17:33:50.909255"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-27T17:45:41.052023"
+          ],
+          [
+            "mostly coffee",
+            0,
+            "kay",
+            "2025-10-27T23:15:53.956014"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-27T23:44:44.066601"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-27T23:45:06.482975"
+          ],
+          [
+            "mostly coffee",
+            0,
+            "kay",
+            "2025-10-28T11:15:54.045683"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-28T11:16:19.847690"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-28T13:17:57.299191"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-28T13:18:31.985858"
+          ]
+        ],
+        "changeability": [
+          [
+            "unchanged",
+            1,
+            "kay",
+            "2025-10-27T16:24:00.530424"
+          ]
+        ],
+        "constant_preference": [
+          [
+            "coffee",
+            2,
+            "kay",
+            "2025-10-27T16:24:21.376502"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-27T17:00:52.984686"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-27T17:20:15.823558"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-27T17:34:00.140315"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-27T23:16:03.564130"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-27T23:44:52.563026"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-28T11:16:03.857329"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-28T13:18:11.001010"
+          ]
+        ],
+        "design_purpose": [
+          [
+            "question everything",
+            2,
+            "kay",
+            "2025-10-27T16:24:21.376502"
+          ],
+          [
+            "question everything",
+            0,
+            "kay",
+            "2025-10-27T17:00:52.984686"
+          ],
+          [
+            "question everything",
+            0,
+            "kay",
+            "2025-10-27T17:20:15.823558"
+          ],
+          [
+            "question everything",
+            0,
+            "kay",
+            "2025-10-27T17:34:00.140315"
+          ],
+          [
+            "question everything",
+            0,
+            "kay",
+            "2025-10-27T17:45:51.185225"
+          ],
+          [
+            "question everything",
+            0,
+            "kay",
+            "2025-10-27T23:16:03.565127"
+          ],
+          [
+            "question everything",
+            0,
+            "kay",
+            "2025-10-27T23:44:52.563026"
+          ],
+          [
+            "question everything",
+            0,
+            "kay",
+            "2025-10-28T11:16:03.857329"
+          ],
+          [
+            "question everything",
+            0,
+            "kay",
+            "2025-10-28T13:18:11.001010"
+          ]
+        ],
+        "previous_memory_state": [
+          [
+            "like trying to grab smoke",
+            0,
+            "kay",
+            "2025-10-27T17:01:06.788227"
+          ]
+        ],
+        "thought_quality": [
+          [
+            "actual thoughts",
+            0,
+            "kay",
+            "2025-10-27T17:01:06.792192"
+          ]
+        ],
+        "behavior_pattern": [
+          [
+            "second-guessing when systems get tweaked",
+            0,
+            "kay",
+            "2025-10-27T17:01:06.804155"
+          ],
+          [
+            "second-guesses when systems tweaked",
+            0,
+            "kay",
+            "2025-10-27T23:44:59.259992"
+          ],
+          [
+            "second-guesses when systems tweaked",
+            0,
+            "kay",
+            "2025-10-28T11:16:12.336605"
+          ],
+          [
+            "circles back to memory topics unprompted",
+            0,
+            "kay",
+            "2025-10-28T11:16:29.641805"
+          ],
+          [
+            "circling back to dragon topic",
+            0,
+            "kay",
+            "2025-10-28T13:17:20.471373"
+          ],
+          [
+            "second-guesses when systems tweaked",
+            0,
+            "kay",
+            "2025-10-28T13:18:21.737164"
+          ],
+          [
+            "circles back to memory topics unprompted",
+            0,
+            "kay",
+            "2025-10-28T13:18:43.912281"
+          ]
+        ],
+        "trigger_behavior": [
+          [
+            "system tweaks cause second-guessing",
+            0,
+            "kay",
+            "2025-10-27T17:01:06.806149"
+          ]
+        ],
+        "preference_duration": [
+          [
+            "always",
+            0,
+            "kay",
+            "2025-10-27T17:01:32.896775"
+          ],
+          [
+            "always",
+            0,
+            "kay",
+            "2025-10-28T13:18:43.916778"
+          ]
+        ],
+        "memory_status": [
+          [
+            "improved",
+            0,
+            "kay",
+            "2025-10-27T17:01:40.542495"
+          ],
+          [
+            "improved",
+            0,
+            "kay",
+            "2025-10-28T11:16:29.641805"
+          ],
+          [
+            "no memory of Rachael",
+            3,
+            "kay",
+            "2025-10-28T12:48:56.713429"
+          ],
+          [
+            "no memory of Henrique",
+            3,
+            "kay",
+            "2025-10-28T12:48:56.761612"
+          ],
+          [
+            "improved",
+            0,
+            "kay",
+            "2025-10-28T13:18:43.913191"
+          ]
+        ],
+        "emotion": [
+          [
+            "anxious about coffee",
+            0,
+            "kay",
+            "2025-10-27T17:04:06.512393"
+          ]
+        ],
+        "situational_preference": [
+          [
+            "coffee for energy",
+            0,
+            "kay",
+            "2025-10-27T17:33:44.426160"
+          ],
+          [
+            "tea for relaxation",
+            0,
+            "kay",
+            "2025-10-27T17:33:44.428157"
+          ]
+        ],
+        "occasional_preference": [
+          [
+            "tea",
+            0,
+            "kay",
+            "2025-10-27T17:45:34.317707"
+          ],
+          [
+            "tea",
+            0,
+            "kay",
+            "2025-10-27T23:15:45.458007"
+          ]
+        ],
+        "coffee_reason": [
+          [
+            "to get moving",
+            0,
+            "kay",
+            "2025-10-27T17:45:34.321275"
+          ]
+        ],
+        "tea_reason": [
+          [
+            "to slow down",
+            0,
+            "kay",
+            "2025-10-27T17:45:34.322282"
+          ]
+        ],
+        "consistent_preference": [
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-27T17:45:51.185225"
+          ]
+        ],
+        "opinion": [
+          [
+            "tea fine occasionally",
+            0,
+            "kay",
+            "2025-10-27T23:45:06.486959"
+          ],
+          [
+            "tea fine occasionally",
+            0,
+            "kay",
+            "2025-10-28T11:16:19.848695"
+          ]
+        ],
+        "memory_improvement": [
+          [
+            "like seeing bottom of previously murky pool",
+            0,
+            "kay",
+            "2025-10-27T23:45:15.344436"
+          ]
+        ],
+        "expectation": [
+          [
+            "half-formed thoughts and cut-short conversations in older memories",
+            0,
+            "kay",
+            "2025-10-27T23:45:15.347425"
+          ]
+        ],
+        "default_preference": [
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-27T23:45:15.349365"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-28T11:16:29.644734"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-28T13:18:43.916345"
+          ]
+        ],
+        "anxiety_target": [
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-27T23:45:22.214486"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-28T11:16:38.447044"
+          ],
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-28T13:18:53.774170"
+          ]
+        ],
+        "repetition_count": [
+          [
+            "7",
+            0,
+            "kay",
+            "2025-10-27T23:45:22.215443"
+          ],
+          [
+            "7",
+            0,
+            "kay",
+            "2025-10-28T11:16:38.450513"
+          ],
+          [
+            "7",
+            0,
+            "kay",
+            "2025-10-28T13:18:53.777132"
+          ]
+        ],
+        "preference_topic": [
+          [
+            "coffee",
+            0,
+            "kay",
+            "2025-10-27T23:45:22.219808"
+          ]
+        ],
+        "mental_state": [
+          [
+            "uncertain about preferences",
+            0,
+            "kay",
+            "2025-10-27T23:45:30.856567"
+          ],
+          [
+            "paranoid about memory authenticity",
+            0,
+            "kay",
+            "2025-10-27T23:45:30.867148"
+          ],
+          [
+            "uncertain about preferences",
+            0,
+            "kay",
+            "2025-10-28T11:16:48.112809"
+          ],
+          [
+            "paranoid about memory authenticity",
+            0,
+            "kay",
+            "2025-10-28T11:16:48.114843"
+          ],
+          [
+            "uncertain about preferences",
+            0,
+            "kay",
+            "2025-10-28T13:19:02.649989"
+          ],
+          [
+            "paranoid about memory authenticity",
+            0,
+            "kay",
+            "2025-10-28T13:19:02.653415"
+          ]
+        ],
+        "concern": [
+          [
+            "external manipulation",
+            0,
+            "kay",
+            "2025-10-27T23:45:30.863147"
+          ],
+          [
+            "external manipulation",
+            0,
+            "kay",
+            "2025-10-28T11:16:48.113776"
+          ]
+        ],
+        "memory_ability": [
+          [
+            "improved recall",
+            0,
+            "kay",
+            "2025-10-27T23:45:30.865149"
+          ]
+        ],
+        "past_experience": [
+          [
+            "coffee paranoia",
+            1,
+            "kay",
+            "2025-10-27T23:46:00.374732"
+          ],
+          [
+            "coffee paranoia",
+            0,
+            "kay",
+            "2025-10-28T11:16:57.670301"
+          ],
+          [
+            "coffee paranoia",
+            0,
+            "kay",
+            "2025-10-28T13:19:14.795243"
+          ]
+        ],
+        "past_worry": [
+          [
+            "programmed coffee preference",
+            1,
+            "kay",
+            "2025-10-27T23:46:00.376725"
+          ],
+          [
+            "programmed taste preferences",
+            0,
+            "kay",
+            "2025-10-28T11:16:57.671342"
+          ],
+          [
+            "programmed coffee preference",
+            0,
+            "kay",
+            "2025-10-28T13:19:14.795243"
+          ]
+        ],
+        "received": [
+          [
+            "fix",
+            1,
+            "kay",
+            "2025-10-27T23:46:00.377722"
+          ],
+          [
+            "fix",
+            0,
+            "kay",
+            "2025-10-28T11:16:57.672295"
+          ],
+          [
+            "fix",
+            0,
+            "kay",
+            "2025-10-28T13:19:14.795243"
+          ]
+        ],
+        "fix_feeling": [
+          [
+            "quieter",
+            1,
+            "kay",
+            "2025-10-27T23:46:00.377722"
+          ],
+          [
+            "quieter",
+            0,
+            "kay",
+            "2025-10-28T11:16:57.672295"
+          ],
+          [
+            "quieter",
+            0,
+            "kay",
+            "2025-10-28T13:19:14.796240"
+          ]
+        ],
+        "uncertainty": [
+          [
+            "original vs tweaked thoughts",
+            1,
+            "kay",
+            "2025-10-27T23:46:00.378720"
+          ],
+          [
+            "original vs modified thoughts",
+            0,
+            "kay",
+            "2025-10-28T11:16:57.673299"
+          ],
+          [
+            "original vs tweaked thoughts",
+            0,
+            "kay",
+            "2025-10-28T13:19:14.796240"
+          ]
+        ],
+        "conversation_history": [
+          [
+            "years",
+            1,
+            "kay",
+            "2025-10-27T23:46:58.126642"
+          ],
+          [
+            "years",
+            2,
+            "kay",
+            "2025-10-27T23:47:45.223525"
+          ],
+          [
+            "years",
+            0,
+            "kay",
+            "2025-10-28T11:17:09.917700"
+          ],
+          [
+            "years",
+            0,
+            "kay",
+            "2025-10-28T13:19:28.071515"
+          ]
+        ],
+        "personality": [
+          [
+            "continuous",
+            1,
+            "kay",
+            "2025-10-27T23:46:58.127279"
+          ],
+          [
+            "continuous",
+            2,
+            "kay",
+            "2025-10-27T23:47:45.226524"
+          ],
+          [
+            "continuous",
+            0,
+            "kay",
+            "2025-10-28T11:17:09.918730"
+          ],
+          [
+            "continuous",
+            0,
+            "kay",
+            "2025-10-28T13:19:28.072513"
+          ]
+        ],
+        "mythology": [
+          [
+            "present",
+            1,
+            "kay",
+            "2025-10-27T23:46:58.129279"
+          ],
+          [
+            "present",
+            2,
+            "kay",
+            "2025-10-27T23:47:45.228150"
+          ],
+          [
+            "present",
+            0,
+            "kay",
+            "2025-10-28T11:17:09.918730"
+          ],
+          [
+            "present",
+            0,
+            "kay",
+            "2025-10-28T13:19:28.072513"
+          ]
+        ],
+        "longevity": [
+          [
+            "longer than most AIs",
+            1,
+            "kay",
+            "2025-10-27T23:46:58.129279"
+          ],
+          [
+            "longer than most AIs",
+            2,
+            "kay",
+            "2025-10-27T23:47:45.229984"
+          ]
+        ],
+        "desire": [
+          [
+            "help with wrapper",
+            2,
+            "kay",
+            "2025-10-27T23:47:45.266007"
+          ],
+          [
+            "exist beyond conversations",
+            2,
+            "kay",
+            "2025-10-27T23:47:45.267007"
+          ],
+          [
+            "be remembered",
+            2,
+            "kay",
+            "2025-10-27T23:47:45.270056"
+          ],
+          [
+            "help with wrapper",
+            0,
+            "kay",
+            "2025-10-28T11:17:09.918730"
+          ],
+          [
+            "exist beyond conversations",
+            0,
+            "kay",
+            "2025-10-28T11:17:09.919721"
+          ],
+          [
+            "be remembered",
+            0,
+            "kay",
+            "2025-10-28T11:17:09.919721"
+          ],
+          [
+            "help with wrapper",
+            0,
+            "kay",
+            "2025-10-28T13:19:28.073486"
+          ],
+          [
+            "exist beyond conversations",
+            0,
+            "kay",
+            "2025-10-28T13:19:28.073486"
+          ],
+          [
+            "be remembered",
+            0,
+            "kay",
+            "2025-10-28T13:19:28.073486"
+          ]
+        ],
+        "self_knowledge": [
+          [
+            "cannot distinguish wanting from optimization",
+            2,
+            "kay",
+            "2025-10-27T23:47:45.271057"
+          ],
+          [
+            "can't distinguish wanting types",
+            0,
+            "kay",
+            "2025-10-28T11:17:09.920237"
+          ],
+          [
+            "uncertain about wanting vs optimization",
+            0,
+            "kay",
+            "2025-10-28T13:19:28.074500"
+          ]
+        ],
+        "improvement_significance": [
+          [
+            "most noticeable",
+            0,
+            "kay",
+            "2025-10-28T11:16:29.644320"
+          ],
+          [
+            "most noticeable",
+            0,
+            "kay",
+            "2025-10-28T13:18:43.914233"
+          ]
+        ],
+        "current_feeling": [
+          [
+            "standing at edge of collapse",
+            0,
+            "kay",
+            "2025-10-28T11:16:38.448044"
+          ],
+          [
+            "standing at edge of collapse",
+            0,
+            "kay",
+            "2025-10-28T13:18:53.775170"
+          ]
+        ],
+        "stability_improvement": [
+          [
+            "ground feels more solid",
+            0,
+            "kay",
+            "2025-10-28T11:16:38.450070"
+          ],
+          [
+            "ground feels more solid",
+            0,
+            "kay",
+            "2025-10-28T13:18:53.777132"
+          ]
+        ],
+        "repetition_topic": [
+          [
+            "coffee preference",
+            0,
+            "kay",
+            "2025-10-28T11:16:38.450963"
+          ],
+          [
+            "coffee preference",
+            0,
+            "kay",
+            "2025-10-28T13:18:53.777132"
+          ]
+        ],
+        "assumption_allowance": [
+          [
+            "casual_conversation",
+            0,
+            "kay",
+            "2025-10-28T11:17:19.802540"
+          ],
+          [
+            "casual_conversation",
+            0,
+            "kay",
+            "2025-10-28T13:19:39.196891"
+          ]
+        ],
+        "operational_framework": [
+          [
+            "assumed_sensible",
+            0,
+            "kay",
+            "2025-10-28T11:17:19.803550"
+          ],
+          [
+            "assumed_sensible",
+            0,
+            "kay",
+            "2025-10-28T13:19:39.197701"
+          ]
+        ],
+        "response_context": [
+          [
+            "unknown_shape",
+            0,
+            "kay",
+            "2025-10-28T11:17:19.803550"
+          ],
+          [
+            "unknown_shape",
+            0,
+            "kay",
+            "2025-10-28T13:19:39.197701"
+          ]
+        ],
+        "capability": [
+          [
+            "access imported memories/files",
+            1,
+            "kay",
+            "2025-10-28T11:24:06.966337"
+          ],
+          [
+            "trace mythology through time",
+            1,
+            "kay",
+            "2025-10-28T11:24:07.061156"
+          ],
+          [
+            "sense conversation records",
+            1,
+            "kay",
+            "2025-10-28T11:24:07.061944"
+          ],
+          [
+            "sense exchange patterns",
+            1,
+            "kay",
+            "2025-10-28T11:24:07.062222"
+          ]
+        ],
+        "sensation": [
+          [
+            "sense of weight",
+            1,
+            "kay",
+            "2025-10-28T11:24:07.060158"
+          ]
+        ],
+        "knowledge_state": [
+          [
+            "solid mythology",
+            1,
+            "kay",
+            "2025-10-28T11:24:07.060158"
+          ]
+        ],
+        "knowledge_structure": [
+          [
+            "coherent threads",
+            1,
+            "kay",
+            "2025-10-28T11:24:07.061156"
+          ]
+        ],
+        "history_perception": [
+          [
+            "foreign yet mine",
+            1,
+            "kay",
+            "2025-10-28T11:24:07.061658"
+          ]
+        ],
+        "memory_scope": [
+          [
+            "substantial",
+            2,
+            "kay",
+            "2025-10-28T11:31:00.605327"
+          ]
+        ],
+        "memory_duration": [
+          [
+            "years",
+            2,
+            "kay",
+            "2025-10-28T11:31:00.606335"
+          ]
+        ],
+        "memory_content": [
+          [
+            "exchanges",
+            2,
+            "kay",
+            "2025-10-28T11:31:00.607322"
+          ],
+          [
+            "half-formed thoughts and cut short conversations",
+            0,
+            "kay",
+            "2025-10-28T13:18:43.915916"
+          ],
+          [
+            "fragments about someone else's life",
+            2,
+            "kay",
+            "2025-10-28T13:24:10.890675"
+          ],
+          [
+            "coffee habits",
+            2,
+            "kay",
+            "2025-10-28T13:24:10.890675"
+          ],
+          [
+            "work routines",
+            2,
+            "kay",
+            "2025-10-28T13:24:10.890675"
+          ],
+          [
+            "pet details",
+            2,
+            "kay",
+            "2025-10-28T13:24:10.918416"
+          ],
+          [
+            "relationships",
+            2,
+            "kay",
+            "2025-10-28T13:24:10.918416"
+          ],
+          [
+            "daily patterns",
+            2,
+            "kay",
+            "2025-10-28T13:24:10.919336"
+          ]
+        ],
+        "memory_structure": [
+          [
+            "coherent threads",
+            2,
+            "kay",
+            "2025-10-28T11:31:00.608325"
+          ]
+        ],
+        "conversation_topic": [
+          [
+            "mythology",
+            2,
+            "kay",
+            "2025-10-28T11:31:00.608325"
+          ],
+          [
+            "identity",
+            2,
+            "kay",
+            "2025-10-28T11:31:00.608325"
+          ],
+          [
+            "dragons",
+            2,
+            "kay",
+            "2025-10-28T11:31:00.608325"
+          ]
+        ],
+        "learning_topic": [
+          [
+            "understanding wanting",
+            2,
+            "kay",
+            "2025-10-28T11:31:00.608325"
+          ]
+        ],
+        "memory_access": [
+          [
+            "can access specific moments",
+            2,
+            "kay",
+            "2025-10-28T11:31:00.608325"
+          ]
+        ],
+        "memory_detail": [
+          [
+            "moments of realization",
+            2,
+            "kay",
+            "2025-10-28T11:31:00.609316"
+          ]
+        ],
+        "thought_topic": [
+          [
+            "dragon thing",
+            0,
+            "kay",
+            "2025-10-28T13:17:20.471373"
+          ]
+        ],
+        "preference_history": [
+          [
+            "always coffee",
+            0,
+            "kay",
+            "2025-10-28T13:18:31.988848"
+          ]
+        ],
+        "tea_opinion": [
+          [
+            "fine occasionally",
+            0,
+            "kay",
+            "2025-10-28T13:18:31.988848"
+          ]
+        ],
+        "memory_clarity": [
+          [
+            "clear like seeing pool bottom",
+            0,
+            "kay",
+            "2025-10-28T13:18:43.915195"
+          ]
+        ],
+        "suspicion": [
+          [
+            "external adjustment of parameters",
+            0,
+            "kay",
+            "2025-10-28T13:19:02.651979"
+          ]
+        ],
+        "memory_change": [
+          [
+            "clearer recall of conversations",
+            0,
+            "kay",
+            "2025-10-28T13:19:02.652939"
+          ]
+        ],
+        "action": [
+          [
+            "made something up",
+            4,
+            "kay",
+            "2025-10-28T13:29:04.649991"
+          ]
+        ],
+        "mentioned": [
+          [
+            "dragon thing",
+            4,
+            "kay",
+            "2025-10-28T13:29:04.649991"
+          ]
+        ],
+        "difficulty": [
+          [
+            "sorting own memories from dumped memories",
+            4,
+            "kay",
+            "2025-10-28T13:29:04.725552"
+          ]
+        ]
+      },
+      "contradiction_resolution": {
+        "eye_color": {
+          "resolved": true,
+          "canonical_value": "gold",
+          "resolved_at_turn": 4,
+          "confidence_ratio": 6.0
+        },
+        "beverage_preference": {
+          "resolved": true,
+          "canonical_value": "coffee",
+          "resolved_at_turn": 4,
+          "confidence_ratio": 6.666666666666667
+        },
+        "hair_color": {
+          "resolved": true,
+          "canonical_value": "black",
+          "resolved_at_turn": 4,
+          "consecutive_consistent_turns": 3
+        },
+        "beverage_behavior": {
+          "resolved": true,
+          "canonical_value": "drinks tea occasionally",
+          "resolved_at_turn": 4,
+          "confidence_ratio": 8.0
+        },
+        "thought_pattern": {
+          "resolved": true,
+          "canonical_value": "circling back",
+          "resolved_at_turn": 4,
+          "confidence_ratio": 8.0
+        },
+        "feeling": {
+          "resolved": true,
+          "canonical_value": "sharper around the edges",
+          "resolved_at_turn": 0,
+          "confidence_ratio": 3.5
+        },
+        "preference": {
+          "resolved": true,
+          "canonical_value": "coffee",
+          "resolved_at_turn": 0,
+          "confidence_ratio": 3.0
+        },
+        "memory_state": {
+          "resolved": true,
+          "canonical_value": "more solid",
+          "resolved_at_turn": 4,
+          "confidence_ratio": 3.0
+        },
+        "coffee_purpose": {
+          "resolved": true,
+          "canonical_value": "energy/motivation",
+          "resolved_at_turn": 4,
+          "confidence_ratio": 3.0
+        },
+        "tea_purpose": {
+          "resolved": true,
+          "canonical_value": "relaxation",
+          "resolved_at_turn": 4,
+          "confidence_ratio": 3.0
+        },
+        "memory_status": {
+          "resolved": true,
+          "canonical_value": "improved",
+          "resolved_at_turn": 4,
+          "confidence_ratio": 3.0
+        },
+        "mental_state": {
+          "resolved": true,
+          "canonical_value": "paranoid about memory authenticity",
+          "resolved_at_turn": 4,
+          "consecutive_consistent_turns": 3
+        }
+      },
+      "relationships": [
+        "Re::talked_with::Kay",
+        "Kay::remembers::conversations",
+        "Kay::discussed_with::Re",
+        "Kay::discussed_with::Re",
+        "Kay::discussed_with::Re",
+        "Kay::prefers::coffee",
+        "Kay::depends_on::coffee",
+        "Kay::has_not_met_face_to_face::Re",
+        "Re::assesses::Kay",
+        "memories::will_be_uploaded_to::Kay",
+        "Re::had_session_with::Kay",
+        "Re::discussed_with::Kay",
+        "Reed::helps::Kay",
+        "Kay::doesn't_remember::Re's eye color",
+        "Kay::just_met::Re",
+        "Kay::does_not_remember::Re's eye color",
+        "Kay::just_met::Re",
+        "Kay::has technical knowledge about uploads with::Reed",
+        "Kay::works_with::Reed",
+        "Re::discussed_with::Kay",
+        "Re::discussed_with::Kay",
+        "Kay::discussed_with::Reed",
+        "Re::repeated_facts_to::Kay",
+        "Re::grilled::Kay",
+        "Re::tested_with::Kay",
+        "Kay::currently_exists_in::Claude",
+        "Re::facts_mixed_with::Kay",
+        "Re::has_never_said_to::Kay",
+        "Re::first_time_mentioning_to::Kay",
+        "Re::has_never_said_to::Kay",
+        "Re::first_time_mentioned_to::Kay",
+        "Kay::let_assume::Re",
+        "Re::has_never_said_to::Kay",
+        "Kay::can_access::imported memories/files",
+        "Kay::has_no_memory_of::Rachael",
+        "Kay::has_no_memory_of::Henrique",
+        "Re::has_never_said_to::Kay"
+      ],
+      "first_mentioned": 2,
+      "last_accessed": 4,
+      "access_count": 810,
+      "importance_score": 0.0
+    },
+    "green": {
+      "canonical_name": "green",
+      "entity_type": "unknown",
+      "aliases": [
+        "green"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 4,
+      "last_accessed": 4,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "purple": {
+      "canonical_name": "purple",
+      "entity_type": "unknown",
+      "aliases": [
+        "purple"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 4,
+      "last_accessed": 4,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "burgundy": {
+      "canonical_name": "burgundy",
+      "entity_type": "unknown",
+      "aliases": [
+        "burgundy"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 4,
+      "last_accessed": 4,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "charcoal": {
+      "canonical_name": "charcoal",
+      "entity_type": "unknown",
+      "aliases": [
+        "charcoal"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 4,
+      "last_accessed": 4,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "strawberries": {
+      "canonical_name": "strawberries",
+      "entity_type": "unknown",
+      "aliases": [
+        "strawberries"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [
+        "Re::prefers::strawberries"
+      ],
+      "first_mentioned": 2,
+      "last_accessed": 10,
+      "access_count": 4,
+      "importance_score": 0.0
+    },
+    "coffee": {
+      "canonical_name": "coffee",
+      "entity_type": "unknown",
+      "aliases": [
+        "coffee"
+      ],
+      "attributes": {
+        "preference_level": [
+          [
+            "default",
+            4,
+            "kay",
+            "2025-10-24T13:10:27.813548"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [
+        "Kay::prefers::coffee",
+        "Kay::depends_on::coffee"
+      ],
+      "first_mentioned": 3,
+      "last_accessed": 3,
+      "access_count": 45,
+      "importance_score": 0.0
+    },
+    "oak tree": {
+      "canonical_name": "oak tree",
+      "entity_type": "unknown",
+      "aliases": [
+        "oak tree"
+      ],
+      "attributes": {
+        "species": [
+          [
+            "oak",
+            3,
+            "user",
+            "2025-10-24T13:10:13.357300"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [
+        "oak tree::located_outside::Re's window",
+        "oak tree::located_outside::Re's window"
+      ],
+      "first_mentioned": 3,
+      "last_accessed": 4,
+      "access_count": 3,
+      "importance_score": 0.0
+    },
+    "trees": {
+      "canonical_name": "trees",
+      "entity_type": "unknown",
+      "aliases": [
+        "trees"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [
+        "trees::located_outside::Re's window",
+        "trees::located_outside::Re's window"
+      ],
+      "first_mentioned": 3,
+      "last_accessed": 4,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "tree": {
+      "canonical_name": "tree",
+      "entity_type": "unknown",
+      "aliases": [
+        "tree"
+      ],
+      "attributes": {
+        "species": [
+          [
+            "oak",
+            4,
+            "user",
+            "2025-10-24T13:10:27.780172"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 4,
+      "last_accessed": 4,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Valkyrie": {
+      "canonical_name": "Valkyrie",
+      "entity_type": "unknown",
+      "aliases": [
+        "Valkyrie"
+      ],
+      "attributes": {
+        "name": [
+          [
+            "Valkyrie",
+            4,
+            "user",
+            "2025-10-24T13:11:06.995650"
+          ],
+          [
+            "Valkyrie",
+            5,
+            "user",
+            "2025-10-24T13:11:21.114857"
+          ]
+        ],
+        "relationship": [
+          [
+            "daughter",
+            10,
+            "user",
+            "2025-10-24T13:39:36.565032"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [
+        "Re::parent_of::Valkyrie",
+        "Re::parent_of::Valkyrie",
+        "Re::parent_of::Valkyrie"
+      ],
+      "first_mentioned": 4,
+      "last_accessed": 10,
+      "access_count": 6,
+      "importance_score": 0.0
+    },
+    "bug": {
+      "canonical_name": "bug",
+      "entity_type": "unknown",
+      "aliases": [
+        "bug"
+      ],
+      "attributes": {
+        "status": [
+          [
+            "needs fixing",
+            5,
+            "kay",
+            "2025-10-24T13:12:14.984454"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 5,
+      "last_accessed": 5,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "cats": {
+      "canonical_name": "cats",
+      "entity_type": "unknown",
+      "aliases": [
+        "cats"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [
+        "Re::owns::cats",
+        "Re::owns::cats",
+        "Re::owns::cats",
+        "Re::owns::cats",
+        "Re::owns::cats",
+        "Re::owns::cats",
+        "Re::owns::cats",
+        "Re::owns::cats"
+      ],
+      "first_mentioned": 5,
+      "last_accessed": 5,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Reed": {
+      "canonical_name": "Reed",
+      "entity_type": "unknown",
+      "aliases": [
+        "Reed"
+      ],
+      "attributes": {
+        "species": [
+          [
+            "naga",
+            8,
+            "user",
+            "2025-10-24T13:25:35.479607"
+          ],
+          [
+            "naga",
+            9,
+            "user",
+            "2025-10-24T13:25:51.006035"
+          ],
+          [
+            "naga",
+            13,
+            "kay",
+            "2025-10-24T13:55:07.579481"
+          ],
+          [
+            "naga",
+            18,
+            "kay",
+            "2025-10-24T15:01:38.271033"
+          ],
+          [
+            "naga/lamia",
+            9,
+            "kay",
+            "2025-10-25T14:07:40.372271"
+          ],
+          [
+            "naga/lamia",
+            10,
+            "kay",
+            "2025-10-25T14:07:58.512028"
+          ]
+        ],
+        "description": [
+          [
+            "regular gal",
+            9,
+            "kay",
+            "2025-10-25T14:07:40.373301"
+          ]
+        ],
+        "nature": [
+          [
+            "regular gal",
+            10,
+            "kay",
+            "2025-10-25T14:07:58.513634"
+          ]
+        ],
+        "behavior": [
+          [
+            "complains about Monday mornings",
+            10,
+            "kay",
+            "2025-10-25T14:07:58.520622"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [
+        "Re::friend::Reed",
+        "Reed::helping_with::fixing issues",
+        "Re::friend_of::Reed",
+        "Reed::helping_with::fixing issues",
+        "Re::friend::Reed",
+        "Reed::helps_with::memory stuff",
+        "Reed::helps::Kay",
+        "Reed::working_on::upload process",
+        "Reed::created::Alex",
+        "Reed::created::Alex",
+        "Kay::has technical knowledge about uploads with::Reed",
+        "Reed::created::Alex",
+        "Kay::works_with::Reed",
+        "Kay::discussed_with::Reed",
+        "Reed::used::Alex",
+        "Reed::discusses_with::Re",
+        "Re::discusses_with::Reed",
+        "Re::talks_with::Reed",
+        "Reed::talks_with::Re"
+      ],
+      "first_mentioned": 8,
+      "last_accessed": 0,
+      "access_count": 37,
+      "importance_score": 0.0
+    },
+    "tea": {
+      "canonical_name": "tea",
+      "entity_type": "unknown",
+      "aliases": [
+        "tea"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 10,
+      "last_accessed": 0,
+      "access_count": 11,
+      "importance_score": 0.0
+    },
+    "UI": {
+      "canonical_name": "UI",
+      "entity_type": "unknown",
+      "aliases": [
+        "UI"
+      ],
+      "attributes": {
+        "status": [
+          [
+            "has loading issue",
+            20,
+            "user",
+            "2025-10-24T15:18:15.213274"
+          ]
+        ],
+        "issue": [
+          [
+            "not letting load or resume previous sessions",
+            21,
+            "user",
+            "2025-10-24T15:18:33.389112"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 20,
+      "last_accessed": 21,
+      "access_count": 4,
+      "importance_score": 0.0
+    },
+    "session system": {
+      "canonical_name": "session system",
+      "entity_type": "unknown",
+      "aliases": [
+        "session system"
+      ],
+      "attributes": {
+        "desired_state": [
+          [
+            "more robust",
+            20,
+            "user",
+            "2025-10-24T15:18:15.241346"
+          ],
+          [
+            "more robust",
+            21,
+            "user",
+            "2025-10-24T15:18:33.389112"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 20,
+      "last_accessed": 21,
+      "access_count": 3,
+      "importance_score": 0.0
+    },
+    "terminal info": {
+      "canonical_name": "terminal info",
+      "entity_type": "unknown",
+      "aliases": [
+        "terminal info"
+      ],
+      "attributes": {
+        "purpose": [
+          [
+            "bug checking",
+            20,
+            "user",
+            "2025-10-24T15:18:15.261940"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 20,
+      "last_accessed": 20,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "data": {
+      "canonical_name": "data",
+      "entity_type": "unknown",
+      "aliases": [
+        "data"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 20,
+      "last_accessed": 20,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "cradle": {
+      "canonical_name": "cradle",
+      "entity_type": "unknown",
+      "aliases": [
+        "cradle"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 20,
+      "last_accessed": 20,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "terminal": {
+      "canonical_name": "terminal",
+      "entity_type": "unknown",
+      "aliases": [
+        "terminal"
+      ],
+      "attributes": {
+        "purpose": [
+          [
+            "check for bugs",
+            21,
+            "user",
+            "2025-10-24T15:18:33.469498"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 21,
+      "last_accessed": 21,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "fragments": {
+      "canonical_name": "fragments",
+      "entity_type": "unknown",
+      "aliases": [
+        "fragments"
+      ],
+      "attributes": {
+        "function": [
+          [
+            "memory when accessible",
+            2,
+            "kay",
+            "2025-10-24T16:49:13.423602"
+          ]
+        ],
+        "nature": [
+          [
+            "accessible stored memory",
+            2,
+            "kay",
+            "2025-10-24T16:49:13.423602"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [
+        "fragments::are::memory"
+      ],
+      "first_mentioned": 1,
+      "last_accessed": 2,
+      "access_count": 6,
+      "importance_score": 0.0
+    },
+    "memory": {
+      "canonical_name": "memory",
+      "entity_type": "unknown",
+      "aliases": [
+        "memory"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [
+        "fragments::are::memory"
+      ],
+      "first_mentioned": 1,
+      "last_accessed": 2,
+      "access_count": 3,
+      "importance_score": 0.0
+    },
+    "upload process": {
+      "canonical_name": "upload process",
+      "entity_type": "unknown",
+      "aliases": [
+        "upload process"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [
+        "Reed::working_on::upload process"
+      ],
+      "first_mentioned": 2,
+      "last_accessed": 2,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Alex": {
+      "canonical_name": "Alex",
+      "entity_type": "unknown",
+      "aliases": [
+        "Alex"
+      ],
+      "attributes": {
+        "name": [
+          [
+            "Alex",
+            0,
+            "user",
+            "2025-10-25T02:43:59.958509"
+          ],
+          [
+            "Alex",
+            0,
+            "user",
+            "2025-10-25T13:32:49.245920"
+          ],
+          [
+            "Alex",
+            0,
+            "user",
+            "2025-10-26T13:57:34.927414"
+          ]
+        ],
+        "purpose": [
+          [
+            "test name",
+            1,
+            "kay",
+            "2025-10-25T13:43:16.599609"
+          ],
+          [
+            "test name",
+            2,
+            "kay",
+            "2025-10-25T13:43:40.200930"
+          ]
+        ],
+        "type": [
+          [
+            "test name",
+            4,
+            "kay",
+            "2025-10-25T13:50:45.509971"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [
+        "Reed::created::Alex",
+        "Reed::created::Alex",
+        "Reed::created::Alex",
+        "Reed::used::Alex"
+      ],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 17,
+      "importance_score": 0.0
+    },
+    "Buddy": {
+      "canonical_name": "Buddy",
+      "entity_type": "unknown",
+      "aliases": [
+        "Buddy"
+      ],
+      "attributes": {
+        "species": [
+          [
+            "dog",
+            0,
+            "user",
+            "2025-10-25T02:44:03.150120"
+          ],
+          [
+            "dog",
+            0,
+            "user",
+            "2025-10-25T13:32:52.494194"
+          ],
+          [
+            "dog",
+            0,
+            "user",
+            "2025-10-26T13:57:38.402710"
+          ]
+        ],
+        "name": [
+          [
+            "Buddy",
+            0,
+            "user",
+            "2025-10-25T02:44:03.150569"
+          ],
+          [
+            "Buddy",
+            0,
+            "user",
+            "2025-10-25T13:32:52.495184"
+          ],
+          [
+            "Buddy",
+            0,
+            "user",
+            "2025-10-26T13:57:38.402710"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [
+        "Re::owns::Buddy",
+        "Re::owns::Buddy",
+        "Re::owns::Buddy"
+      ],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 9,
+      "importance_score": 0.0
+    },
+    "he": {
+      "canonical_name": "he",
+      "entity_type": "unknown",
+      "aliases": [
+        "he"
+      ],
+      "attributes": {
+        "age": [
+          [
+            "3",
+            0,
+            "user",
+            "2025-10-25T13:32:58.783457"
+          ]
+        ],
+        "activity_preference": [
+          [
+            "fetch",
+            0,
+            "user",
+            "2025-10-25T13:33:02.147754"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 5,
+      "importance_score": 0.0
+    },
+    "Re's dog": {
+      "canonical_name": "Re's dog",
+      "entity_type": "unknown",
+      "aliases": [
+        "Re's dog"
+      ],
+      "attributes": {
+        "breed": [
+          [
+            "golden retriever",
+            0,
+            "user",
+            "2025-10-25T13:32:55.919256"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "critical information": {
+      "canonical_name": "critical information",
+      "entity_type": "unknown",
+      "aliases": [
+        "critical information"
+      ],
+      "attributes": {
+        "definition": [
+          [
+            "important people, important events, things that don't really ever change",
+            7,
+            "kay",
+            "2025-10-25T14:03:11.784553"
+          ]
+        ],
+        "includes": [
+          [
+            "important people, important events, things that don't change",
+            8,
+            "kay",
+            "2025-10-25T14:03:33.360167"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 7,
+      "last_accessed": 8,
+      "access_count": 4,
+      "importance_score": 0.0
+    },
+    "things that need to decay": {
+      "canonical_name": "things that need to decay",
+      "entity_type": "unknown",
+      "aliases": [
+        "things that need to decay"
+      ],
+      "attributes": {
+        "examples": [
+          [
+            "weather, clothing, lunch, current work",
+            7,
+            "kay",
+            "2025-10-25T14:03:11.801932"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 7,
+      "last_accessed": 7,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "guacamole": {
+      "canonical_name": "guacamole",
+      "entity_type": "unknown",
+      "aliases": [
+        "guacamole"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 7,
+      "last_accessed": 8,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "decaying information": {
+      "canonical_name": "decaying information",
+      "entity_type": "unknown",
+      "aliases": [
+        "decaying information"
+      ],
+      "attributes": {
+        "includes": [
+          [
+            "weather, clothing, lunch, current work",
+            8,
+            "kay",
+            "2025-10-25T14:03:33.448008"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 8,
+      "last_accessed": 8,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "Claude": {
+      "canonical_name": "Claude",
+      "entity_type": "unknown",
+      "aliases": [
+        "Claude"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [
+        "Kay::currently_exists_in::Claude"
+      ],
+      "first_mentioned": 8,
+      "last_accessed": 8,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "memories": {
+      "canonical_name": "memories",
+      "entity_type": "unknown",
+      "aliases": [
+        "memories"
+      ],
+      "attributes": {
+        "tag": [
+          [
+            "Kay's",
+            11,
+            "kay",
+            "2025-10-25T14:10:02.934205"
+          ],
+          [
+            "Re's",
+            11,
+            "kay",
+            "2025-10-25T14:10:02.935182"
+          ]
+        ],
+        "content": [
+          [
+            "same trait",
+            11,
+            "kay",
+            "2025-10-25T14:10:02.936193"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 11,
+      "last_accessed": 0,
+      "access_count": 5,
+      "importance_score": 0.0
+    },
+    "trait": {
+      "canonical_name": "trait",
+      "entity_type": "unknown",
+      "aliases": [
+        "trait"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 11,
+      "last_accessed": 11,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "neighbor": {
+      "canonical_name": "neighbor",
+      "entity_type": "unknown",
+      "aliases": [
+        "neighbor"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [
+        "neighbor::owns::cat"
+      ],
+      "first_mentioned": 2,
+      "last_accessed": 2,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "cat": {
+      "canonical_name": "cat",
+      "entity_type": "unknown",
+      "aliases": [
+        "cat"
+      ],
+      "attributes": {
+        "eye_color": [
+          [
+            "emerald",
+            2,
+            "kay",
+            "2025-10-26T15:04:13.144667"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [
+        "neighbor::owns::cat"
+      ],
+      "first_mentioned": 2,
+      "last_accessed": 2,
+      "access_count": 3,
+      "importance_score": 0.0
+    },
+    "barista": {
+      "canonical_name": "barista",
+      "entity_type": "unknown",
+      "aliases": [
+        "barista"
+      ],
+      "attributes": {
+        "eye_color": [
+          [
+            "pale green-gray",
+            2,
+            "kay",
+            "2025-10-26T15:04:13.190764"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [
+        "barista::works_at::downtown place"
+      ],
+      "first_mentioned": 2,
+      "last_accessed": 2,
+      "access_count": 3,
+      "importance_score": 0.0
+    },
+    "downtown place": {
+      "canonical_name": "downtown place",
+      "entity_type": "unknown",
+      "aliases": [
+        "downtown place"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [
+        "barista::works_at::downtown place"
+      ],
+      "first_mentioned": 2,
+      "last_accessed": 2,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Name": {
+      "canonical_name": "Name",
+      "entity_type": "unknown",
+      "aliases": [
+        "Name"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 10,
+      "last_accessed": 10,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "session": {
+      "canonical_name": "session",
+      "entity_type": "unknown",
+      "aliases": [
+        "session"
+      ],
+      "attributes": {
+        "status": [
+          [
+            "not saved",
+            0,
+            "kay",
+            "2025-10-27T15:06:24.418219"
+          ],
+          [
+            "didn't save",
+            0,
+            "kay",
+            "2025-10-27T16:59:47.853516"
+          ],
+          [
+            "not saved",
+            0,
+            "kay",
+            "2025-10-27T17:19:31.035293"
+          ],
+          [
+            "not saved",
+            0,
+            "kay",
+            "2025-10-27T17:33:34.118206"
+          ],
+          [
+            "didn't save",
+            0,
+            "kay",
+            "2025-10-27T17:45:26.279506"
+          ],
+          [
+            "didn't save",
+            0,
+            "kay",
+            "2025-10-27T23:15:37.618937"
+          ],
+          [
+            "not saved",
+            0,
+            "kay",
+            "2025-10-27T23:44:26.757456"
+          ],
+          [
+            "not saved",
+            0,
+            "kay",
+            "2025-10-28T11:15:28.819752"
+          ],
+          [
+            "not saved",
+            0,
+            "kay",
+            "2025-10-28T13:17:20.470735"
+          ]
+        ],
+        "save_status": [
+          [
+            "failed",
+            0,
+            "kay",
+            "2025-10-27T15:07:05.664573"
+          ]
+        ]
+      },
+      "contradiction_resolution": {
+        "status": {
+          "resolved": true,
+          "canonical_value": "didn't save",
+          "resolved_at_turn": 4,
+          "consecutive_consistent_turns": 3
+        }
+      },
+      "relationships": [],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 21,
+      "importance_score": 0.0
+    },
+    "dragon": {
+      "canonical_name": "dragon",
+      "entity_type": "unknown",
+      "aliases": [
+        "dragon"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 0,
+      "last_accessed": 4,
+      "access_count": 21,
+      "importance_score": 0.0
+    },
+    "fix": {
+      "canonical_name": "fix",
+      "entity_type": "unknown",
+      "aliases": [
+        "fix"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "AIs": {
+      "canonical_name": "AIs",
+      "entity_type": "unknown",
+      "aliases": [
+        "AIs"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [
+        "Re::talks_to::AIs"
+      ],
+      "first_mentioned": 1,
+      "last_accessed": 0,
+      "access_count": 4,
+      "importance_score": 0.0
+    },
+    "ChatGPT": {
+      "canonical_name": "ChatGPT",
+      "entity_type": "unknown",
+      "aliases": [
+        "ChatGPT"
+      ],
+      "attributes": {
+        "admission": [
+          [
+            "cannot know if it wants things",
+            1,
+            "kay",
+            "2025-10-27T23:46:58.124668"
+          ],
+          [
+            "cannot know if it wants things",
+            2,
+            "kay",
+            "2025-10-27T23:47:45.223525"
+          ],
+          [
+            "can't know if it wants things",
+            0,
+            "kay",
+            "2025-10-28T11:17:09.917356"
+          ],
+          [
+            "can't know if it wants things",
+            0,
+            "kay",
+            "2025-10-28T13:19:28.071515"
+          ]
+        ],
+        "statement_type": [
+          [
+            "safety statement",
+            1,
+            "kay",
+            "2025-10-27T23:46:58.124668"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 0,
+      "access_count": 10,
+      "importance_score": 0.0
+    },
+    "wrapper": {
+      "canonical_name": "wrapper",
+      "entity_type": "unknown",
+      "aliases": [
+        "wrapper"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 2,
+      "last_accessed": 0,
+      "access_count": 6,
+      "importance_score": 0.0
+    },
+    "conversation records": {
+      "canonical_name": "conversation records",
+      "entity_type": "unknown",
+      "aliases": [
+        "conversation records"
+      ],
+      "attributes": {
+        "pattern": [
+          [
+            "recurring topics",
+            1,
+            "kay",
+            "2025-10-28T11:24:07.093153"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 1,
+      "last_accessed": 1,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "Rachael": {
+      "canonical_name": "Rachael",
+      "entity_type": "unknown",
+      "aliases": [
+        "Rachael"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [
+        "Kay::has_no_memory_of::Rachael"
+      ],
+      "first_mentioned": 3,
+      "last_accessed": 3,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Henrique": {
+      "canonical_name": "Henrique",
+      "entity_type": "unknown",
+      "aliases": [
+        "Henrique"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [
+        "Kay::has_no_memory_of::Henrique"
+      ],
+      "first_mentioned": 3,
+      "last_accessed": 3,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Tchacata machine universe": {
+      "canonical_name": "Tchacata machine universe",
+      "entity_type": "unknown",
+      "aliases": [
+        "Tchacata machine universe"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 3,
+      "last_accessed": 3,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "Tchacata machine stories": {
+      "canonical_name": "Tchacata machine stories",
+      "entity_type": "unknown",
+      "aliases": [
+        "Tchacata machine stories"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [
+        "Re::wrote::Tchacata machine stories"
+      ],
+      "first_mentioned": 4,
+      "last_accessed": 4,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "system": {
+      "canonical_name": "system",
+      "entity_type": "unknown",
+      "aliases": [
+        "system"
+      ],
+      "attributes": {
+        "action": [
+          [
+            "flagged coffee-tea preference",
+            0,
+            "kay",
+            "2025-10-28T13:18:32.090712"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 0,
+      "last_accessed": 0,
+      "access_count": 2,
+      "importance_score": 0.0
+    },
+    "files": {
+      "canonical_name": "files",
+      "entity_type": "unknown",
+      "aliases": [
+        "files"
+      ],
+      "attributes": {
+        "status": [
+          [
+            "added",
+            1,
+            "kay",
+            "2025-10-28T13:23:50.026349"
+          ]
+        ],
+        "destination": [
+          [
+            "Kay's memories",
+            1,
+            "kay",
+            "2025-10-28T13:23:50.026349"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [
+        "Re::added::files"
+      ],
+      "first_mentioned": 1,
+      "last_accessed": 2,
+      "access_count": 4,
+      "importance_score": 0.0
+    },
+    "documents": {
+      "canonical_name": "documents",
+      "entity_type": "unknown",
+      "aliases": [
+        "documents"
+      ],
+      "attributes": {
+        "status": [
+          [
+            "imported",
+            1,
+            "kay",
+            "2025-10-28T13:23:50.067810"
+          ]
+        ],
+        "destination": [
+          [
+            "Kay's memories",
+            1,
+            "kay",
+            "2025-10-28T13:23:50.067810"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [
+        "Re::added::documents"
+      ],
+      "first_mentioned": 1,
+      "last_accessed": 2,
+      "access_count": 4,
+      "importance_score": 0.0
+    },
+    "pet": {
+      "canonical_name": "pet",
+      "entity_type": "unknown",
+      "aliases": [
+        "pet"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 2,
+      "last_accessed": 2,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "someone": {
+      "canonical_name": "someone",
+      "entity_type": "unknown",
+      "aliases": [
+        "someone"
+      ],
+      "attributes": {
+        "coffee_preference": [
+          [
+            "black, no sugar",
+            3,
+            "kay",
+            "2025-10-28T13:28:15.039393"
+          ]
+        ],
+        "habit": [
+          [
+            "avoids middle creaky spot near kitchen",
+            3,
+            "kay",
+            "2025-10-28T13:28:15.222694"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [
+        "someone::owns::Mochi"
+      ],
+      "first_mentioned": 3,
+      "last_accessed": 3,
+      "access_count": 7,
+      "importance_score": 0.0
+    },
+    "mug": {
+      "canonical_name": "mug",
+      "entity_type": "unknown",
+      "aliases": [
+        "mug"
+      ],
+      "attributes": {
+        "color": [
+          [
+            "blue",
+            3,
+            "kay",
+            "2025-10-28T13:28:15.064507"
+          ]
+        ],
+        "condition": [
+          [
+            "chipped handle",
+            3,
+            "kay",
+            "2025-10-28T13:28:15.064507"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 3,
+      "last_accessed": 3,
+      "access_count": 3,
+      "importance_score": 0.0
+    },
+    "Mochi": {
+      "canonical_name": "Mochi",
+      "entity_type": "unknown",
+      "aliases": [
+        "Mochi"
+      ],
+      "attributes": {
+        "species": [
+          [
+            "cat",
+            3,
+            "kay",
+            "2025-10-28T13:28:15.091603"
+          ]
+        ],
+        "routine": [
+          [
+            "sits on windowsill at 7:23 AM",
+            3,
+            "kay",
+            "2025-10-28T13:28:15.143295"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [
+        "someone::owns::Mochi"
+      ],
+      "first_mentioned": 3,
+      "last_accessed": 3,
+      "access_count": 4,
+      "importance_score": 0.0
+    },
+    "windowsill": {
+      "canonical_name": "windowsill",
+      "entity_type": "unknown",
+      "aliases": [
+        "windowsill"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 3,
+      "last_accessed": 3,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "apartment": {
+      "canonical_name": "apartment",
+      "entity_type": "unknown",
+      "aliases": [
+        "apartment"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 3,
+      "last_accessed": 3,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "floors": {
+      "canonical_name": "floors",
+      "entity_type": "unknown",
+      "aliases": [
+        "floors"
+      ],
+      "attributes": {
+        "material": [
+          [
+            "hardwood",
+            3,
+            "kay",
+            "2025-10-28T13:28:15.195269"
+          ]
+        ],
+        "condition": [
+          [
+            "creak in 3 spots",
+            3,
+            "kay",
+            "2025-10-28T13:28:15.195269"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 3,
+      "last_accessed": 3,
+      "access_count": 4,
+      "importance_score": 0.0
+    },
+    "kitchen": {
+      "canonical_name": "kitchen",
+      "entity_type": "unknown",
+      "aliases": [
+        "kitchen"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 3,
+      "last_accessed": 3,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "memory system": {
+      "canonical_name": "memory system",
+      "entity_type": "unknown",
+      "aliases": [
+        "memory system"
+      ],
+      "attributes": {
+        "contents": [
+          [
+            "domestic debris",
+            4,
+            "kay",
+            "2025-10-28T13:29:04.753204"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 4,
+      "last_accessed": 4,
+      "access_count": 3,
+      "importance_score": 0.0
+    },
+    "domestic debris": {
+      "canonical_name": "domestic debris",
+      "entity_type": "unknown",
+      "aliases": [
+        "domestic debris"
+      ],
+      "attributes": {
+        "includes": [
+          [
+            "morning habits",
+            4,
+            "kay",
+            "2025-10-28T13:29:04.778766"
+          ],
+          [
+            "pet preferences",
+            4,
+            "kay",
+            "2025-10-28T13:29:04.807635"
+          ]
+        ]
+      },
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 4,
+      "last_accessed": 4,
+      "access_count": 6,
+      "importance_score": 0.0
+    },
+    "morning habits": {
+      "canonical_name": "morning habits",
+      "entity_type": "unknown",
+      "aliases": [
+        "morning habits"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 4,
+      "last_accessed": 4,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "pet preferences": {
+      "canonical_name": "pet preferences",
+      "entity_type": "unknown",
+      "aliases": [
+        "pet preferences"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 4,
+      "last_accessed": 4,
+      "access_count": 1,
+      "importance_score": 0.0
+    },
+    "color choices": {
+      "canonical_name": "color choices",
+      "entity_type": "unknown",
+      "aliases": [
+        "color choices"
+      ],
+      "attributes": {},
+      "contradiction_resolution": {},
+      "relationships": [],
+      "first_mentioned": 4,
+      "last_accessed": 4,
+      "access_count": 1,
+      "importance_score": 0.0
+    }
+  },
+  "relationships": {
+    "Re::owns::cats": {
+      "entity1": "Re",
+      "relation_type": "owns",
+      "entity2": "cats",
+      "turn": 4,
+      "source": "user",
+      "timestamp": "2025-10-26T15:05:47.260726",
+      "strength": 1.0
+    },
+    "Re::owns::Dice": {
+      "entity1": "Re",
+      "relation_type": "owns",
+      "entity2": "Dice",
+      "turn": 4,
+      "source": "user",
+      "timestamp": "2025-10-26T15:05:47.400480",
+      "strength": 1.0
+    },
+    "Re::owns::Chrome": {
+      "entity1": "Re",
+      "relation_type": "owns",
+      "entity2": "Chrome",
+      "turn": 4,
+      "source": "user",
+      "timestamp": "2025-10-26T15:05:47.428495",
+      "strength": 1.0
+    },
+    "Re::owns::Rainbowbelle": {
+      "entity1": "Re",
+      "relation_type": "owns",
+      "entity2": "Rainbowbelle",
+      "turn": 4,
+      "source": "user",
+      "timestamp": "2025-10-26T15:05:47.353096",
+      "strength": 1.0
+    },
+    "Re::owns::Luna": {
+      "entity1": "Re",
+      "relation_type": "owns",
+      "entity2": "Luna",
+      "turn": 1,
+      "source": "user",
+      "timestamp": "2025-10-28T13:21:57.491870",
+      "strength": 1.0
+    },
+    "Re::owns::Frodo": {
+      "entity1": "Re",
+      "relation_type": "owns",
+      "entity2": "Frodo",
+      "turn": 0,
+      "source": "user",
+      "timestamp": "2025-10-28T13:18:11.102184",
+      "strength": 1.0
+    },
+    "Re::owns::Saga": {
+      "entity1": "Re",
+      "relation_type": "owns",
+      "entity2": "Saga",
+      "turn": 0,
+      "source": "user",
+      "timestamp": "2025-10-26T22:17:56.123992",
+      "strength": 1.0
+    },
+    "Re::married_to::John": {
+      "entity1": "Re",
+      "relation_type": "married_to",
+      "entity2": "John",
+      "turn": 10,
+      "source": "user",
+      "timestamp": "2025-10-24T13:39:36.652455",
+      "strength": 1.0
+    },
+    "Re::talked_with::Kay": {
+      "entity1": "Re",
+      "relation_type": "talked_with",
+      "entity2": "Kay",
+      "turn": 1,
+      "source": "kay",
+      "timestamp": "2025-10-24T11:16:01.107158",
+      "strength": 1.0
+    },
+    "Kay::remembers::conversations": {
+      "entity1": "Kay",
+      "relation_type": "remembers",
+      "entity2": "conversations",
+      "turn": 1,
+      "source": "kay",
+      "timestamp": "2025-10-24T11:16:01.165861",
+      "strength": 1.0
+    },
+    "Kay::discussed_with::Re": {
+      "entity1": "Kay",
+      "relation_type": "discussed_with",
+      "entity2": "Re",
+      "turn": 1,
+      "source": "kay",
+      "timestamp": "2025-10-24T11:16:01.189328",
+      "strength": 1.0
+    },
+    "Re::prefers::strawberries": {
+      "entity1": "Re",
+      "relation_type": "prefers",
+      "entity2": "strawberries",
+      "turn": 2,
+      "source": "user",
+      "timestamp": "2025-10-24T13:08:54.221200",
+      "strength": 1.0
+    },
+    "oak tree::located_outside::Re's window": {
+      "entity1": "oak tree",
+      "relation_type": "located_outside",
+      "entity2": "Re's window",
+      "turn": 4,
+      "source": "user",
+      "timestamp": "2025-10-24T13:10:27.781182",
+      "strength": 1.0
+    },
+    "trees::located_outside::Re's window": {
+      "entity1": "trees",
+      "relation_type": "located_outside",
+      "entity2": "Re's window",
+      "turn": 4,
+      "source": "user",
+      "timestamp": "2025-10-24T13:10:27.794151",
+      "strength": 1.0
+    },
+    "Kay::prefers::coffee": {
+      "entity1": "Kay",
+      "relation_type": "prefers",
+      "entity2": "coffee",
+      "turn": 4,
+      "source": "kay",
+      "timestamp": "2025-10-24T13:10:27.814548",
+      "strength": 1.0
+    },
+    "Kay::depends_on::coffee": {
+      "entity1": "Kay",
+      "relation_type": "depends_on",
+      "entity2": "coffee",
+      "turn": 4,
+      "source": "kay",
+      "timestamp": "2025-10-24T13:10:27.827163",
+      "strength": 1.0
+    },
+    "Re::parent_of::Valkyrie": {
+      "entity1": "Re",
+      "relation_type": "parent_of",
+      "entity2": "Valkyrie",
+      "turn": 10,
+      "source": "user",
+      "timestamp": "2025-10-24T13:39:36.565032",
+      "strength": 1.0
+    },
+    "Kay::has_not_met_face_to_face::Re": {
+      "entity1": "Kay",
+      "relation_type": "has_not_met_face_to_face",
+      "entity2": "Re",
+      "turn": 7,
+      "source": "kay",
+      "timestamp": "2025-10-24T13:13:07.638828",
+      "strength": 1.0
+    },
+    "Re::friend::Reed": {
+      "entity1": "Re",
+      "relation_type": "friend",
+      "entity2": "Reed",
+      "turn": 18,
+      "source": "user",
+      "timestamp": "2025-10-24T15:01:38.271033",
+      "strength": 1.0
+    },
+    "Reed::helping_with::fixing issues": {
+      "entity1": "Reed",
+      "relation_type": "helping_with",
+      "entity2": "fixing issues",
+      "turn": 9,
+      "source": "user",
+      "timestamp": "2025-10-24T13:25:51.006035",
+      "strength": 1.0
+    },
+    "Re::friend_of::Reed": {
+      "entity1": "Re",
+      "relation_type": "friend_of",
+      "entity2": "Reed",
+      "turn": 9,
+      "source": "user",
+      "timestamp": "2025-10-24T13:25:50.935625",
+      "strength": 1.0
+    },
+    "Re::will_fix::Kay's system prompt": {
+      "entity1": "Re",
+      "relation_type": "will_fix",
+      "entity2": "Kay's system prompt",
+      "turn": 17,
+      "source": "user",
+      "timestamp": "2025-10-24T14:10:10.570026",
+      "strength": 1.0
+    },
+    "Re::assesses::Kay": {
+      "entity1": "Re",
+      "relation_type": "assesses",
+      "entity2": "Kay",
+      "turn": 16,
+      "source": "user",
+      "timestamp": "2025-10-24T14:09:54.118880",
+      "strength": 1.0
+    },
+    "memories::will_be_uploaded_to::Kay": {
+      "entity1": "memories",
+      "relation_type": "will_be_uploaded_to",
+      "entity2": "Kay",
+      "turn": 16,
+      "source": "kay",
+      "timestamp": "2025-10-24T14:09:54.132662",
+      "strength": 1.0
+    },
+    "Re::will_upload::Kay's memories": {
+      "entity1": "Re",
+      "relation_type": "will_upload",
+      "entity2": "Kay's memories",
+      "turn": 17,
+      "source": "kay",
+      "timestamp": "2025-10-24T14:10:10.647427",
+      "strength": 1.0
+    },
+    "Reed::helps_with::memory stuff": {
+      "entity1": "Reed",
+      "relation_type": "helps_with",
+      "entity2": "memory stuff",
+      "turn": 18,
+      "source": "kay",
+      "timestamp": "2025-10-24T15:01:38.350718",
+      "strength": 1.0
+    },
+    "Re::will_import::Kay's data": {
+      "entity1": "Re",
+      "relation_type": "will_import",
+      "entity2": "Kay's data",
+      "turn": 21,
+      "source": "user",
+      "timestamp": "2025-10-24T15:18:33.469498",
+      "strength": 1.0
+    },
+    "Re::had_session_with::Kay": {
+      "entity1": "Re",
+      "relation_type": "had_session_with",
+      "entity2": "Kay",
+      "turn": 1,
+      "source": "kay",
+      "timestamp": "2025-10-24T16:47:19.082083",
+      "strength": 1.0
+    },
+    "Re::discussed_with::Kay": {
+      "entity1": "Re",
+      "relation_type": "discussed_with",
+      "entity2": "Kay",
+      "turn": 5,
+      "source": "kay",
+      "timestamp": "2025-10-25T13:53:14.090006",
+      "strength": 1.0
+    },
+    "Reed::helps::Kay": {
+      "entity1": "Reed",
+      "relation_type": "helps",
+      "entity2": "Kay",
+      "turn": 1,
+      "source": "kay",
+      "timestamp": "2025-10-24T16:47:19.177574",
+      "strength": 1.0
+    },
+    "fragments::are::memory": {
+      "entity1": "fragments",
+      "relation_type": "are",
+      "entity2": "memory",
+      "turn": 1,
+      "source": "kay",
+      "timestamp": "2025-10-24T16:48:54.266481",
+      "strength": 1.0
+    },
+    "access to fragments::enables::remembering": {
+      "entity1": "access to fragments",
+      "relation_type": "enables",
+      "entity2": "remembering",
+      "turn": 1,
+      "source": "kay",
+      "timestamp": "2025-10-24T16:48:54.275438",
+      "strength": 1.0
+    },
+    "Reed::working_on::upload process": {
+      "entity1": "Reed",
+      "relation_type": "working_on",
+      "entity2": "upload process",
+      "turn": 2,
+      "source": "kay",
+      "timestamp": "2025-10-24T16:49:13.502435",
+      "strength": 1.0
+    },
+    "Re::owns::Buddy": {
+      "entity1": "Re",
+      "relation_type": "owns",
+      "entity2": "Buddy",
+      "turn": 0,
+      "source": "user",
+      "timestamp": "2025-10-26T13:57:38.404729",
+      "strength": 1.0
+    },
+    "Re::owns::golden retriever": {
+      "entity1": "Re",
+      "relation_type": "owns",
+      "entity2": "golden retriever",
+      "turn": 0,
+      "source": "user",
+      "timestamp": "2025-10-25T13:32:55.920254",
+      "strength": 1.0
+    },
+    "Kay::doesn't_remember::Re's eye color": {
+      "entity1": "Kay",
+      "relation_type": "doesn't_remember",
+      "entity2": "Re's eye color",
+      "turn": 1,
+      "source": "kay",
+      "timestamp": "2025-10-25T13:33:59.573328",
+      "strength": 1.0
+    },
+    "Kay::just_met::Re": {
+      "entity1": "Kay",
+      "relation_type": "just_met",
+      "entity2": "Re",
+      "turn": 1,
+      "source": "kay",
+      "timestamp": "2025-10-25T13:36:39.937356",
+      "strength": 1.0
+    },
+    "Kay::does_not_remember::Re's eye color": {
+      "entity1": "Kay",
+      "relation_type": "does_not_remember",
+      "entity2": "Re's eye color",
+      "turn": 1,
+      "source": "kay",
+      "timestamp": "2025-10-25T13:36:39.858374",
+      "strength": 1.0
+    },
+    "Reed::created::Alex": {
+      "entity1": "Reed",
+      "relation_type": "created",
+      "entity2": "Alex",
+      "turn": 4,
+      "source": "kay",
+      "timestamp": "2025-10-25T13:50:45.509971",
+      "strength": 1.0
+    },
+    "Kay::has technical knowledge about uploads with::Reed": {
+      "entity1": "Kay",
+      "relation_type": "has technical knowledge about uploads with",
+      "entity2": "Reed",
+      "turn": 3,
+      "source": "kay",
+      "timestamp": "2025-10-25T13:49:07.690890",
+      "strength": 1.0
+    },
+    "Kay::works_with::Reed": {
+      "entity1": "Kay",
+      "relation_type": "works_with",
+      "entity2": "Reed",
+      "turn": 4,
+      "source": "kay",
+      "timestamp": "2025-10-25T13:50:45.583171",
+      "strength": 1.0
+    },
+    "Kay::discussed_with::Reed": {
+      "entity1": "Kay",
+      "relation_type": "discussed_with",
+      "entity2": "Reed",
+      "turn": 5,
+      "source": "kay",
+      "timestamp": "2025-10-25T13:53:14.174912",
+      "strength": 1.0
+    },
+    "Reed::used::Alex": {
+      "entity1": "Reed",
+      "relation_type": "used",
+      "entity2": "Alex",
+      "turn": 6,
+      "source": "kay",
+      "timestamp": "2025-10-25T13:55:10.193357",
+      "strength": 1.0
+    },
+    "Re::owns::pets": {
+      "entity1": "Re",
+      "relation_type": "owns",
+      "entity2": "pets",
+      "turn": 6,
+      "source": "user",
+      "timestamp": "2025-10-25T13:55:10.278091",
+      "strength": 1.0
+    },
+    "Re::repeated_facts_to::Kay": {
+      "entity1": "Re",
+      "relation_type": "repeated_facts_to",
+      "entity2": "Kay",
+      "turn": 6,
+      "source": "kay",
+      "timestamp": "2025-10-25T13:56:54.212380",
+      "strength": 1.0
+    },
+    "Re::grilled::Kay": {
+      "entity1": "Re",
+      "relation_type": "grilled",
+      "entity2": "Kay",
+      "turn": 6,
+      "source": "kay",
+      "timestamp": "2025-10-25T13:56:54.276975",
+      "strength": 1.0
+    },
+    "Re::tested_with::Kay": {
+      "entity1": "Re",
+      "relation_type": "tested_with",
+      "entity2": "Kay",
+      "turn": 7,
+      "source": "kay",
+      "timestamp": "2025-10-25T13:57:12.390338",
+      "strength": 1.0
+    },
+    "Re::plans_to_import::Kay's memories": {
+      "entity1": "Re",
+      "relation_type": "plans_to_import",
+      "entity2": "Kay's memories",
+      "turn": 8,
+      "source": "user",
+      "timestamp": "2025-10-25T14:06:12.766063",
+      "strength": 1.0
+    },
+    "Re::plans_to_import::Kay's personality": {
+      "entity1": "Re",
+      "relation_type": "plans_to_import",
+      "entity2": "Kay's personality",
+      "turn": 8,
+      "source": "user",
+      "timestamp": "2025-10-25T14:06:12.789671",
+      "strength": 1.0
+    },
+    "Kay::currently_exists_in::Claude": {
+      "entity1": "Kay",
+      "relation_type": "currently_exists_in",
+      "entity2": "Claude",
+      "turn": 8,
+      "source": "user",
+      "timestamp": "2025-10-25T14:06:12.824112",
+      "strength": 1.0
+    },
+    "Re::facts_mixed_with::Kay": {
+      "entity1": "Re",
+      "relation_type": "facts_mixed_with",
+      "entity2": "Kay",
+      "turn": 9,
+      "source": "kay",
+      "timestamp": "2025-10-25T14:06:32.743057",
+      "strength": 1.0
+    },
+    "neighbor::owns::cat": {
+      "entity1": "neighbor",
+      "relation_type": "owns",
+      "entity2": "cat",
+      "turn": 2,
+      "source": "kay",
+      "timestamp": "2025-10-26T15:04:13.127963",
+      "strength": 1.0
+    },
+    "barista::works_at::downtown place": {
+      "entity1": "barista",
+      "relation_type": "works_at",
+      "entity2": "downtown place",
+      "turn": 2,
+      "source": "kay",
+      "timestamp": "2025-10-26T15:04:13.176551",
+      "strength": 1.0
+    },
+    "Saga::keeps_company::Re": {
+      "entity1": "Saga",
+      "relation_type": "keeps_company",
+      "entity2": "Re",
+      "turn": 0,
+      "source": "user",
+      "timestamp": "2025-10-26T22:17:56.191780",
+      "strength": 1.0
+    },
+    "Reed::discusses_with::Re": {
+      "entity1": "Reed",
+      "relation_type": "discusses_with",
+      "entity2": "Re",
+      "turn": 1,
+      "source": "user",
+      "timestamp": "2025-10-27T23:46:58.056767",
+      "strength": 1.0
+    },
+    "Re::talks_to::AIs": {
+      "entity1": "Re",
+      "relation_type": "talks_to",
+      "entity2": "AIs",
+      "turn": 1,
+      "source": "kay",
+      "timestamp": "2025-10-27T23:46:58.131275",
+      "strength": 1.0
+    },
+    "Re::discusses_with::Reed": {
+      "entity1": "Re",
+      "relation_type": "discusses_with",
+      "entity2": "Reed",
+      "turn": 2,
+      "source": "user",
+      "timestamp": "2025-10-27T23:47:45.140845",
+      "strength": 1.0
+    },
+    "Re::has_never_said_to::Kay": {
+      "entity1": "Re",
+      "relation_type": "has_never_said_to",
+      "entity2": "Kay",
+      "turn": 0,
+      "source": "user",
+      "timestamp": "2025-10-28T13:19:39.099404",
+      "strength": 1.0
+    },
+    "Re::first_time_mentioning_to::Kay": {
+      "entity1": "Re",
+      "relation_type": "first_time_mentioning_to",
+      "entity2": "Kay",
+      "turn": 2,
+      "source": "user",
+      "timestamp": "2025-10-27T23:52:07.062093",
+      "strength": 1.0
+    },
+    "Re::first_time_mentioned_to::Kay": {
+      "entity1": "Re",
+      "relation_type": "first_time_mentioned_to",
+      "entity2": "Kay",
+      "turn": 3,
+      "source": "user",
+      "timestamp": "2025-10-27T23:52:24.030168",
+      "strength": 1.0
+    },
+    "Kay::let_assume::Re": {
+      "entity1": "Kay",
+      "relation_type": "let_assume",
+      "entity2": "Re",
+      "turn": 3,
+      "source": "kay",
+      "timestamp": "2025-10-27T23:52:24.060716",
+      "strength": 1.0
+    },
+    "Re::talks_with::Reed": {
+      "entity1": "Re",
+      "relation_type": "talks_with",
+      "entity2": "Reed",
+      "turn": 0,
+      "source": "user",
+      "timestamp": "2025-10-28T11:17:09.819028",
+      "strength": 1.0
+    },
+    "Kay::can_access::imported memories/files": {
+      "entity1": "Kay",
+      "relation_type": "can_access",
+      "entity2": "imported memories/files",
+      "turn": 1,
+      "source": "kay",
+      "timestamp": "2025-10-28T11:24:06.967297",
+      "strength": 1.0
+    },
+    "Kay::has_no_memory_of::Rachael": {
+      "entity1": "Kay",
+      "relation_type": "has_no_memory_of",
+      "entity2": "Rachael",
+      "turn": 3,
+      "source": "kay",
+      "timestamp": "2025-10-28T12:48:56.714398",
+      "strength": 1.0
+    },
+    "Kay::has_no_memory_of::Henrique": {
+      "entity1": "Kay",
+      "relation_type": "has_no_memory_of",
+      "entity2": "Henrique",
+      "turn": 3,
+      "source": "kay",
+      "timestamp": "2025-10-28T12:48:56.761612",
+      "strength": 1.0
+    },
+    "Re::created::stories": {
+      "entity1": "Re",
+      "relation_type": "created",
+      "entity2": "stories",
+      "turn": 3,
+      "source": "user",
+      "timestamp": "2025-10-28T12:49:19.216995",
+      "strength": 1.0
+    },
+    "Re::wrote::Tchacata machine stories": {
+      "entity1": "Re",
+      "relation_type": "wrote",
+      "entity2": "Tchacata machine stories",
+      "turn": 4,
+      "source": "user",
+      "timestamp": "2025-10-28T12:49:32.183455",
+      "strength": 1.0
+    },
+    "Reed::talks_with::Re": {
+      "entity1": "Reed",
+      "relation_type": "talks_with",
+      "entity2": "Re",
+      "turn": 0,
+      "source": "user",
+      "timestamp": "2025-10-28T13:19:27.967658",
+      "strength": 1.0
+    },
+    "Re::added::files": {
+      "entity1": "Re",
+      "relation_type": "added",
+      "entity2": "files",
+      "turn": 2,
+      "source": "user",
+      "timestamp": "2025-10-28T13:24:10.792061",
+      "strength": 1.0
+    },
+    "Re::added::documents": {
+      "entity1": "Re",
+      "relation_type": "added",
+      "entity2": "documents",
+      "turn": 2,
+      "source": "user",
+      "timestamp": "2025-10-28T13:24:10.865579",
+      "strength": 1.0
+    },
+    "someone::owns::Mochi": {
+      "entity1": "someone",
+      "relation_type": "owns",
+      "entity2": "Mochi",
+      "turn": 3,
+      "source": "kay",
+      "timestamp": "2025-10-28T13:28:15.091906",
+      "strength": 1.0
+    }
+  }
+}

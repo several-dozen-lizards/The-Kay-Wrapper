@@ -1,0 +1,30 @@
+# --- Operating System Files ---
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# --- Editors & IDEs ---
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# --- Logs & Databases ---
+*.log
+*.sqlite
+
+# --- Security (IMPORTANT) ---
+# Never commit API keys or secrets!
+.env
+config.js
+secrets.json
+
+__pycache__/
+*.pyc
+venv/
+.pytest_cache/
+
+node_modules/
+dist/
+build/
+npm-debug.log

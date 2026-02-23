@@ -1,0 +1,22 @@
+{
+  "session_id": "continuous_1770526035",
+  "timestamp": "2026-02-09T00:10:40.054156",
+  "turn_counter": 1,
+  "total_tokens": 5,
+  "turns": [
+    {
+      "turn_id": 0,
+      "timestamp": "2026-02-09T00:10:40.054156",
+      "role": "user",
+      "content": "Hey Reed! You there?",
+      "token_count": 5,
+      "emotional_weight": 0.5,
+      "flagged_by_reed": false,
+      "preservation_level": null,
+      "scratchpad_refs": [],
+      "tags": []
+    }
+  ],
+  "curation_history": [],
+  "last_compression_turn": 0
+}

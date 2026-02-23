@@ -1,0 +1,22 @@
+{
+  "f0_mean_baseline": 36.66078973323741,
+  "f0_std_baseline": 0.11148818762521187,
+  "loudness_mean_baseline": 0.452621388423249,
+  "loudness_std_baseline": 10.0,
+  "speaking_rate_baseline": 2.022746298023686,
+  "jitter_baseline": 0.02486140661788708,
+  "shimmer_baseline": 1.3516562752267147,
+  "hnr_baseline": 7.333305526604044,
+  "utterance_count": 123,
+  "last_updated": "2025-12-10T19:14:03.039208",
+  "f0_sum": 3446.1142349243164,
+  "f0_count": 94,
+  "loudness_sum": 55.67243077605963,
+  "loudness_count": 123,
+  "rate_sum": 248.79779465691337,
+  "rate_count": 123,
+  "jitter_sum": 2.3369722220813856,
+  "shimmer_sum": 127.05568987131119,
+  "hnr_sum": 689.3307195007801,
+  "quality_count": 94
+}

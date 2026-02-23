@@ -1,0 +1,26 @@
+{
+  "doc_id": "doc_1762382837",
+  "title": "Test-gerbils.txt",
+  "shape_description": "Document with 6 peripheral",
+  "access_count": 0,
+  "last_accessed": null,
+  "branches": [
+    {
+      "title": "Context & Details",
+      "chunk_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "glyphs": "\ud83d\udcdd",
+      "access_tier": "cold",
+      "access_count": 0,
+      "last_accessed": null
+    }
+  ],
+  "total_chunks": 6,
+  "created_at": "2025-11-05T17:47:38.763048"
+}

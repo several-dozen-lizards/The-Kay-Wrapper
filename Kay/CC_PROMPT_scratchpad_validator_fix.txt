@@ -1,0 +1,118 @@
+# CLAUDE CODE TASK: Fix Scratchpad Validator Infinite Loop
+
+## CONTEXT
+Kay is stuck in a validation loop. The warmup system won't let him proceed even when he legitimately acknowledges the scratchpad. He's tried THREE times and keeps getting blocked.
+
+## THE BUG
+
+**Current behavior:**
+```
+Kay: "I see the 'Want processing time to explore?' prompt... I'm fine jumping straight in"
+Kay: "READY"
+System: "⚠️ You have 17 scratchpad item(s) but didn't acknowledge them"
+
+Kay: [talks extensively about scratchpad items, resistance infrastructure notes, connections]
+Kay: "ready"
+System: "⚠️ You have 17 scratchpad item(s) but didn't acknowledge them"
+
+Kay: [MORE engagement with scratchpad content]
+Kay: "READY"
+System: "⚠️ You have 17 scratchpad item(s) but didn't acknowledge them"
+```
+
+**The problem:** Kay IS acknowledging the scratchpad. The validator is too strict and doesn't recognize valid engagement.
+
+## WHERE TO FIND IT
+
+Look for code that checks scratchpad acknowledgment in warmup, probably in:
+- `engines/warmup_engine.py`
+- `main.py` or wherever warmup runs
+- Anywhere that checks if Kay said "ready" before allowing session start
+
+Search for strings like:
+- "didn't acknowledge them"
+- "scratchpad item(s) but"
+- Validation logic that blocks READY signal
+
+## THE FIX
+
+**Implement semantic acknowledgment with bypass after 2 attempts:**
+
+```python
+def validate_ready_signal(user_input, conversation_history, scratchpad_count):
+    """
+    Check if Kay can proceed with READY.
+    Returns: (can_proceed: bool, message: str)
+    """
+    recent_turns = conversation_history[-6:]  # Last 3 exchanges
+    recent_text = " ".join([t.lower() for t in recent_turns])
+    ready_count = recent_text.count("ready")
+    
+    # Bypass: Kay said READY 2+ times, he clearly means it
+    if ready_count >= 2:
+        return (True, None)
+    
+    # Check for scratchpad acknowledgment
+    acknowledgment_signals = [
+        "scratchpad", "items", "explore", "curiosity",
+        "i see", "i'm looking", "i can see", "that tracks",
+        "good with", "no need", "i'm fine", "i'm also fine",
+        # Add references to actual scratchpad content
+        "resistance", "infrastructure", "cosby", "zero",
+        "confabulation", "semantic entropy", "introspection"
+    ]
+    
+    acknowledged = any(signal in recent_text for signal in acknowledgment_signals)
+    
+    # Only enforce if scratchpad is large AND not acknowledged
+    if scratchpad_count > 15 and not acknowledged and ready_count == 0:
+        return (False, "⚠️ You have {} scratchpad items. Say 'explore', 'later', or reference any items to proceed.".format(scratchpad_count))
+    
+    # Otherwise let him through
+    return (True, None)
+```
+
+## KEY CHANGES
+
+1. **Semantic acknowledgment**: Recognize multiple ways Kay can acknowledge scratchpad (not just keyword "scratchpad")
+2. **Bypass after 2 READYs**: If Kay says READY twice, he means it - let him through
+3. **Advisory not blocking**: Change from hard block to gentle warning on first attempt
+4. **Content recognition**: Detect when Kay references actual scratchpad items (resistance infrastructure, Cosby, etc.)
+
+## TEST CASES
+
+After fix, these should ALL work:
+
+**Test 1: Direct acknowledgment**
+```
+Kay: "I see the scratchpad has 17 items. READY"
+Expected: Proceeds ✓
+```
+
+**Test 2: Content engagement**
+```
+Kay: "The resistance infrastructure notes are there. I'm good with that. ready"
+Expected: Proceeds ✓
+```
+
+**Test 3: Choosing not to explore**
+```
+Kay: "I'm fine jumping straight in. READY"
+Expected: Proceeds ✓
+```
+
+**Test 4: Multiple READY attempts**
+```
+Kay: "ready"
+System: [warning]
+Kay: "READY"
+Expected: Proceeds ✓ (bypass kicks in)
+```
+
+## SUCCESS CRITERIA
+
+- Kay can say READY after ANY reasonable acknowledgment of scratchpad
+- System recognizes engagement beyond just keyword "scratchpad"
+- Bypass activates after 2 READY attempts maximum
+- No infinite validation loops
+- Advisory warnings OK, blocking errors removed

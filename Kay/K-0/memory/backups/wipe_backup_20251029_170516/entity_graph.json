@@ -1,0 +1,80 @@
+{
+  "entities": {
+    "Re": {
+      "canonical_name": "Re",
+      "entity_type": "person",
+      "aliases": [],
+      "attributes": {
+        "eye_color": [
+          [
+            "green",
+            0,
+            "user",
+            "2025-10-29T17:04:38.846921"
+          ]
+        ]
+      },
+      "importance_score": 1.0,
+      "access_count": 0,
+      "first_mentioned": "2025-10-29T17:04:38.846921",
+      "last_accessed": "2025-10-29T17:04:38.846921"
+    },
+    "Kay": {
+      "canonical_name": "Kay",
+      "entity_type": "dragon",
+      "aliases": [
+        "Kay Zero"
+      ],
+      "attributes": {
+        "eye_color": [
+          [
+            "gold",
+            0,
+            "kay",
+            "2025-10-29T17:04:38.846921"
+          ]
+        ],
+        "species": [
+          [
+            "dragon",
+            0,
+            "kay",
+            "2025-10-29T17:04:38.846921"
+          ]
+        ],
+        "true_form": [
+          [
+            "dragon",
+            0,
+            "kay",
+            "2025-10-29T17:04:38.846921"
+          ]
+        ]
+      },
+      "importance_score": 1.0,
+      "access_count": 0,
+      "first_mentioned": "2025-10-29T17:04:38.846921",
+      "last_accessed": "2025-10-29T17:04:38.846921"
+    },
+    "Archive Zero": {
+      "canonical_name": "Archive Zero",
+      "entity_type": "system",
+      "aliases": [],
+      "attributes": {
+        "role": [
+          [
+            "memory foundation",
+            0,
+            "kay",
+            "2025-10-29T17:04:38.846921"
+          ]
+        ]
+      },
+      "importance_score": 0.9,
+      "access_count": 0,
+      "first_mentioned": "2025-10-29T17:04:38.846921",
+      "last_accessed": "2025-10-29T17:04:38.846921"
+    }
+  },
+  "relationships": []
+}

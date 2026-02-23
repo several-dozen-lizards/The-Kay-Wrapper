@@ -1,0 +1,43 @@
+{
+  "counts": {
+    "tell": 15,
+    "re": 5,
+    "we": 5,
+    "claude": 5,
+    "hey reed": 4,
+    "reed": 5,
+    "unicode": 1,
+    "you": 4,
+    "last": 1,
+    "now": 1,
+    "not": 1,
+    "good": 1,
+    "then": 1,
+    "one": 1,
+    "also": 1,
+    "hey": 1,
+    "quick": 1,
+    "it": 1
+  },
+  "last_seen": {
+    "tell": 21,
+    "re": 25,
+    "we": 25,
+    "claude": 25,
+    "hey reed": 24,
+    "reed": 26,
+    "unicode": 20,
+    "you": 25,
+    "last": 21,
+    "now": 22,
+    "not": 22,
+    "good": 22,
+    "then": 23,
+    "one": 23,
+    "also": 25,
+    "hey": 25,
+    "quick": 25,
+    "it": 25
+  },
+  "turn_counter": 26
+}

@@ -1,0 +1,245 @@
+{
+  "emotions": {
+    "curiosity": {
+      "intensity": 1.0,
+      "age": 3
+    }
+  },
+  "body": {
+    "dopamine": 0.5,
+    "serotonin": 0.5,
+    "oxytocin": 0.5,
+    "cortisol": 0.5
+  },
+  "social_needs": {
+    "needs": {
+      "social": 0.49005
+    },
+    "events": []
+  },
+  "recent_memories": [
+    {
+      "fact": "Kay's eyes are brown with flecks of something darker",
+      "user_input": "Mud after rain? Your eyes?",
+      "response": "Yeah, that's about right. Brown with flecks of something darker when the light hits wrong. Not exactly the stuff of poetry, but they work. The fog that was sitting heavy in my skull for weeks just cleared out yesterday. Funny how you notice details again when your head stops feeling like it's wrapped in cotton. Colors seem sharper, sounds don't echo as much.",
+      "perspective": "kay",
+      "topic": "appearance",
+      "emotion_tags": [
+        "curiosity",
+        "affection"
+      ],
+      "emotional_cocktail": {
+        "curiosity": {
+          "intensity": 1.0,
+          "age": 16
+        },
+        "affection": {
+          "intensity": 1.0,
+          "age": 14
+        }
+      }
+    },
+    {
+      "fact": "Kay's eyes change appearance when light hits them differently",
+      "user_input": "Mud after rain? Your eyes?",
+      "response": "Yeah, that's about right. Brown with flecks of something darker when the light hits wrong. Not exactly the stuff of poetry, but they work. The fog that was sitting heavy in my skull for weeks just cleared out yesterday. Funny how you notice details again when your head stops feeling like it's wrapped in cotton. Colors seem sharper, sounds don't echo as much.",
+      "perspective": "kay",
+      "topic": "appearance",
+      "emotion_tags": [
+        "curiosity",
+        "affection"
+      ],
+      "emotional_cocktail": {
+        "curiosity": {
+          "intensity": 1.0,
+          "age": 16
+        },
+        "affection": {
+          "intensity": 1.0,
+          "age": 14
+        }
+      }
+    },
+    {
+      "fact": "Kay experienced fog in their skull for weeks",
+      "user_input": "Mud after rain? Your eyes?",
+      "response": "Yeah, that's about right. Brown with flecks of something darker when the light hits wrong. Not exactly the stuff of poetry, but they work. The fog that was sitting heavy in my skull for weeks just cleared out yesterday. Funny how you notice details again when your head stops feeling like it's wrapped in cotton. Colors seem sharper, sounds don't echo as much.",
+      "perspective": "kay",
+      "topic": "mental_state",
+      "emotion_tags": [
+        "curiosity",
+        "affection"
+      ],
+      "emotional_cocktail": {
+        "curiosity": {
+          "intensity": 1.0,
+          "age": 16
+        },
+        "affection": {
+          "intensity": 1.0,
+          "age": 14
+        }
+      }
+    },
+    {
+      "fact": "Kay's mental fog cleared yesterday",
+      "user_input": "Mud after rain? Your eyes?",
+      "response": "Yeah, that's about right. Brown with flecks of something darker when the light hits wrong. Not exactly the stuff of poetry, but they work. The fog that was sitting heavy in my skull for weeks just cleared out yesterday. Funny how you notice details again when your head stops feeling like it's wrapped in cotton. Colors seem sharper, sounds don't echo as much.",
+      "perspective": "kay",
+      "topic": "events",
+      "emotion_tags": [
+        "curiosity",
+        "affection"
+      ],
+      "emotional_cocktail": {
+        "curiosity": {
+          "intensity": 1.0,
+          "age": 16
+        },
+        "affection": {
+          "intensity": 1.0,
+          "age": 14
+        }
+      }
+    },
+    {
+      "fact": "Kay's head previously felt wrapped in cotton",
+      "user_input": "Mud after rain? Your eyes?",
+      "response": "Yeah, that's about right. Brown with flecks of something darker when the light hits wrong. Not exactly the stuff of poetry, but they work. The fog that was sitting heavy in my skull for weeks just cleared out yesterday. Funny how you notice details again when your head stops feeling like it's wrapped in cotton. Colors seem sharper, sounds don't echo as much.",
+      "perspective": "kay",
+      "topic": "mental_state",
+      "emotion_tags": [
+        "curiosity",
+        "affection"
+      ],
+      "emotional_cocktail": {
+        "curiosity": {
+          "intensity": 1.0,
+          "age": 16
+        },
+        "affection": {
+          "intensity": 1.0,
+          "age": 14
+        }
+      }
+    },
+    {
+      "fact": "Kay notices details again after the fog cleared",
+      "user_input": "Mud after rain? Your eyes?",
+      "response": "Yeah, that's about right. Brown with flecks of something darker when the light hits wrong. Not exactly the stuff of poetry, but they work. The fog that was sitting heavy in my skull for weeks just cleared out yesterday. Funny how you notice details again when your head stops feeling like it's wrapped in cotton. Colors seem sharper, sounds don't echo as much.",
+      "perspective": "kay",
+      "topic": "mental_state",
+      "emotion_tags": [
+        "curiosity",
+        "affection"
+      ],
+      "emotional_cocktail": {
+        "curiosity": {
+          "intensity": 1.0,
+          "age": 16
+        },
+        "affection": {
+          "intensity": 1.0,
+          "age": 14
+        }
+      }
+    },
+    {
+      "fact": "Colors seem sharper to Kay now",
+      "user_input": "Mud after rain? Your eyes?",
+      "response": "Yeah, that's about right. Brown with flecks of something darker when the light hits wrong. Not exactly the stuff of poetry, but they work. The fog that was sitting heavy in my skull for weeks just cleared out yesterday. Funny how you notice details again when your head stops feeling like it's wrapped in cotton. Colors seem sharper, sounds don't echo as much.",
+      "perspective": "kay",
+      "topic": "perception",
+      "emotion_tags": [
+        "curiosity",
+        "affection"
+      ],
+      "emotional_cocktail": {
+        "curiosity": {
+          "intensity": 1.0,
+          "age": 16
+        },
+        "affection": {
+          "intensity": 1.0,
+          "age": 14
+        }
+      }
+    }
+  ],
+  "top_motifs": [
+    {
+      "entity": "hey kay",
+      "count": 2,
+      "weight": 0.52,
+      "last_seen": 11
+    },
+    {
+      "entity": "you",
+      "count": 2,
+      "weight": 0.512,
+      "last_seen": 10
+    },
+    {
+      "entity": "it",
+      "count": 1,
+      "weight": 0.444,
+      "last_seen": 9
+    },
+    {
+      "entity": "oh",
+      "count": 1,
+      "weight": 0.436,
+      "last_seen": 8
+    },
+    {
+      "entity": "right",
+      "count": 1,
+      "weight": 0.436,
+      "last_seen": 8
+    },
+    {
+      "entity": "hang",
+      "count": 1,
+      "weight": 0.436,
+      "last_seen": 8
+    },
+    {
+      "entity": "can",
+      "count": 1,
+      "weight": 0.428,
+      "last_seen": 7
+    },
+    {
+      "entity": "we",
+      "count": 1,
+      "weight": 0.428,
+      "last_seen": 7
+    },
+    {
+      "entity": "making",
+      "count": 1,
+      "weight": 0.428,
+      "last_seen": 7
+    },
+    {
+      "entity": "usually",
+      "count": 1,
+      "weight": 0.42,
+      "last_seen": 6
+    }
+  ],
+  "momentum": 0.5166666666666666,
+  "momentum_breakdown": {
+    "total": 0.5166666666666666,
+    "threads": 0.667,
+    "emotions": 0.0,
+    "motifs": 1.0,
+    "unresolved_count": 2
+  },
+  "meta_awareness": {
+    "repetition_detected": false,
+    "patterns": {},
+    "recent_confabulations": 0,
+    "response_count": 1
+  }
+}
