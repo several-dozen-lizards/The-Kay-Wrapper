@@ -176,7 +176,37 @@ class CanvasManager:
         })
 
         return state
-        return files
+
+    def get_gallery_meta(self, entity: str) -> dict:
+        """Load gallery metadata (captions, titles) for entity."""
+        meta_path = os.path.join(self.save_dir, entity.lower(), "gallery_meta.json")
+        if os.path.exists(meta_path):
+            try:
+                with open(meta_path, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except Exception:
+                return {}
+        return {}
+
+    def set_caption(self, entity: str, filename: str, caption: str,
+                    tagged_by: str = "", title: str = "", mood: str = "") -> dict:
+        """Add or update caption for a painting."""
+        from datetime import datetime as dt
+        meta = self.get_gallery_meta(entity)
+        if filename not in meta:
+            meta[filename] = {}
+        meta[filename]["caption"] = caption
+        if tagged_by:
+            meta[filename]["tagged_by"] = tagged_by
+        if title:
+            meta[filename]["title"] = title
+        if mood:
+            meta[filename]["mood"] = mood
+        meta[filename]["tagged_at"] = dt.now().isoformat()
+        meta_path = os.path.join(self.save_dir, entity.lower(), "gallery_meta.json")
+        with open(meta_path, 'w', encoding='utf-8') as f:
+            json.dump(meta, f, indent=2)
+        return meta[filename]
 
 
 # ---------------------------------------------------------------------------

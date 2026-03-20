@@ -47,9 +47,12 @@ class IdentityMemory:
     This separation prevents Reed from confusing "things I read" with "who I am".
     """
 
-    def __init__(self, file_path: str = "memory/identity_memory.json"):
+    def __init__(self, file_path: str = None):
+        wrapper_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if file_path is None:
+            file_path = os.path.join(wrapper_root, "memory", "identity_memory.json")
         self.file_path = file_path
-        self.fictional_knowledge_path = "memory/fictional_knowledge.json"
+        self.fictional_knowledge_path = os.path.join(wrapper_root, "memory", "fictional_knowledge.json")
 
         # Separate stores for different identity types
         self.re_identity: List[Dict[str, Any]] = []  # Facts about Re

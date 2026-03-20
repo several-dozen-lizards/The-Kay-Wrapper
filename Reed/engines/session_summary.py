@@ -21,7 +21,12 @@ from typing import Dict, List, Optional, Any
 class SessionSummary:
     """Storage and management for Reed's session summaries."""
 
-    def __init__(self, storage_path: str = "memory/session_summaries.json"):
+    def __init__(self, storage_path: str = None):
+        if storage_path is None:
+            storage_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "memory", "session_summaries.json"
+            )
         self.storage_path = storage_path
         self.summaries: List[Dict] = []
         self._load_summaries()

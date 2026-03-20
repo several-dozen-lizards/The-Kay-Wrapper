@@ -334,7 +334,7 @@ In your own words, note where you are in this thought and what you'd revisit wit
         self,
         get_llm_response: Callable,
         memory_engine: Any,
-        session_dir: str = "memory/autonomous_sessions"
+        session_dir: str = None
     ):
         """
         Initialize autonomous processor.
@@ -346,6 +346,11 @@ In your own words, note where you are in this thought and what you'd revisit wit
         """
         self.get_llm_response = get_llm_response
         self.memory_engine = memory_engine
+        if session_dir is None:
+            session_dir = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "memory", "autonomous_sessions"
+            )
         self.session_dir = Path(session_dir)
         self.session_dir.mkdir(parents=True, exist_ok=True)
 

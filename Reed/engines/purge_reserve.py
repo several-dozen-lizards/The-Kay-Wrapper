@@ -11,6 +11,7 @@ Once calibrated, auto-purge can be enabled with configurable time window.
 """
 
 import json
+import os
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -154,7 +155,12 @@ class PurgeReserve:
         r"anxiety attack",
     ]
 
-    def __init__(self, storage_path: str = "memory/purge_reserve"):
+    def __init__(self, storage_path: str = None):
+        if storage_path is None:
+            storage_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "memory", "purge_reserve"
+            )
         self.storage_path = Path(storage_path)
         self.storage_path.mkdir(parents=True, exist_ok=True)
 

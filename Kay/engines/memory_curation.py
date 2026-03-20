@@ -10,6 +10,7 @@ Kay learns to recognize content types and apply appropriate retention strategies
 """
 
 import json
+import os
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -400,7 +401,8 @@ class MemoryCurator:
         self.current_session: Optional[CurationSession] = None
 
         # Persistence
-        self.storage_path = Path("memory/curation")
+        wrapper_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.storage_path = Path(os.path.join(wrapper_root, "memory", "curation"))
         self.storage_path.mkdir(parents=True, exist_ok=True)
 
         # Load previous sessions
@@ -796,7 +798,9 @@ class CurationLearningTracker:
     """
 
     def __init__(self):
-        self.storage_path = Path("memory/curation/learning.json")
+        wrapper_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.storage_path = Path(os.path.join(wrapper_root, "memory", "curation", "learning.json"))
+        self.storage_path.parent.mkdir(parents=True, exist_ok=True)
         self.learning_data = self._load()
 
     def _load(self) -> Dict:

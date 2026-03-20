@@ -1,0 +1,98 @@
+{
+  "objects": {
+    "blankets": {
+      "source_file": "Blankets-front.png",
+      "sprite_path": "objects/blankets.png",
+      "has_transparency": true
+    },
+    "bookshelf": {
+      "source_file": "Bookshelf-front.png",
+      "sprite_path": "objects/bookshelf.png",
+      "has_transparency": true
+    },
+    "codebase": {
+      "source_file": "codebase.png",
+      "sprite_path": "objects/codebase.png",
+      "has_transparency": true
+    },
+    "couch": {
+      "source_file": "Couch-front.png",
+      "sprite_path": "objects/couch.png",
+      "has_transparency": true
+    },
+    "desk": {
+      "source_file": "Desk-front.png",
+      "sprite_path": "objects/desk.png",
+      "has_transparency": true
+    },
+    "desk_top": {
+      "source_file": "Desk-top.png",
+      "sprite_path": "objects/desk_top.png",
+      "has_transparency": true
+    },
+    "easel": {
+      "source_file": "Easel.png",
+      "sprite_path": "objects/easel.png",
+      "has_transparency": true
+    },
+    "gol": {
+      "source_file": "gol.png",
+      "sprite_path": "objects/gol.png",
+      "has_transparency": true
+    },
+    "hearth": {
+      "source_file": "Hearth.png",
+      "sprite_path": "objects/hearth.png",
+      "has_transparency": true
+    },
+    "portal": {
+      "source_file": "Portal.png",
+      "sprite_path": "objects/portal.png",
+      "has_transparency": true
+    },
+    "research": {
+      "source_file": "research.png",
+      "sprite_path": "objects/research.png",
+      "has_transparency": true
+    },
+    "roundtable": {
+      "source_file": "roundtable.png",
+      "sprite_path": "objects/roundtable.png",
+      "has_transparency": true
+    },
+    "rug": {
+      "source_file": "Rug-front.png",
+      "sprite_path": "objects/rug.png",
+      "has_transparency": true
+    },
+    "scratchpad": {
+      "source_file": "Scratchpad.png",
+      "sprite_path": "objects/scratchpad.png",
+      "has_transparency": true
+    }
+  },
+  "entities": {},
+  "environment": {
+    "floor": {
+      "source_file": "Floor-Rectangle.png",
+      "sprite_path": "environment/floor.png",
+      "has_transparency": false
+    },
+    "floor_copper_1": {
+      "source_file": "Floor1-copper.png",
+      "sprite_path": "environment/floor_copper_1.png",
+      "has_transparency": false
+    },
+    "floor_led": {
+      "source_file": "Floor1-LED.png",
+      "sprite_path": "environment/floor_led.png",
+      "has_transparency": false
+    },
+    "floor_copper_2": {
+      "source_file": "Floor2-copper.png",
+      "sprite_path": "environment/floor_copper_2.png",
+      "has_transparency": false
+    }
+  },
+  "processed_at": "2026-03-07T23:20:38.324652"
+}

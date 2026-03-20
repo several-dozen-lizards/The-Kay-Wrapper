@@ -43,11 +43,16 @@ class MacGuyverMode:
         memory_engine=None,
         scratchpad_engine=None,
         entity_graph=None,
-        log_path: str = "memory/macguyver_log.json"
+        log_path: str = None
     ):
         self.memory_engine = memory_engine
         self.scratchpad = scratchpad_engine
         self.entity_graph = entity_graph
+        if log_path is None:
+            log_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "memory", "macguyver_log.json"
+            )
         self.log_path = log_path
 
         self.active = False

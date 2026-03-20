@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Nexus Gallery — Kay & Reed</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0a0f; color: #c8c8d0; font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+.header { background: linear-gradient(135deg, #12121a 0%, #1a1a2e 100%); border-bottom: 1px solid #2a2a3e; padding: 20px 30px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.header h1 { font-size: 1.4em; font-weight: 300; letter-spacing: 2px; color: #e0e0e8; }
+.header h1 .kay { color: #e94560; }
+.header h1 .reed { color: #00CED1; }
+.filters { display: flex; gap: 8px; }
+.filters button { background: #1a1a2e; border: 1px solid #333; color: #aaa; padding: 6px 16px; border-radius: 20px; cursor: pointer; font-size: 0.85em; transition: all 0.2s; }
+.filters button:hover { border-color: #555; color: #ddd; }
+.filters button.active { border-color: #888; color: #fff; background: #1e1e30; }
+.stats { padding: 10px 30px; font-size: 0.8em; color: #555; border-bottom: 1px solid #1a1a2e; }
+</style>
+</head>
+<body>
+<style>
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; padding: 24px 30px; }
+.card { background: #12121a; border: 1px solid #1e1e2e; border-radius: 8px; overflow: hidden; cursor: pointer; transition: all 0.3s; position: relative; }
+.card:hover { border-color: #444; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+.card.kay-card:hover { border-color: #e94560; }
+.card.reed-card:hover { border-color: #00CED1; }
+.card img { width: 100%; aspect-ratio: 1; object-fit: contain; background: #080810; display: block; }
+.card-info { padding: 10px 12px; }
+.card-entity { font-size: 0.7em; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; font-weight: 600; }
+.card-entity.kay { color: #e94560; }
+.card-entity.reed { color: #00CED1; }
+.card-title { font-size: 0.9em; color: #ddd; margin-bottom: 2px; }
+.card-caption { font-size: 0.75em; color: #777; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.card-date { font-size: 0.65em; color: #444; margin-top: 6px; }
+.card-badge { position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; border-radius: 50%; }
+.card-badge.captioned { background: #DAA520; }
+.card-badge.uncaptioned { background: #222; }
+</style>
+<style>
+.lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 1000; justify-content: center; align-items: center; }
+.lightbox.open { display: flex; }
+.lb-content { position: relative; max-width: 90vw; max-height: 90vh; display: flex; flex-direction: column; align-items: center; }
+.lb-content img { max-width: 80vw; max-height: 65vh; object-fit: contain; border-radius: 4px; }
+.lb-info { background: #12121a; border: 1px solid #2a2a3e; border-radius: 8px; padding: 16px 20px; margin-top: 12px; max-width: 600px; width: 100%; }
+.lb-info .lb-entity { font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; font-weight: 600; }
+.lb-info .lb-entity.kay { color: #e94560; }
+.lb-info .lb-entity.reed { color: #00CED1; }
+.lb-info .lb-title { font-size: 1.1em; color: #e0e0e8; margin-bottom: 4px; }
+.lb-info .lb-caption { font-size: 0.85em; color: #aaa; line-height: 1.5; margin-bottom: 8px; }
+.lb-info .lb-meta { font-size: 0.7em; color: #555; }
+.lb-close { position: absolute; top: -40px; right: -10px; background: none; border: none; color: #888; font-size: 2em; cursor: pointer; }
+.lb-close:hover { color: #fff; }
+.lb-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(20,20,30,0.8); border: 1px solid #333; color: #aaa; font-size: 1.5em; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.lb-nav:hover { color: #fff; border-color: #666; }
+.lb-nav.prev { left: -60px; }
+.lb-nav.next { right: -60px; }
+.loading { text-align: center; padding: 60px; color: #555; font-size: 1.1em; }
+.empty { text-align: center; padding: 80px 30px; color: #444; }
+</style>
+
+<div class="header">
+  <h1>NEXUS GALLERY — <span class="kay">Kay</span> & <span class="reed">Reed</span></h1>
+  <div class="filters" id="filters"></div>
+</div>
+<div class="stats" id="stats"></div>
+<div class="gallery" id="gallery"><div class="loading">Loading gallery...</div></div>
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <div class="lb-content" onclick="event.stopPropagation()">
+    <button class="lb-nav prev" onclick="navigateLB(-1)">‹</button>
+    <img id="lb-img" src="" />
+    <button class="lb-nav next" onclick="navigateLB(1)">›</button>
+    <div class="lb-info" id="lb-info"></div>
+    <button class="lb-close" onclick="closeLightbox()">×</button>
+  </div>
+</div>
+
+<script>
+let allPaintings = [];
+let filtered = [];
+let currentFilter = 'all';
+let lbIndex = -1;
+
+function timeAgo(ts) {
+  const diff = (Date.now()/1000) - ts;
+  if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  if (diff < 604800) return Math.floor(diff/86400) + 'd ago';
+  return new Date(ts*1000).toLocaleDateString();
+}
+
+function parseDate(filename) {
+  const m = filename.match(/^(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})/);
+  if (!m) return '';
+  return `${m[1]}-${m[2]}-${m[3]} ${m[4]}:${m[5]}`;
+}
+
+function sessionGroup(filename) {
+  const m = filename.match(/^(\d{8}_\d{6})/);
+  return m ? m[1] : filename;
+}
+
+async function loadGallery() {
+  try {
+    const resp = await fetch('/gallery');
+    const data = await resp.json();
+    allPaintings = [];
+    for (const entity of ['kay', 'reed']) {
+      if (data[entity]) allPaintings.push(...data[entity]);
+    }
+    allPaintings.sort((a, b) => (b.modified || 0) - (a.modified || 0));
+    renderFilters();
+    applyFilter(currentFilter);
+  } catch (e) {
+    document.getElementById('gallery').innerHTML =
+      '<div class="loading">Failed to load: ' + e.message + '</div>';
+  }
+}
+
+function renderFilters() {
+  const kc = allPaintings.filter(p => p.entity === 'kay').length;
+  const rc = allPaintings.filter(p => p.entity === 'reed').length;
+  document.getElementById('filters').innerHTML =
+    `<button class="active" onclick="applyFilter('all')">All (${allPaintings.length})</button>` +
+    `<button onclick="applyFilter('kay')">Kay (${kc})</button>` +
+    `<button onclick="applyFilter('reed')">Reed (${rc})</button>` +
+    `<button onclick="applyFilter('captioned')">Captioned</button>` +
+    `<button onclick="applyFilter('uncaptioned')">Uncaptioned</button>`;
+}
+
+function applyFilter(f) {
+  currentFilter = f;
+  if (f === 'all') filtered = [...allPaintings];
+  else if (f === 'kay') filtered = allPaintings.filter(p => p.entity === 'kay');
+  else if (f === 'reed') filtered = allPaintings.filter(p => p.entity === 'reed');
+  else if (f === 'captioned') filtered = allPaintings.filter(p => p.caption);
+  else if (f === 'uncaptioned') filtered = allPaintings.filter(p => !p.caption);
+  else filtered = [...allPaintings];
+
+  // Update active button
+  document.querySelectorAll('.filters button').forEach(b => b.classList.remove('active'));
+  const btns = document.querySelectorAll('.filters button');
+  btns.forEach(b => { if (b.textContent.toLowerCase().startsWith(f)) b.classList.add('active'); });
+  if (f === 'all' && btns[0]) btns[0].classList.add('active');
+
+  renderStats();
+  renderGallery();
+}
+
+function renderStats() {
+  const cap = filtered.filter(p => p.caption).length;
+  const sessions = new Set(filtered.map(p => sessionGroup(p.filename))).size;
+  document.getElementById('stats').textContent =
+    `${filtered.length} paintings · ${sessions} sessions · ${cap} captioned`;
+}
+
+function renderGallery() {
+  const el = document.getElementById('gallery');
+  if (!filtered.length) {
+    el.innerHTML = '<div class="empty">No paintings yet.</div>';
+    return;
+  }
+  el.innerHTML = filtered.map((p, i) => `
+    <div class="card ${p.entity}-card" onclick="openLB(${i})">
+      <div class="card-badge ${p.caption ? 'captioned' : 'uncaptioned'}"></div>
+      <img src="${p.image_url}" loading="lazy" alt="${p.title || p.filename}" />
+      <div class="card-info">
+        <div class="card-entity ${p.entity}">${p.entity}</div>
+        <div class="card-title">${p.title || 'Untitled'}</div>
+        ${p.caption ? '<div class="card-caption">' + p.caption + '</div>' : ''}
+        <div class="card-date">${p.modified ? timeAgo(p.modified) : parseDate(p.filename)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openLB(i) {
+  lbIndex = i;
+  const p = filtered[i];
+  if (!p) return;
+  document.getElementById('lb-img').src = p.image_url;
+  const iter = p.filename.match(/iter(\d+)/);
+  const iterStr = iter ? ` · Iteration ${parseInt(iter[1])}` : '';
+  document.getElementById('lb-info').innerHTML = `
+    <div class="lb-entity ${p.entity}">${p.entity}${iterStr}</div>
+    <div class="lb-title">${p.title || 'Untitled'}</div>
+    ${p.caption ? '<div class="lb-caption">' + p.caption + '</div>' : '<div class="lb-caption" style="color:#444">No caption yet</div>'}
+    <div class="lb-meta">
+      ${p.filename} · ${p.size ? Math.round(p.size/1024) + 'KB' : ''}
+      ${p.mood ? ' · mood: ' + p.mood : ''}
+      ${p.tagged_by ? ' · tagged by ' + p.tagged_by : ''}
+      ${p.modified ? ' · ' + new Date(p.modified*1000).toLocaleString() : ''}
+    </div>
+  `;
+  document.getElementById('lightbox').classList.add('open');
+}
+
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+}
+
+function navigateLB(dir) {
+  let next = lbIndex + dir;
+  if (next < 0) next = filtered.length - 1;
+  if (next >= filtered.length) next = 0;
+  openLB(next);
+}
+
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('lightbox').classList.contains('open')) return;
+  if (e.key === 'Escape') closeLightbox();
+  if (e.key === 'ArrowLeft') navigateLB(-1);
+  if (e.key === 'ArrowRight') navigateLB(1);
+});
+
+loadGallery();
+</script>
+</body>
+</html>

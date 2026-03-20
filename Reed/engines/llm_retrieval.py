@@ -595,7 +595,8 @@ def load_full_documents(doc_ids: List[str]) -> List[Dict]:
     Returns:
         List of dicts with: doc_id, filename, full_text
     """
-    documents_path = Path("memory/documents.json")
+    wrapper_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    documents_path = Path(os.path.join(wrapper_root, "memory", "documents.json"))
 
     if not documents_path.exists():
         return []

@@ -17,11 +17,23 @@ import uuid
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 
+# Entity-prefixed logging
+try:
+    from shared.entity_log import etag
+except ImportError:
+    def etag(tag): return f"[{tag}]"
+
+
 
 class SessionSummary:
     """Storage and management for Kay's session summaries."""
 
-    def __init__(self, storage_path: str = "memory/session_summaries.json"):
+    def __init__(self, storage_path: str = None):
+        if storage_path is None:
+            storage_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "memory", "session_summaries.json"
+            )
         self.storage_path = storage_path
         self.summaries: List[Dict] = []
         self._load_summaries()
@@ -32,9 +44,9 @@ class SessionSummary:
             try:
                 with open(self.storage_path, 'r', encoding='utf-8') as f:
                     self.summaries = json.load(f)
-                print(f"[SESSION SUMMARY] Loaded {len(self.summaries)} past summaries")
+                print(f"{etag('SESSION SUMMARY')} Loaded {len(self.summaries)} past summaries")
             except Exception as e:
-                print(f"[SESSION SUMMARY] Failed to load summaries: {e}")
+                print(f"{etag('SESSION SUMMARY')} Failed to load summaries: {e}")
                 self.summaries = []
         else:
             self.summaries = []
@@ -46,7 +58,7 @@ class SessionSummary:
             with open(self.storage_path, 'w', encoding='utf-8') as f:
                 json.dump(self.summaries, f, indent=2, ensure_ascii=False)
         except Exception as e:
-            print(f"[SESSION SUMMARY] Failed to persist summaries: {e}")
+            print(f"{etag('SESSION SUMMARY')} Failed to persist summaries: {e}")
 
     def save_summary(self, summary_type: str, content: str, metadata: Dict) -> Dict:
         """
@@ -71,7 +83,7 @@ class SessionSummary:
         self.summaries.append(summary)
         self._persist_to_disk()
 
-        print(f"[SESSION SUMMARY] Saved {summary_type} summary ({len(content)} chars)")
+        print(f"{etag('SESSION SUMMARY')} Saved {summary_type} summary ({len(content)} chars)")
         return summary
 
     def get_most_recent(self, summary_type: Optional[str] = None) -> Optional[Dict]:

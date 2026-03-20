@@ -12,7 +12,12 @@ class MotifEngine:
     and weights their importance based on frequency and recency.
     """
 
-    def __init__(self, motif_file: str = "memory/motifs.json"):
+    def __init__(self, motif_file: str = None):
+        if motif_file is None:
+            motif_file = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "memory", "motifs.json"
+            )
         self.motif_file = motif_file
         self.entity_counts: Counter = Counter()
         self.entity_last_seen: Dict[str, int] = {}

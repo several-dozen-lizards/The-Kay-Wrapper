@@ -19,6 +19,12 @@ from dataclasses import dataclass, field
 from datetime import datetime
 import math
 
+# Entity-prefixed logging
+try:
+    from shared.entity_log import etag
+except ImportError:
+    def etag(tag): return f"[{tag}]"
+
 # Import config values if available
 try:
     from config import (
@@ -226,7 +232,7 @@ class ContextBudgetManager:
             is_active=True,
             is_archived=False
         )
-        print(f"[IMAGE LIFECYCLE] Tracked new image: {image_id} (turn {turn_number})")
+        print(f"{etag('IMAGE LIFECYCLE')} Tracked new image: {image_id} (turn {turn_number})")
 
     def update_image_mention(self, image_id: str, turn_number: int) -> None:
         """
@@ -239,7 +245,7 @@ class ContextBudgetManager:
             if self.image_states[image_id].is_archived:
                 self.image_states[image_id].is_archived = False
                 self.image_states[image_id].is_active = True
-                print(f"[IMAGE LIFECYCLE] Re-activated image: {image_id}")
+                print(f"{etag('IMAGE LIFECYCLE')} Re-activated image: {image_id}")
 
     def age_images(self, current_turn: int) -> List[str]:
         """
@@ -260,7 +266,7 @@ class ContextBudgetManager:
                 state.is_active = False
                 state.is_archived = True
                 archived.append(image_id)
-                print(f"[IMAGE LIFECYCLE] Archived image: {image_id} ({turns_since_mention} turns since last mention)")
+                print(f"{etag('IMAGE LIFECYCLE')} Archived image: {image_id} ({turns_since_mention} turns since last mention)")
 
         return archived
 
@@ -389,7 +395,7 @@ class ContextBudgetManager:
         print(log_line)
 
         for warning in metrics.warnings:
-            print(f"[CONTEXT WARNING] {warning}")
+            print(f"{etag('CONTEXT WARNING')} {warning}")
 
     def get_trimming_recommendations(
         self,
@@ -429,7 +435,8 @@ class ContextBudgetManager:
 def prioritize_memories(
     memories: List[Dict],
     limit: int,
-    current_turn: int = 0
+    current_turn: int = 0,
+    associative_breadth: float = 0.5
 ) -> List[Dict]:
     """
     Trim memories to limit using priority-based selection.
@@ -441,10 +448,15 @@ def prioritize_memories(
     4. High-importance semantic memories
     5. Everything else
 
+    associative_breadth modulates scoring:
+    - High (>0.6): boost older memories, temporal diversity, cross-topic connections
+    - Low (<0.4): boost recent memories, direct relevance, tight focus
+
     Args:
         memories: Full list of retrieved memories
         limit: Target count
         current_turn: Current turn number for recency calculation
+        associative_breadth: Conductance param (0.0-1.0), default 0.5
 
     Returns:
         Prioritized and trimmed memory list
@@ -477,11 +489,30 @@ def prioritize_memories(
         else:
             other.append(mem)
 
-    # Sort each category by importance/recency
+    # Sort each category by importance/recency with breadth modulation
     def sort_key(m):
         importance = m.get("importance", 0.5)
-        recency = 1.0 / (1 + (current_turn - m.get("turn_index", 0)))
-        return importance * 0.6 + recency * 0.4
+        turn_index = m.get("turn_index", 0)
+        recency = 1.0 / (1 + (current_turn - turn_index))
+
+        # Recency weight: higher when breadth is LOW (tight focus on recent)
+        # Range: 0.55 at breadth=0.7, 0.25 at breadth=0.3
+        recency_weight = 0.4 - 0.3 * associative_breadth
+
+        # Base score with breadth-modulated recency
+        score = importance * (1 - recency_weight) + recency * recency_weight
+
+        # Age bonus: boost OLD memories when breadth is HIGH (creative state)
+        # Memories older than 50 turns surface more in theta/gamma
+        age_turns = current_turn - turn_index
+        if age_turns > 50 and associative_breadth > 0.55:
+            score += 0.1 * associative_breadth
+
+        # Emotional intensity bonus
+        emotional_weight = m.get("emotional_intensity", 0)
+        score += emotional_weight * 0.1
+
+        return score
 
     working.sort(key=sort_key, reverse=True)
     identity.sort(key=sort_key, reverse=True)
@@ -490,21 +521,29 @@ def prioritize_memories(
     other.sort(key=sort_key, reverse=True)
 
     # Assemble in priority order up to limit
+    # IMPORTANT: Each category gets a proportional share to prevent any
+    # single category from consuming the entire budget.
     result = []
     remaining = limit
 
-    # Always include working memories first
-    take_working = min(len(working), remaining)
+    # Budget allocation: ensure diversity across memory types
+    # Identity gets at most 40% of budget, working gets up to 25%,
+    # the rest is split between episodic and semantic
+    max_identity = max(3, int(limit * 0.40))  # At least 3, up to 40%
+    max_working = max(2, int(limit * 0.25))   # At least 2, up to 25%
+
+    # Always include working memories first (capped)
+    take_working = min(len(working), remaining, max_working)
     result.extend(working[:take_working])
     remaining -= take_working
 
-    # Then identity facts
-    take_identity = min(len(identity), remaining)
+    # Then identity facts (capped to prevent budget domination)
+    take_identity = min(len(identity), remaining, max_identity)
     result.extend(identity[:take_identity])
     remaining -= take_identity
 
-    # Then recent episodic
-    take_episodic = min(len(episodic), remaining // 2)  # Cap at half remaining
+    # Then recent episodic (gets up to 60% of remaining — conversations matter)
+    take_episodic = min(len(episodic), max(1, int(remaining * 0.6)))
     result.extend(episodic[:take_episodic])
     remaining -= take_episodic
 
@@ -517,7 +556,7 @@ def prioritize_memories(
     if remaining > 0:
         result.extend(other[:remaining])
 
-    print(f"[MEMORY TRIM] {len(memories)} -> {len(result)} memories "
+    print(f"{etag('MEMORY TRIM')} {len(memories)} -> {len(result)} memories "
           f"(working:{take_working}, identity:{take_identity}, "
           f"episodic:{take_episodic}, semantic:{take_semantic})")
 
@@ -569,7 +608,7 @@ def prioritize_rag_chunks(
     scored.sort(key=lambda x: x[0], reverse=True)
 
     result = [c for _, c in scored[:limit]]
-    print(f"[RAG TRIM] {len(chunks)} -> {len(result)} chunks")
+    print(f"{etag('RAG TRIM')} {len(chunks)} -> {len(result)} chunks")
 
     return result
 

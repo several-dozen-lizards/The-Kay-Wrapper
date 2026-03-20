@@ -37,6 +37,13 @@ const PANEL_THEMES = {
 		"border": Color(0.15, 0.25, 0.2, 1.0),
 		"accent": Color(0.3, 0.55, 0.35),
 	},
+	"system": {
+		"bg": Color(0.05, 0.05, 0.07, 0.95),
+		"header_bg": Color(0.07, 0.07, 0.1, 1.0),
+		"header_text": Color(0.6, 0.65, 0.7),
+		"border": Color(0.2, 0.22, 0.28, 1.0),
+		"accent": Color(0.4, 0.45, 0.55),
+	},
 }
 
 @onready var dock_bar: DockBar = $DockBar
@@ -76,6 +83,13 @@ func create_panel(panel_id: String, title: String, subtitle: String,
 	_panels[panel_id] = panel
 	_z_order.append(panel_id)
 	panel_canvas.add_child(panel)
+	
+	# Force absolute pixel positioning — prevents anchor layout from overriding drag
+	panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	panel.anchor_right = 0.0
+	panel.anchor_bottom = 0.0
+	panel.position = initial_pos
+	panel.size = initial_size
 	
 	# Register in dock bar
 	var accent = theme.get("accent", Color(0.4, 0.4, 0.6))

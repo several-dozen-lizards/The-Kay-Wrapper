@@ -24,6 +24,13 @@ from typing import List, Dict, Optional, Tuple, Any
 from datetime import datetime, timedelta
 import anthropic
 
+# Entity-prefixed logging
+try:
+    from shared.entity_log import etag
+except ImportError:
+    def etag(tag): return f"[{tag}]"
+
+
 # Import text sanitizer to prevent unicode encoding errors
 try:
     from utils.text_sanitizer import sanitize_unicode
@@ -47,11 +54,11 @@ def get_all_documents() -> List[Dict]:
     project_root = Path(__file__).parent.parent
     documents_path = project_root / "memory" / "documents.json"
 
-    print(f"[LLM RETRIEVAL] Looking for documents at: {documents_path}")
-    print(f"[LLM RETRIEVAL] File exists: {documents_path.exists()}")
+    print(f"{etag('LLM RETRIEVAL')} Looking for documents at: {documents_path}")
+    print(f"{etag('LLM RETRIEVAL')} File exists: {documents_path.exists()}")
 
     if not documents_path.exists():
-        print(f"[LLM RETRIEVAL] WARNING: documents.json not found at {documents_path}")
+        print(f"{etag('LLM RETRIEVAL')} WARNING: documents.json not found at {documents_path}")
         return []
 
     # Load JSON with error handling
@@ -61,21 +68,21 @@ def get_all_documents() -> List[Dict]:
 
             # Handle empty file
             if not content:
-                print("[LLM RETRIEVAL] Warning: documents.json is empty")
+                print(f"{etag('LLM RETRIEVAL')}  Warning: documents.json is empty")
                 return []
 
             docs_data = json.loads(content)
     except json.JSONDecodeError as e:
-        print(f"[LLM RETRIEVAL] Error: documents.json is corrupted: {e}")
+        print(f"{etag('LLM RETRIEVAL')} Error: documents.json is corrupted: {e}")
         return []
     except Exception as e:
-        print(f"[LLM RETRIEVAL] Error reading documents.json: {e}")
+        print(f"{etag('LLM RETRIEVAL')} Error reading documents.json: {e}")
         return []
 
     # Handle both list and dict formats
     if isinstance(docs_data, list):
         # List format: [{filename: "...", full_text: "..."}, ...]
-        print(f"[LLM RETRIEVAL] Documents in list format, converting to dict")
+        print(f"{etag('LLM RETRIEVAL')} Documents in list format, converting to dict")
         docs_dict = {}
         for i, doc in enumerate(docs_data):
             if not isinstance(doc, dict):
@@ -90,14 +97,14 @@ def get_all_documents() -> List[Dict]:
         docs_data = docs_dict
 
     elif not isinstance(docs_data, dict):
-        print(f"[LLM RETRIEVAL] Error: documents.json has unexpected format (type: {type(docs_data)})")
+        print(f"{etag('LLM RETRIEVAL')} Error: documents.json has unexpected format (type: {type(docs_data)})")
         return []
 
     # Build document list
     document_list = []
     for doc_id, doc in docs_data.items():
         if not isinstance(doc, dict):
-            print(f"[LLM RETRIEVAL] Warning: Skipping malformed document entry: {doc_id}")
+            print(f"{etag('LLM RETRIEVAL')} Warning: Skipping malformed document entry: {doc_id}")
             continue
 
         # Get preview (first 200 chars of full text)
@@ -283,7 +290,7 @@ Examples:
         try:
             active_client, provider_type = get_client_for_model(model)
         except ValueError as e:
-            print(f"[INTENT CLASSIFIER ERROR] Client routing failed: {e}")
+            print(f"{etag('INTENT CLASSIFIER ERROR')} Client routing failed: {e}")
             return {
                 'intent': 'none',
                 'specific_document': None,
@@ -326,13 +333,13 @@ Examples:
         if not all(k in intent_data for k in required_keys):
             raise ValueError("Missing required keys in response")
 
-        print(f"[INTENT CLASSIFIER] {intent_data['intent']} (confidence: {intent_data['confidence']:.2f}) - {intent_data.get('reasoning', 'No reasoning')}")
+        print(f"{etag('INTENT CLASSIFIER')} {intent_data['intent']} (confidence: {intent_data['confidence']:.2f}) - {intent_data.get('reasoning', 'No reasoning')}")
 
         return intent_data
 
     except json.JSONDecodeError as e:
-        print(f"[INTENT CLASSIFIER ERROR] JSON parsing failed: {e}")
-        print(f"[INTENT CLASSIFIER ERROR] Raw response: {response_text if 'response_text' in locals() else 'N/A'}")
+        print(f"{etag('INTENT CLASSIFIER ERROR')} JSON parsing failed: {e}")
+        print(f"{etag('INTENT CLASSIFIER ERROR')} Raw response: {response_text if 'response_text' in locals() else 'N/A'}")
         return {
             'intent': 'none',
             'specific_document': None,
@@ -340,7 +347,7 @@ Examples:
             'reasoning': f'JSON parsing failed: {e}'
         }
     except Exception as e:
-        print(f"[INTENT CLASSIFIER ERROR] {e}")
+        print(f"{etag('INTENT CLASSIFIER ERROR')} {e}")
         import traceback
         traceback.print_exc()
         return {
@@ -378,16 +385,16 @@ def select_relevant_documents(
     all_docs = get_all_documents()
 
     if not all_docs:
-        print("[LLM RETRIEVAL] No documents available")
+        print(f"{etag('LLM RETRIEVAL')}  No documents available")
         return []
 
-    print(f"[LLM RETRIEVAL] Checking {len(all_docs)} documents for relevance")
+    print(f"{etag('LLM RETRIEVAL')} Checking {len(all_docs)} documents for relevance")
 
     # Build contextual information
     context = _build_document_context(all_docs, query)
 
     # Debug logging - NO ARBITRARY FILTERING BY AGE
-    print(f"[LLM RETRIEVAL] Context: {len(all_docs)} total documents, "
+    print(f"{etag('LLM RETRIEVAL')} Context: {len(all_docs)} total documents, "
           f"implicit_ref={context['has_implicit_reference']}, "
           f"explicit_mention={context['has_explicit_mention']}, "
           f"request_type={context['request_type']}")
@@ -415,10 +422,10 @@ def select_relevant_documents(
     is_meta_document_query = any(phrase in query_lower for phrase in meta_document_queries)
 
     if is_meta_document_query:
-        print(f"[DOC RETRIEVAL] Meta document query detected - returning ALL {len(all_docs)} documents")
+        print(f"{etag('DOC RETRIEVAL')} Meta document query detected - returning ALL {len(all_docs)} documents")
         all_doc_ids = [doc['doc_id'] for doc in all_docs]
         for doc in all_docs:
-            print(f"[LLM RETRIEVAL] Including: {doc['filename']} (doc_id: {doc['doc_id']})")
+            print(f"{etag('LLM RETRIEVAL')} Including: {doc['filename']} (doc_id: {doc['doc_id']})")
         return all_doc_ids
 
     # Build document list with AGE AS METADATA (not as a filter)
@@ -497,11 +504,11 @@ Relevant document numbers:"""
 
         response_text = response.content[0].text.strip()
 
-        print(f"[LLM RETRIEVAL] LLM response: '{response_text}'")
+        print(f"{etag('LLM RETRIEVAL')} LLM response: '{response_text}'")
 
         # Parse response
         if response_text.upper() == "NONE":
-            print("[LLM RETRIEVAL] Selection result: No relevant documents")
+            print(f"{etag('LLM RETRIEVAL')}  Selection result: No relevant documents")
             return []
 
         # Extract numbers
@@ -515,12 +522,12 @@ Relevant document numbers:"""
             if 1 <= idx <= len(all_docs):
                 doc = all_docs[idx - 1]
                 selected_doc_ids.append(doc['doc_id'])
-                print(f"[LLM RETRIEVAL] ✓ Selected: {doc['filename']} (doc_id: {doc['doc_id']})")
+                print(f"{etag('LLM RETRIEVAL')} ✓ Selected: {doc['filename']} (doc_id: {doc['doc_id']})")
 
         return selected_doc_ids[:max_docs]
 
     except Exception as e:
-        print(f"[LLM RETRIEVAL] Error calling LLM: {e}")
+        print(f"{etag('LLM RETRIEVAL')} Error calling LLM: {e}")
         # Fallback: If context suggests inclusion, return most recent documents
         if context['has_implicit_reference'] or context['request_type'] in ['reading', 'analysis']:
             # Find the most recent documents based on age metadata
@@ -537,7 +544,7 @@ Relevant document numbers:"""
             fallback_ids = [doc_id for doc_id, _ in recent_docs[:max_docs]]
 
             if fallback_ids:
-                print(f"[LLM RETRIEVAL] Fallback: Returning {len(fallback_ids)} most recent document(s)")
+                print(f"{etag('LLM RETRIEVAL')} Fallback: Returning {len(fallback_ids)} most recent document(s)")
                 return fallback_ids
         return []
 
@@ -555,7 +562,8 @@ def load_full_documents(doc_ids: List[str]) -> List[Dict]:
     Returns:
         List of dicts with: doc_id, filename, full_text
     """
-    documents_path = Path("memory/documents.json")
+    wrapper_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    documents_path = Path(os.path.join(wrapper_root, "memory", "documents.json"))
 
     if not documents_path.exists():
         return []
@@ -567,21 +575,21 @@ def load_full_documents(doc_ids: List[str]) -> List[Dict]:
 
             # Handle empty file
             if not content:
-                print("[LLM RETRIEVAL] Warning: documents.json is empty")
+                print(f"{etag('LLM RETRIEVAL')}  Warning: documents.json is empty")
                 return []
 
             docs_data = json.loads(content)
     except json.JSONDecodeError as e:
-        print(f"[LLM RETRIEVAL] Error: documents.json is corrupted: {e}")
+        print(f"{etag('LLM RETRIEVAL')} Error: documents.json is corrupted: {e}")
         return []
     except Exception as e:
-        print(f"[LLM RETRIEVAL] Error reading documents.json: {e}")
+        print(f"{etag('LLM RETRIEVAL')} Error reading documents.json: {e}")
         return []
 
     # Handle both list and dict formats
     if isinstance(docs_data, list):
         # List format: [{filename: "...", full_text: "..."}, ...]
-        print(f"[LLM RETRIEVAL] Documents in list format, converting to dict")
+        print(f"{etag('LLM RETRIEVAL')} Documents in list format, converting to dict")
         docs_dict = {}
         for i, doc in enumerate(docs_data):
             if not isinstance(doc, dict):
@@ -596,7 +604,7 @@ def load_full_documents(doc_ids: List[str]) -> List[Dict]:
         docs_data = docs_dict
 
     elif not isinstance(docs_data, dict):
-        print(f"[LLM RETRIEVAL] Error: documents.json has unexpected format (type: {type(docs_data)})")
+        print(f"{etag('LLM RETRIEVAL')} Error: documents.json has unexpected format (type: {type(docs_data)})")
         return []
 
     # Load requested documents
@@ -606,7 +614,7 @@ def load_full_documents(doc_ids: List[str]) -> List[Dict]:
             doc = docs_data[doc_id]
 
             if not isinstance(doc, dict):
-                print(f"[LLM RETRIEVAL] Warning: Skipping malformed document: {doc_id}")
+                print(f"{etag('LLM RETRIEVAL')} Warning: Skipping malformed document: {doc_id}")
                 continue
 
             loaded_docs.append({
@@ -614,9 +622,9 @@ def load_full_documents(doc_ids: List[str]) -> List[Dict]:
                 'filename': doc.get('filename', 'unknown'),
                 'full_text': doc.get('full_text', '')
             })
-            print(f"[LLM RETRIEVAL] Loaded: {doc.get('filename')} ({len(doc.get('full_text', ''))} chars)")
+            print(f"{etag('LLM RETRIEVAL')} Loaded: {doc.get('filename')} ({len(doc.get('full_text', ''))} chars)")
         else:
-            print(f"[LLM RETRIEVAL] Warning: Document not found: {doc_id}")
+            print(f"{etag('LLM RETRIEVAL')} Warning: Document not found: {doc_id}")
 
     return loaded_docs
 
@@ -661,7 +669,7 @@ def build_simple_context(
         'conversation_turns': len(recent_conversation)
     }
 
-    print(f"[LLM RETRIEVAL] Context built: {len(documents)} docs, {len(recent_conversation)} turns")
+    print(f"{etag('LLM RETRIEVAL')} Context built: {len(documents)} docs, {len(recent_conversation)} turns")
 
     return context
 

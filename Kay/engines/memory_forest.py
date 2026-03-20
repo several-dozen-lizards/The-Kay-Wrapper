@@ -12,6 +12,13 @@ from datetime import datetime, timedelta
 from dataclasses import dataclass, field
 import json
 
+# Entity-prefixed logging
+try:
+    from shared.entity_log import etag
+except ImportError:
+    def etag(tag): return f"[{tag}]"
+
+
 
 def safe_print(text: str):
     """Print text with Unicode fallback for Windows console"""
@@ -50,10 +57,10 @@ class MemoryBranch:
         """Move up one tier (cold→warm, warm→hot)"""
         if self.access_tier == "cold":
             self.access_tier = "warm"
-            print(f"[FOREST] Warmed branch: {self.title}")
+            print(f"{etag('FOREST')} Warmed branch: {self.title}")
         elif self.access_tier == "warm":
             self.access_tier = "hot"
-            print(f"[FOREST] Heated branch: {self.title}")
+            print(f"{etag('FOREST')} Heated branch: {self.title}")
 
     def demote_tier(self):
         """Move down one tier (hot→warm, warm→cold)"""
@@ -180,7 +187,7 @@ class MemoryForest:
     def add_tree(self, tree: DocumentTree):
         """Add a new document tree to the forest"""
         self.trees[tree.doc_id] = tree
-        print(f"[FOREST] Added tree: {tree.title} ({len(tree.branches)} branches)")
+        print(f"{etag('FOREST')} Added tree: {tree.title} ({len(tree.branches)} branches)")
 
     def get_tree(self, doc_id: str) -> Optional[DocumentTree]:
         """Get tree by document ID"""
@@ -349,7 +356,7 @@ class MemoryForest:
                     demoted_warm += 1
 
         if demoted_hot > 0 or demoted_warm > 0:
-            print(f"[FOREST DECAY] Cooled {demoted_hot} hot→warm, {demoted_warm} warm→cold")
+            print(f"{etag('FOREST DECAY')} Cooled {demoted_hot} hot→warm, {demoted_warm} warm→cold")
 
     def enforce_hot_limit(self, max_hot_branches: int = 4):
         """
@@ -372,7 +379,7 @@ class MemoryForest:
         for i in range(to_demote):
             tree, branch = all_hot[i]
             branch.demote_tier()
-            print(f"[FOREST] Hot limit exceeded - cooled: {tree.title}/{branch.title}")
+            print(f"{etag('FOREST')} Hot limit exceeded - cooled: {tree.title}/{branch.title}")
 
     def to_dict(self) -> Dict:
         """Serialize entire forest to dictionary"""
@@ -396,7 +403,7 @@ class MemoryForest:
         """Save forest to JSON file"""
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(self.to_dict(), f, indent=2, ensure_ascii=False)
-        print(f"[FOREST] Saved to {filepath}")
+        print(f"{etag('FOREST')} Saved to {filepath}")
 
     @classmethod
     def load_from_file(cls, filepath: str) -> 'MemoryForest':
@@ -405,13 +412,13 @@ class MemoryForest:
             with open(filepath, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             forest = cls.from_dict(data)
-            print(f"[FOREST] Loaded {len(forest.trees)} trees from {filepath}")
+            print(f"{etag('FOREST')} Loaded {len(forest.trees)} trees from {filepath}")
             return forest
         except FileNotFoundError:
-            print(f"[FOREST] No existing forest file at {filepath}, starting fresh")
+            print(f"{etag('FOREST')} No existing forest file at {filepath}, starting fresh")
             return cls()
         except Exception as e:
-            print(f"[FOREST ERROR] Failed to load from {filepath}: {e}")
+            print(f"{etag('FOREST ERROR')} Failed to load from {filepath}: {e}")
             return cls()
 
 

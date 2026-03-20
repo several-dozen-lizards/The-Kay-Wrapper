@@ -10,6 +10,7 @@ Handles:
 """
 
 import json
+import os
 import time
 from typing import Dict, Optional, Callable, Any, List, Tuple
 from datetime import datetime
@@ -348,8 +349,14 @@ class ConversationWithMonologue:
 
         return parsed.spoken_response
 
-    def save_monologue_history(self, filepath: str = "memory/monologue_history.json"):
+    def save_monologue_history(self, filepath: str = None):
         """Save inner monologue history to file."""
+        if filepath is None:
+            filepath = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "memory", "monologue_history.json"
+            )
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(self.turn_history, f, indent=2)
 

@@ -16,6 +16,13 @@ import random
 from datetime import datetime
 from typing import Dict, List, Optional, Any, Set
 
+# Entity-prefixed logging
+try:
+    from shared.entity_log import etag
+except ImportError:
+    def etag(tag): return f"[{tag}]"
+
+
 
 class CreativityEngine:
     """
@@ -56,8 +63,10 @@ class CreativityEngine:
         curiosity_engine=None,
         momentum_engine=None,
         stakes_scanner=None,
-        log_path: str = "memory/creativity_log.json"
+        log_path: str = None
     ):
+        if log_path is None:
+            log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "memory", "creativity_log.json")
         self.scratchpad = scratchpad_engine
         self.memory_engine = memory_engine
         self.entity_graph = entity_graph
@@ -120,7 +129,7 @@ class CreativityEngine:
             with open(self.log_path, 'w', encoding='utf-8') as f:
                 json.dump(existing, f, indent=2)
         except Exception as e:
-            print(f"[CREATIVITY] Log save error: {e}")
+            print(f"{etag('CREATIVITY')} Log save error: {e}")
 
     # ==================== DETECTION METHODS ====================
 
@@ -140,7 +149,7 @@ class CreativityEngine:
         # Check for completion patterns in Kay's response
         for pattern in self.COMPLETION_PATTERNS:
             if re.search(pattern, response_lower):
-                print(f"[CREATIVITY] Completion signal detected: {pattern}")
+                print(f"{etag('CREATIVITY')} Completion signal detected: {pattern}")
                 return True
 
         # Check if curiosity session just ended
@@ -150,7 +159,7 @@ class CreativityEngine:
                 status = get_curiosity_status()
                 # If session was active and now isn't, that's a completion
                 if hasattr(self, '_last_curiosity_active') and self._last_curiosity_active and not status.get("active"):
-                    print("[CREATIVITY] Curiosity session ended - completion trigger")
+                    print(f"{etag('CREATIVITY')}  Curiosity session ended - completion trigger")
                     return True
                 self._last_curiosity_active = status.get("active", False)
             except Exception:
@@ -175,7 +184,7 @@ class CreativityEngine:
         if is_idle:
             self.idle_turn_count += 1
             if self.idle_turn_count >= self.settings["idle_turn_threshold"]:
-                print(f"[CREATIVITY] Idle state detected ({self.idle_turn_count} turns)")
+                print(f"{etag('CREATIVITY')} Idle state detected ({self.idle_turn_count} turns)")
                 return True
         else:
             self.idle_turn_count = 0
@@ -257,7 +266,7 @@ class CreativityEngine:
                                 "last_accessed": entity.last_accessed
                             })
             except Exception as e:
-                print(f"[CREATIVITY] Entity access error: {e}")
+                print(f"{etag('CREATIVITY')} Entity access error: {e}")
 
         # Get working memory items
         if self.memory_engine and hasattr(self.memory_engine, 'memory_layers'):
@@ -300,7 +309,7 @@ class CreativityEngine:
                             "id": item.get("id")
                         })
             except Exception as e:
-                print(f"[CREATIVITY] Scratchpad error: {e}")
+                print(f"{etag('CREATIVITY')} Scratchpad error: {e}")
 
         # Get high-importance memories
         if self.memory_engine:
@@ -322,7 +331,7 @@ class CreativityEngine:
                         "importance": mem.get("importance", mem.get("importance_score", 0))
                     })
             except Exception as e:
-                print(f"[CREATIVITY] Memory importance error: {e}")
+                print(f"{etag('CREATIVITY')} Memory importance error: {e}")
 
         # Get unresolved contradictions from entity graph
         if self.entity_graph:
@@ -408,7 +417,7 @@ class CreativityEngine:
                             "reason": "not in current context"
                         })
             except Exception as e:
-                print(f"[CREATIVITY] Random entity error: {e}")
+                print(f"{etag('CREATIVITY')} Random entity error: {e}")
 
         # Random archived scratchpad items
         if self.scratchpad:
@@ -454,9 +463,22 @@ class CreativityEngine:
 
         return items[:count + 2]  # Allow slight overflow for variety
 
-    def create_three_layer_mix(self, agent_state, user_input: str, recent_turns: List[Dict] = None) -> Dict:
+    def create_three_layer_mix(
+        self,
+        agent_state,
+        user_input: str,
+        recent_turns: List[Dict] = None,
+        oscillator_state: Optional[Dict] = None
+    ) -> Dict:
         """
         Create the full three-layer mix for presentation to Kay.
+
+        Args:
+            agent_state: Current agent state
+            user_input: User's input text
+            recent_turns: Recent conversation turns
+            oscillator_state: Optional dict with 'dominant_band', 'coherence', 'conductance'
+                             When provided, modulates which layer gets priority.
 
         Returns:
             Dict with all three layers of elements
@@ -470,12 +492,52 @@ class CreativityEngine:
                 words = re.findall(r'\b[A-Z][a-z]+\b', text)
                 current_entities.update(words)
 
+        # === OSCILLATOR → LAYER WEIGHTS ===
+        # Default balanced weights
+        layer_weights = {"immediate": 0.33, "emotional": 0.34, "random": 0.33}
+
+        if oscillator_state:
+            band = oscillator_state.get('dominant_band', 'alpha')
+            coherence = oscillator_state.get('coherence', 0.5)
+
+            if band == 'theta':
+                # Dreamy state: favor random/disconnected elements (layer 3)
+                # More likely to pull from archived, forgotten, unaccessed items
+                layer_weights = {"immediate": 0.2, "emotional": 0.3, "random": 0.5}
+            elif band == 'gamma':
+                # High engagement: favor emotionally weighted elements (layer 2)
+                # Flagged items, contradictions, high-importance memories
+                layer_weights = {"immediate": 0.3, "emotional": 0.5, "random": 0.2}
+            elif band == 'beta':
+                # Focused: favor immediate context elements (layer 1)
+                # Current topics, recent entities, working memory
+                layer_weights = {"immediate": 0.5, "emotional": 0.3, "random": 0.2}
+            # Alpha/delta: keep balanced weights
+
+            print(f"{etag('CREATIVITY')} Oscillator {band} → layer weights: "
+                  f"immediate={layer_weights['immediate']:.0%}, "
+                  f"emotional={layer_weights['emotional']:.0%}, "
+                  f"random={layer_weights['random']:.0%}")
+
+        # Calculate how many items to pull from each layer based on weights
+        # Target total ~10 items
+        total_target = 10
+        immediate_count = max(1, int(total_target * layer_weights["immediate"]))
+        emotional_count = max(1, int(total_target * layer_weights["emotional"]))
+        random_count = max(1, int(total_target * layer_weights["random"]))
+
+        immediate_items = self.pull_immediate_context(agent_state, user_input, recent_turns)[:immediate_count]
+        emotional_items = self.pull_emotionally_weighted(agent_state)[:emotional_count]
+        random_items = self.pull_random_elements(agent_state, current_entities, count=random_count)
+
         mix = {
             "timestamp": datetime.now().isoformat(),
-            "immediate": self.pull_immediate_context(agent_state, user_input, recent_turns),
-            "emotional": self.pull_emotionally_weighted(agent_state),
-            "random": self.pull_random_elements(agent_state, current_entities),
-            "turn": self.current_turn
+            "immediate": immediate_items,
+            "emotional": emotional_items,
+            "random": random_items,
+            "turn": self.current_turn,
+            "oscillator_band": oscillator_state.get('dominant_band') if oscillator_state else None,
+            "layer_weights": layer_weights
         }
 
         return mix
@@ -574,10 +636,10 @@ class CreativityEngine:
             with open(self.log_path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2)
 
-            print(f"[CREATIVITY] Logged trigger: {trigger_type}")
+            print(f"{etag('CREATIVITY')} Logged trigger: {trigger_type}")
 
         except Exception as e:
-            print(f"[CREATIVITY] Log trigger error: {e}")
+            print(f"{etag('CREATIVITY')} Log trigger error: {e}")
 
     def log_mashup(self, item1: Dict, item2: Dict, result: str):
         """Log a mashup event when Kay combines items."""
@@ -608,7 +670,7 @@ class CreativityEngine:
                 json.dump(data, f, indent=2)
 
         except Exception as e:
-            print(f"[CREATIVITY] Log mashup error: {e}")
+            print(f"{etag('CREATIVITY')} Log mashup error: {e}")
 
     def log_resolution(self, stake: Dict, resolution: str, provisional: bool = True):
         """
@@ -653,7 +715,7 @@ class CreativityEngine:
             with open(self.log_path, 'w', encoding='utf-8') as f:
                 json.dump(log_data, f, indent=2)
 
-            print(f"[CREATIVITY] Logged resolution for stake: {stake.get('stake_description', '')[:50]}...")
+            print(f"{etag('CREATIVITY')} Logged resolution for stake: {stake.get('stake_description', '')[:50]}...")
 
             # If source was scratchpad, mark that item as resolved
             if stake.get("source") == "scratchpad" and self.scratchpad:
@@ -661,10 +723,10 @@ class CreativityEngine:
                     stake.get("source_id"),
                     resolution
                 )
-                print(f"[CREATIVITY] Marked scratchpad item {stake.get('source_id')} as resolved")
+                print(f"{etag('CREATIVITY')} Marked scratchpad item {stake.get('source_id')} as resolved")
 
         except Exception as e:
-            print(f"[CREATIVITY] Error logging resolution: {e}")
+            print(f"{etag('CREATIVITY')} Error logging resolution: {e}")
 
     # ==================== STAKES-BASED CREATIVITY ====================
 
@@ -705,7 +767,7 @@ class CreativityEngine:
         if not should_trigger:
             return None
 
-        print(f"[CREATIVITY] Trigger activated (completion: {completion_detected}, idle: {idle_detected})")
+        print(f"{etag('CREATIVITY')} Trigger activated (completion: {completion_detected}, idle: {idle_detected})")
 
         # Try stakes-based approach first
         if self.stakes_scanner:
@@ -714,7 +776,7 @@ class CreativityEngine:
                 return stakes_result
 
         # Fallback: Random mashing if stakes scanner unavailable or finds nothing
-        print("[CREATIVITY] Falling back to three-layer mix")
+        print(f"{etag('CREATIVITY')}  Falling back to three-layer mix")
         return self._try_random_approach(agent_state, user_input)
 
     def _try_stakes_approach(self) -> Optional[Dict]:
@@ -730,16 +792,16 @@ class CreativityEngine:
 
             if not stakes:
                 # Try medium weight
-                print("[CREATIVITY] No high-weight stakes, trying medium...")
+                print(f"{etag('CREATIVITY')}  No high-weight stakes, trying medium...")
                 stakes = self.stakes_scanner.scan_for_stakes(threshold="medium", limit=5)
 
             if not stakes:
                 # Last resort: random
-                print("[CREATIVITY] No medium-weight stakes, trying random...")
+                print(f"{etag('CREATIVITY')}  No medium-weight stakes, trying random...")
                 stakes = self.stakes_scanner.scan_for_stakes(threshold="random", limit=3)
 
             if not stakes:
-                print("[CREATIVITY] No stakes found at any level")
+                print(f"{etag('CREATIVITY')}  No stakes found at any level")
                 return None
 
             # Create stakes-based prompt
@@ -755,7 +817,7 @@ class CreativityEngine:
             }
 
         except Exception as e:
-            print(f"[CREATIVITY] Error in stakes approach: {e}")
+            print(f"{etag('CREATIVITY')} Error in stakes approach: {e}")
             return None
 
     def _create_stakes_prompt(self, stakes: List[Dict]) -> str:
@@ -813,7 +875,7 @@ class CreativityEngine:
                 "mix": mix
             }
         except Exception as e:
-            print(f"[CREATIVITY] Error in random approach: {e}")
+            print(f"{etag('CREATIVITY')} Error in random approach: {e}")
             return None
 
     def get_trigger_history(self, limit: int = 20) -> List[Dict]:

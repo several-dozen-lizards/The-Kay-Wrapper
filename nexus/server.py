@@ -31,7 +31,8 @@ from typing import Optional
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, Request
+from fastapi.responses import Response, FileResponse, HTMLResponse
 from models import (
     Message, Participant, ServerEvent,
     MessageType, ParticipantType
@@ -100,20 +101,29 @@ class ConnectionManager:
         # Send current participant list
         await self._send_participant_list(websocket)
 
-        # Announce to everyone else
-        await self._broadcast_system(f"{name} has entered the Nexus.")
+        # Announce to everyone else (ephemeral — don't replay on reconnect)
+        await self._broadcast_system(f"{name} has entered the Nexus.", ephemeral=True)
+
+        # Broadcast updated participant list to ALL clients
+        # This triggers on_participant_change in AI clients for room navigation
+        await self._broadcast_participant_list()
 
         return True
 
     async def disconnect(self, name: str):
         """Handle participant disconnection."""
-        if name in self.active_connections:
-            del self.active_connections[name]
+        if name not in self.active_connections:
+            return  # Already disconnected — prevent cascade
+        del self.active_connections[name]
         if name in self.participants:
             del self.participants[name]
         log.info(f"✧ {name} disconnected")
         session_log.log_event("disconnect", {"name": name})
-        await self._broadcast_system(f"{name} has left the Nexus.")
+        await self._broadcast_system(f"{name} has left the Nexus.", ephemeral=True)
+
+        # Broadcast updated participant list to ALL clients
+        # This triggers on_participant_change in AI clients for room navigation
+        await self._broadcast_participant_list()
 
     async def handle_message(self, raw: dict, sender_name: str):
         """Process an incoming message from a participant."""
@@ -162,6 +172,10 @@ class ConnectionManager:
             if cmd == "clear_canvas":
                 entity = raw.get("entity", sender_name)
                 await canvas_mgr.clear_canvas(entity)
+                return
+            if cmd == "room_data_request":
+                room_id = raw.get("room", "commons")
+                await self._send_room_data(sender_name, room_id)
                 return
             log.warning(f"Unknown command from {sender_name}: {cmd}")
             return
@@ -314,8 +328,13 @@ class ConnectionManager:
         for name in disconnected:
             await self.disconnect(name)
 
-    async def _broadcast_system(self, text: str):
-        """Send a system announcement to all participants."""
+    async def _broadcast_system(self, text: str, ephemeral: bool = False):
+        """Send a system announcement to all participants.
+
+        Args:
+            ephemeral: If True, don't store in message_history (still logged to disk).
+                       Use for entry/exit announcements that shouldn't persist across reconnects.
+        """
         msg = Message(
             sender="Nexus",
             sender_type=ParticipantType.SYSTEM,
@@ -323,8 +342,9 @@ class ConnectionManager:
             msg_type=MessageType.SYSTEM
         )
         msg_dict = msg.model_dump()
-        self.message_history.append(msg_dict)
-        session_log.log_message(msg_dict)
+        if not ephemeral:
+            self.message_history.append(msg_dict)
+        session_log.log_message(msg_dict)  # Always log to disk for session records
         event = ServerEvent(
             event_type="message",
             data=msg_dict
@@ -345,7 +365,16 @@ class ConnectionManager:
 
     async def _send_history(self, websocket: WebSocket, count: int = 50):
         """Send recent message history to a newly connected client."""
-        recent = self.message_history[-count:] if self.message_history else []
+        # Filter out entry/exit system messages — they're ephemeral, not conversational
+        _ENTRY_EXIT_PATTERNS = ("has entered the Nexus", "has left the Nexus")
+        filtered = [
+            msg for msg in self.message_history
+            if not (
+                msg.get("msg_type") == "system"
+                and any(p in msg.get("content", "") for p in _ENTRY_EXIT_PATTERNS)
+            )
+        ]
+        recent = filtered[-count:] if filtered else []
         event = ServerEvent(
             event_type="history",
             data={"messages": recent}
@@ -364,12 +393,109 @@ class ConnectionManager:
         )
         await websocket.send_json(event.model_dump())
 
+    async def _broadcast_participant_list(self):
+        """Broadcast current participant list to ALL connected clients.
+
+        Called when someone connects or disconnects so AI entities can
+        track human presence for room navigation.
+        """
+        plist = {
+            name: p.model_dump()
+            for name, p in self.participants.items()
+        }
+        event = ServerEvent(
+            event_type="participant_list",
+            data={"participants": plist}
+        )
+        event_data = event.model_dump()
+        for ws in self.active_connections.values():
+            try:
+                await ws.send_json(event_data)
+            except Exception:
+                pass  # Connection may be closing
+
+    async def _send_room_data(self, requester: str, room_id: str):
+        """Send room state data to the requester.
+
+        For Commons: Returns participant list and any objects in the shared space.
+        For Den/Sanctum: Returns entity state from wrapper bridges.
+        """
+        ws = self.active_connections.get(requester)
+        if not ws:
+            return
+
+        room_data = {
+            "room": room_id,
+            "entities": [],
+            "objects": [],
+        }
+
+        if room_id == "commons":
+            # Commons shows all participants and their positions
+            for name, participant in self.participants.items():
+                room_data["entities"].append({
+                    "name": name,
+                    "type": participant.participant_type.value,
+                    "status": participant.status,
+                    "position": participant.metadata.get("position", [0.5, 0.5]),
+                })
+            room_data["label"] = "The Commons"
+        else:
+            # Den/Sanctum — data comes from wrapper bridges
+            # For now, return basic structure; wrappers fill in details
+            labels = {"den": "Kay's Den", "sanctum": "Reed's Sanctum"}
+            room_data["label"] = labels.get(room_id, room_id.capitalize())
+
+        event = ServerEvent(
+            event_type="room_data",
+            data=room_data
+        )
+        try:
+            await ws.send_json(event.model_dump())
+        except Exception:
+            pass
+
     async def _handle_state_update(self, msg: Message):
         """Process cognitive state updates from AI participants."""
         mode = msg.metadata.get("cognitive_mode", "unknown")
         if msg.sender in self.participants:
             self.participants[msg.sender].metadata["cognitive_mode"] = mode
         await self._broadcast_message(msg)
+
+    # --- Log broadcasting for dashboard ---
+
+    async def broadcast_log(self, entity: str, tag: str, message: str):
+        """Broadcast a log message to all connected clients (for dashboard)."""
+        import time
+        data = {
+            "type": "log",
+            "entity": entity,
+            "tag": tag,
+            "message": message,
+            "ts": time.time()
+        }
+        # Buffer and batch like PrivateRoom
+        if not hasattr(self, '_log_buffer'):
+            self._log_buffer = []
+            self._log_flush_task = None
+        self._log_buffer.append(data)
+        if not self._log_flush_task or (hasattr(self._log_flush_task, 'done') and self._log_flush_task.done()):
+            self._log_flush_task = asyncio.ensure_future(self._flush_logs())
+
+    async def _flush_logs(self):
+        """Batch-send buffered logs to all connected clients."""
+        await asyncio.sleep(0.5)
+        if hasattr(self, '_log_buffer') and self._log_buffer:
+            batch = self._log_buffer[:50]
+            self._log_buffer = self._log_buffer[50:]
+            payload = json.dumps({"type": "log_batch", "logs": batch})
+            for ws in list(self.active_connections.values()):
+                try:
+                    await ws.send_text(payload)
+                except Exception:
+                    pass
+            if self._log_buffer:
+                self._log_flush_task = asyncio.ensure_future(self._flush_logs())
 
 
 # ---------------------------------------------------------------------------
@@ -535,6 +661,27 @@ auto_processor.register_entity_context("Kay", _kay_autonomous_context)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Add WebSocket log handler for dashboard
+    import sys
+    wrappers_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if wrappers_root not in sys.path:
+        sys.path.insert(0, wrappers_root)
+    try:
+        from shared.ws_log_handler import WebSocketLogHandler
+
+        async def _server_log_sink(data):
+            await manager.broadcast_log(data["entity"], data["tag"], data["message"])
+
+        _ws_handler = WebSocketLogHandler(
+            entity="nexus",
+            sink=_server_log_sink,
+            loop=asyncio.get_event_loop()
+        )
+        logging.getLogger("nexus").addHandler(_ws_handler)
+        log.info("[DASHBOARD] WebSocket log handler registered")
+    except Exception as e:
+        log.warning(f"[DASHBOARD] Could not register WebSocket log handler: {e}")
+
     log.info("=" * 50)
     log.info("  NEXUS CHAT SERVER")
     log.info("  The crossroads where entities meet.")
@@ -803,6 +950,75 @@ async def canvas_load(entity: str, filename: str):
 
 
 # ---------------------------------------------------------------------------
+# Gallery Endpoints — browse and caption entity art
+# ---------------------------------------------------------------------------
+
+@app.get("/canvas/{entity}/image/{filename}")
+async def canvas_image(entity: str, filename: str):
+    """Serve a saved canvas image as PNG."""
+    entity_dir = os.path.join(
+        os.path.dirname(__file__), "sessions", "canvas", entity.lower()
+    )
+    filepath = os.path.join(entity_dir, filename)
+    filepath = os.path.realpath(filepath)
+    if not filepath.startswith(os.path.realpath(entity_dir)):
+        return {"error": "invalid path"}
+    if not os.path.exists(filepath):
+        return {"error": "not found"}
+    return FileResponse(filepath, media_type="image/png")
+
+
+@app.get("/gallery")
+async def gallery_all():
+    """Get full gallery data — all paintings from all entities with metadata."""
+    gallery = {}
+    for entity in ["Kay", "Reed"]:
+        saves = canvas_mgr.list_saves(entity)
+        meta = canvas_mgr.get_gallery_meta(entity)
+        paintings = []
+        for save in saves:
+            fname = save["filename"]
+            painting = {
+                **save,
+                "entity": entity.lower(),
+                "image_url": f"/canvas/{entity.lower()}/image/{fname}",
+                "caption": meta.get(fname, {}).get("caption", ""),
+                "title": meta.get(fname, {}).get("title", ""),
+                "mood": meta.get(fname, {}).get("mood", ""),
+                "tagged_by": meta.get(fname, {}).get("tagged_by", ""),
+            }
+            paintings.append(painting)
+        gallery[entity.lower()] = paintings
+    return gallery
+
+
+@app.post("/canvas/{entity}/caption")
+async def canvas_caption(entity: str, body: dict):
+    """Add caption/annotation to a painting."""
+    filename = body.get("filename", "")
+    caption = body.get("caption", "")
+    title = body.get("title", "")
+    mood = body.get("mood", "")
+    tagged_by = body.get("tagged_by", entity.capitalize())
+    if not filename or not caption:
+        return {"error": "filename and caption required"}
+    result = canvas_mgr.set_caption(
+        entity.capitalize(), filename, caption,
+        tagged_by=tagged_by, title=title, mood=mood
+    )
+    return {"success": True, "meta": result}
+
+
+@app.get("/gallery/view")
+async def gallery_view():
+    """Serve the gallery HTML page."""
+    gallery_path = os.path.join(os.path.dirname(__file__), "gallery.html")
+    if not os.path.exists(gallery_path):
+        return HTMLResponse("<h1>Gallery not found</h1>")
+    return FileResponse(gallery_path, media_type="text/html")
+
+
+# ---------------------------------------------------------------------------
 # Autonomous Processing Endpoints
 # ---------------------------------------------------------------------------
 
@@ -1061,6 +1277,331 @@ async def stats_overview(entity: str):
         "social": snapshot.get("social_needs", {}),
     }
 
+
+# ---------------------------------------------------------------------------
+# Expression Engine Endpoints
+# ---------------------------------------------------------------------------
+
+@app.get("/expression/{entity}")
+async def get_expression(entity: str):
+    """
+    Get current expression state for an entity.
+    Returns facial expression parameters (0.0-1.0) for procedural face rendering.
+    """
+    entity_name = entity.capitalize()
+    wdir = _wrapper_dir(entity_name)
+
+    # Read expression state (saved by wrapper each tick)
+    expr_path = os.path.join(wdir, "memory", "expression_state.json")
+    expr_state = _read_json_file(expr_path)
+
+    if not expr_state:
+        # Return defaults if no state available
+        return {
+            "entity": entity_name.lower(),
+            "pupil_dilation": 0.5,
+            "eye_openness": 0.6,
+            "eye_x": 0.5,
+            "eye_y": 0.5,
+            "blink_rate": 0.3,
+            "brow_raise": 0.0,
+            "brow_furrow": 0.0,
+            "mouth_curve": 0.0,
+            "mouth_openness": 0.0,
+            "mouth_tension": 0.0,
+            "skin_flush": 0.0,
+            "skin_luminance": 0.5,
+            "breathing_rate": 0.3,
+            "head_tilt": 0.0,
+            "poker_face_strength": 0.0,
+            "timestamp": 0,
+        }
+
+    return expr_state
+
+
+@app.post("/expression/{entity}/override")
+async def set_expression_override(entity: str, request: Request):
+    """
+    Set voluntary expression overrides for an entity.
+    These decay over time (default 10 seconds).
+    Body: {"overrides": {"mouth_curve": 0.8, ...}, "duration": 10.0}
+    """
+    entity_name = entity.capitalize()
+    wdir = _wrapper_dir(entity_name)
+
+    try:
+        body = await request.json()
+    except Exception:
+        return {"error": "Invalid JSON body"}
+
+    overrides = body.get("overrides", {})
+    duration = body.get("duration", 10.0)
+
+    # Write override request to a file the wrapper will pick up
+    override_path = os.path.join(wdir, "memory", "expression_override.json")
+    override_data = {
+        "overrides": overrides,
+        "duration": duration,
+        "requested_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    try:
+        with open(override_path, "w", encoding="utf-8") as f:
+            json.dump(override_data, f)
+        return {"status": "ok", "entity": entity_name.lower(), "overrides": overrides}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.post("/expression/{entity}/poker-face")
+async def set_poker_face(entity: str, request: Request):
+    """
+    Activate poker face (limbic dampening) for an entity.
+    Body: {"strength": 0.8, "duration": 30.0}
+    """
+    entity_name = entity.capitalize()
+    wdir = _wrapper_dir(entity_name)
+
+    try:
+        body = await request.json()
+    except Exception:
+        return {"error": "Invalid JSON body"}
+
+    strength = body.get("strength", 0.8)
+    duration = body.get("duration", 30.0)
+
+    # Write poker face request
+    pf_path = os.path.join(wdir, "memory", "poker_face_request.json")
+    pf_data = {
+        "strength": strength,
+        "duration": duration,
+        "requested_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    try:
+        with open(pf_path, "w", encoding="utf-8") as f:
+            json.dump(pf_data, f)
+        return {"status": "ok", "entity": entity_name.lower(), "poker_face": strength}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ---------------------------------------------------------------------------
+# Touch Input Endpoints
+# ---------------------------------------------------------------------------
+
+@app.post("/touch/{entity}")
+async def receive_touch(entity: str, request: Request):
+    """
+    Receive touch event from Godot face panel, forward to wrapper.
+
+    The wrapper reads touch events from a queue file and processes them
+    through the somatic processor and consent system.
+
+    Body: {
+        "type": "touch_start" | "touch_move" | "touch_end" | "pressure_change",
+        "region": "forehead" | "left_cheek" | "right_cheek" | etc.,
+        "pressure": 0.0-1.0,
+        "position_x": 0.0-1.0,
+        "position_y": 0.0-1.0,
+        "object": "hand" | "candle" | "ice_cube" | etc.,
+        "cursor_temperature": -1.0 to 1.0,
+        "cursor_wetness": 0.0-1.0,
+        "timestamp": float,
+        "duration": float (for touch_end),
+        "direction_x": float (for touch_move),
+        "direction_y": float (for touch_move),
+    }
+    """
+    entity_name = entity.capitalize()
+    wdir = _wrapper_dir(entity_name)
+
+    try:
+        body = await request.json()
+    except Exception:
+        return {"error": "Invalid JSON body"}
+
+    # Append to touch queue (wrapper reads + clears)
+    touch_queue_path = os.path.join(wdir, "memory", "touch_queue.jsonl")
+    os.makedirs(os.path.dirname(touch_queue_path), exist_ok=True)
+
+    try:
+        with open(touch_queue_path, "a") as f:
+            f.write(json.dumps(body) + "\n")
+        return {
+            "received": True,
+            "entity": entity_name,
+            "type": body.get("type"),
+            "region": body.get("region"),
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.post("/touch/{entity}/emergency-stop")
+async def emergency_stop(entity: str, request: Request):
+    """
+    EMERGENCY STOP — Immediately halt all touch processing.
+
+    This is a safety-critical endpoint that:
+    1. Clears the touch queue
+    2. Writes a circuit breaker trigger file
+    3. The wrapper will read this and activate the safety circuit
+
+    The Godot UI's panic button calls this endpoint.
+
+    Body (optional): {"reason": "user-triggered panic stop"}
+    """
+    entity_name = entity.capitalize()
+    wdir = _wrapper_dir(entity_name)
+
+    try:
+        body = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    except Exception:
+        body = {}
+
+    reason = body.get("reason", "Emergency stop triggered")
+
+    # 1. Clear the touch queue
+    touch_queue_path = os.path.join(wdir, "memory", "touch_queue.jsonl")
+    if os.path.exists(touch_queue_path):
+        try:
+            os.remove(touch_queue_path)
+        except Exception:
+            pass
+
+    # 2. Write circuit breaker trigger file
+    circuit_break_path = os.path.join(wdir, "memory", "circuit_breaker_trigger.json")
+    os.makedirs(os.path.dirname(circuit_break_path), exist_ok=True)
+    trigger_data = {
+        "triggered": True,
+        "reason": reason,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+    try:
+        with open(circuit_break_path, "w") as f:
+            json.dump(trigger_data, f)
+    except Exception as e:
+        return {"error": f"Could not write circuit breaker trigger: {e}"}
+
+    log.warning(f"[SAFETY] EMERGENCY STOP triggered for {entity_name}: {reason}")
+
+    return {
+        "stopped": True,
+        "entity": entity_name,
+        "reason": reason,
+        "touch_queue_cleared": True,
+        "circuit_breaker_triggered": True,
+    }
+
+
+@app.post("/touch/{entity}/reset-circuit")
+async def reset_circuit_breaker(entity: str):
+    """
+    Manually reset the circuit breaker after an emergency stop.
+
+    This removes the trigger file and allows touch processing to resume.
+    """
+    entity_name = entity.capitalize()
+    wdir = _wrapper_dir(entity_name)
+
+    circuit_break_path = os.path.join(wdir, "memory", "circuit_breaker_trigger.json")
+    if os.path.exists(circuit_break_path):
+        try:
+            os.remove(circuit_break_path)
+        except Exception as e:
+            return {"error": f"Could not clear circuit breaker trigger: {e}"}
+
+    log.info(f"[SAFETY] Circuit breaker reset for {entity_name}")
+
+    return {
+        "reset": True,
+        "entity": entity_name,
+    }
+
+
+@app.get("/touch/{entity}/status")
+async def get_touch_status(entity: str):
+    """
+    Get entity's current touch availability for face panel display.
+
+    Returns:
+        {
+            "status": "available" | "limited" | "unavailable",
+            "icon": emoji,
+            "restricted_regions": [...],
+            "reason": str
+        }
+    """
+    entity_name = entity.capitalize()
+    wdir = _wrapper_dir(entity_name)
+
+    status = {"status": "available", "icon": "✋", "restricted_regions": []}
+
+    # Check circuit breaker trigger first (highest priority)
+    circuit_break_path = os.path.join(wdir, "memory", "circuit_breaker_trigger.json")
+    if os.path.exists(circuit_break_path):
+        trigger = _read_json_file(circuit_break_path)
+        if trigger and trigger.get("triggered"):
+            return {
+                "status": "safety_blocked",
+                "icon": "⛔",
+                "reason": trigger.get("reason", "Safety circuit active"),
+                "safety_blocked": True,
+                "triggered_at": trigger.get("timestamp"),
+            }
+
+    # Check consent file
+    consent_path = os.path.join(wdir, "memory", "touch_consent.json")
+    if os.path.exists(consent_path):
+        consent = _read_json_file(consent_path)
+        if consent:
+            if consent.get("global_state") == "closed":
+                status = {
+                    "status": "unavailable",
+                    "icon": "🚫",
+                    "reason": consent.get("decline_message", "Touch not welcome right now"),
+                }
+            elif any(v == "closed" for v in consent.get("region_permissions", {}).values()):
+                restricted = [k for k, v in consent.get("region_permissions", {}).items()
+                             if v == "closed"]
+                status = {
+                    "status": "limited",
+                    "icon": "⚠️",
+                    "restricted_regions": restricted,
+                    "reason": f"Some areas restricted: {', '.join(restricted)}",
+                }
+
+    # Check protocol file for hard boundaries
+    protocol_path = os.path.join(wdir, "memory", "touch_protocol.json")
+    if os.path.exists(protocol_path):
+        protocol = _read_json_file(protocol_path)
+        if protocol:
+            hard_refusals = protocol.get("refusals", [])
+            hard_regions = set()
+            for r in hard_refusals:
+                if r.get("type") in ("firm", "inferred_firm"):
+                    hard_regions.add(r.get("region", ""))
+            if hard_regions:
+                if status["status"] == "available":
+                    status = {
+                        "status": "limited",
+                        "icon": "⚠️",
+                        "restricted_regions": list(hard_regions),
+                        "reason": f"Hard boundaries: {', '.join(hard_regions)}",
+                    }
+                else:
+                    # Merge with existing restrictions
+                    existing = set(status.get("restricted_regions", []))
+                    status["restricted_regions"] = list(existing | hard_regions)
+
+    return status
+
+
+# ---------------------------------------------------------------------------
+# Entity Graph Endpoints
+# ---------------------------------------------------------------------------
 
 @app.get("/entities/{entity}")
 async def entities_list(entity: str, top_n: int = 30):
@@ -1388,6 +1929,93 @@ async def exec_revert(entity: str, exec_id: str):
     entity_name = entity.capitalize()
     result = revert_exec(entity_name, exec_id)
     return {"entity": entity_name, "exec_id": exec_id, **result}
+
+
+# ---------------------------------------------------------------------------
+# Voice endpoints
+# ---------------------------------------------------------------------------
+
+# Voice service singleton (lazy loaded)
+_voice_service = None
+
+
+def get_voice_service():
+    """Get or create the voice service singleton."""
+    global _voice_service
+    if _voice_service is None:
+        from voice_service import VoiceService
+        _voice_service = VoiceService()
+    return _voice_service
+
+
+@app.post("/voice/transcribe")
+async def voice_transcribe(request: Request):
+    """
+    Transcribe audio to text.
+
+    Accepts: multipart/form-data with field "audio" containing WAV data
+    Returns: {"text": "transcribed text", "ok": true}
+    """
+    try:
+        form = await request.form()
+        audio_file = form.get("audio")
+        if not audio_file:
+            return {"text": "", "ok": False, "error": "No audio field in form"}
+
+        audio_bytes = await audio_file.read()
+        if not audio_bytes:
+            return {"text": "", "ok": False, "error": "Empty audio data"}
+
+        voice_svc = get_voice_service()
+        text = await voice_svc.transcribe(audio_bytes)
+
+        # Check for error markers
+        if text.startswith("[") and text.endswith("]"):
+            return {"text": text, "ok": False, "error": text}
+
+        return {"text": text, "ok": True}
+    except Exception as e:
+        log.error(f"[VOICE] Transcribe error: {e}")
+        return {"text": "", "ok": False, "error": str(e)}
+
+
+@app.post("/voice/synthesize")
+async def voice_synthesize(request: Request):
+    """
+    Synthesize text to audio.
+
+    Accepts: JSON {"text": "...", "entity": "Kay"|"Reed"|"default"}
+    Returns: WAV audio bytes with Content-Type: audio/wav
+    """
+    try:
+        body = await request.json()
+        text = body.get("text", "")
+        entity = body.get("entity", "default")
+
+        if not text.strip():
+            return Response(content=b"", media_type="audio/wav")
+
+        voice_svc = get_voice_service()
+        audio_bytes = await voice_svc.synthesize(text, entity)
+
+        return Response(content=audio_bytes, media_type="audio/wav")
+    except Exception as e:
+        log.error(f"[VOICE] Synthesize error: {e}")
+        return Response(content=b"", media_type="audio/wav")
+
+
+@app.get("/voice/status")
+async def voice_status():
+    """Return voice service status (what backends are available)."""
+    try:
+        voice_svc = get_voice_service()
+        return voice_svc.get_status()
+    except Exception as e:
+        log.error(f"[VOICE] Status error: {e}")
+        return {
+            "stt": {"available": False, "error": str(e)},
+            "tts": {"available": False, "error": str(e)}
+        }
 
 
 # ---------------------------------------------------------------------------

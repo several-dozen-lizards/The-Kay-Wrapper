@@ -98,7 +98,41 @@ func _build_ui() -> void:
 	prune_btn.pressed.connect(_on_prune)
 	btn_row.add_child(prune_btn)
 	
+	var contra_btn = _make_small_btn("⚠ Contradictions")
+	contra_btn.pressed.connect(_on_contradictions)
+	btn_row.add_child(contra_btn)
+	
 	add_child(btn_row)
+	
+	# Second row — curator actions
+	var btn_row2 = HBoxContainer.new()
+	btn_row2.add_theme_constant_override("separation", 4)
+	
+	var pending_btn = _make_small_btn("🗑 Pending")
+	pending_btn.pressed.connect(_on_pending)
+	btn_row2.add_child(pending_btn)
+	
+	var approve_all_btn = _make_small_btn("✅ Approve All")
+	approve_all_btn.pressed.connect(_on_approve_all)
+	btn_row2.add_child(approve_all_btn)
+	
+	var curator_btn = _make_small_btn("🧹 Curator")
+	curator_btn.pressed.connect(_on_curator_status)
+	btn_row2.add_child(curator_btn)
+	
+	var auto_resolve_btn = _make_small_btn("🔄 Auto-resolve")
+	auto_resolve_btn.pressed.connect(_on_auto_resolve)
+	btn_row2.add_child(auto_resolve_btn)
+	
+	var curate_now_btn = _make_small_btn("🧠 Curate Now")
+	curate_now_btn.pressed.connect(_on_curate_now)
+	btn_row2.add_child(curate_now_btn)
+	
+	var sweep_btn = _make_small_btn("🌊 Full Sweep")
+	sweep_btn.pressed.connect(_on_sweep)
+	btn_row2.add_child(sweep_btn)
+	
+	add_child(btn_row2)
 	
 	# Results display
 	_results_list = RichTextLabel.new()
@@ -160,6 +194,47 @@ func _on_prune() -> void:
 	var entity = "Kay" if _entity_select.selected == 0 else "Reed"
 	curate_action.emit(entity, "prune", {})
 	_status_label.text = "Prune requested for %s" % entity
+
+
+func _on_contradictions() -> void:
+	var entity = "Kay" if _entity_select.selected == 0 else "Reed"
+	curate_action.emit(entity, "contradictions", {})
+	_status_label.text = "Loading contradictions for %s..." % entity
+
+
+func _on_pending() -> void:
+	var entity = "Kay" if _entity_select.selected == 0 else "Reed"
+	curate_action.emit(entity, "pending", {})
+	_status_label.text = "Loading pending discards for %s..." % entity
+
+
+func _on_approve_all() -> void:
+	var entity = "Kay" if _entity_select.selected == 0 else "Reed"
+	curate_action.emit(entity, "approve_all", {})
+	_status_label.text = "Approving all discards for %s..." % entity
+
+
+func _on_curator_status() -> void:
+	var entity = "Kay" if _entity_select.selected == 0 else "Reed"
+	curate_action.emit(entity, "curator_status", {})
+	_status_label.text = "Loading curator status for %s..." % entity
+
+
+func _on_auto_resolve() -> void:
+	var entity = "Kay" if _entity_select.selected == 0 else "Reed"
+	curate_action.emit(entity, "auto_resolve", {})
+	_status_label.text = "Auto-resolving transient contradictions for %s..." % entity
+
+
+func _on_curate_now() -> void:
+	var entity = "Kay" if _entity_select.selected == 0 else "Reed"
+	curate_action.emit(entity, "curate", {})
+	_status_label.text = "Running curation cycle for %s (Kay reviews via Sonnet)..." % entity
+
+func _on_sweep() -> void:
+	var entity = "Kay" if _entity_select.selected == 0 else "Reed"
+	curate_action.emit(entity, "sweep", {})
+	_status_label.text = "Running full memory sweep for %s (this may take a few minutes)..." % entity
 
 
 func display_results(text: String) -> void:

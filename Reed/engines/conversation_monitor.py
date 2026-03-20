@@ -615,9 +615,14 @@ If genuinely new angles exist, continue. If not, initiate graceful transition.""
             "recent_log_entries": self.detection_log[-5:] if self.detection_log else []
         }
 
-    def save_detection_log(self, filepath: str = "memory/spiral_detections.json"):
+    def save_detection_log(self, filepath: str = None):
         """Save detection log to file for review."""
         try:
+            if filepath is None:
+                filepath = os.path.join(
+                    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                    "memory", "spiral_detections.json"
+                )
             path = Path(filepath)
             path.parent.mkdir(parents=True, exist_ok=True)
 

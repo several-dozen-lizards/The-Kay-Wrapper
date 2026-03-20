@@ -15,6 +15,34 @@ venv/
 # Vector databases (large, regenerable)
 chroma_db/
 *.chroma
+**/vector_db/
+
+# Memory/state files (runtime data, not code)
+**/memory/*.json
+**/memory/*.jsonl
+**/memory/*.md
+**/memory/resonant/
+**/memory/curation/
+**/state/
+**/data/checkpoints/
+Kay/config/
+data/
+
+# Specific runtime state files
+**/expression_state.json
+**/*_spatial_state.json
+**/*_textures.json
+**/metacog_state.json
+**/system_inventory.json
+**/visual_memory.json
+**/research_log.jsonl
+**/soma_state.json
+shared/resonance_*.json
+shared/known_entities.json
+
+# Media assets (large, not code)
+Music/
+Graphics/
 
 # Scratch directories (entity sandboxes - ephemeral by design)
 nexus/scratch/
@@ -59,3 +87,10 @@ godot-ui/export/
 
 # Screenshots (transient)
 screenshot.png
+
+# Runtime logs
+*_log.txt
+*.pyc.bak
+
+# Godot user data
+nexus/godot-ui/*.uid

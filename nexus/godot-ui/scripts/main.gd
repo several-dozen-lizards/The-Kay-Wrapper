@@ -26,6 +26,12 @@ var _reed_chat: ChatPanel
 var _sidebar: Sidebar
 var _feature_panel: FeaturePanel
 var _easel_panel: EaselPanel
+var _gallery_panel: GalleryPanel
+var _room_panel: RoomPanel
+var _system_dashboard: SystemDashboard
+var _voice_mgr: VoiceManager
+var _face_panel_kay: FacePanel
+var _face_panel_reed: FacePanel
 
 ## Participant tracking
 var _participants: Dictionary = {}
@@ -34,8 +40,21 @@ var _nexus_url: String = "ws://localhost:8765"
 var _reconnect_notice_shown: bool = false
 var _nexus_active: bool = false  # Whether we WANT Nexus connected
 
+## Room state tracking
+var _room_registry: Dictionary = {
+	"den": {"label": "Kay's Den", "entities": [], "objects": 11},
+	"sanctum": {"label": "Reed's Sanctum", "entities": [], "objects": 7},
+	"commons": {"label": "The Commons", "entities": [], "objects": 9},
+}
+var _current_room_view: String = "commons"
+var _auto_follow: bool = true
+var _room_popup: PopupMenu
+
 ## Track which entities are active in Nexus (toggle who's in group chat)
 var _nexus_members: Dictionary = {"Kay": true, "Reed": true}
+
+## Curation response routing — when set, next private response goes to curate panel
+var _curate_pending_entity: String = ""
 
 
 func _ready() -> void:
@@ -45,6 +64,7 @@ func _ready() -> void:
 	_setup_sidebar()
 	_setup_private_rooms()
 	_setup_nexus()
+	_setup_voice()  # Comment this line out if reconnect loop happens, to test
 	await get_tree().process_frame
 	panel_mgr.arrange_default()
 	
@@ -100,6 +120,61 @@ func _create_panels() -> void:
 	_nexus_chat.add_system_message("Nexus UI initialized")
 	_nexus_chat.add_system_message("Drag panels to rearrange • Ctrl+1/2/3 to focus • Ctrl+0 to reset")
 	_nexus_chat.add_system_message("Right sidebar: 📚Sessions 🧠Auto 📋Curate 📄Media ⚙Settings")
+	
+	# --- Room panel (spatial view) ---
+	_room_panel = RoomPanel.new()
+	panel_mgr.create_panel(
+		"room", "ROOMS ▼", "spatial view",
+		Vector2(screen.x * 0.55 + 20, 10),
+		Vector2(screen.x * 0.44, screen.y * 0.3),
+		_room_panel
+	)
+	_setup_room_popup()
+	_room_panel.mini_map_room_clicked.connect(_on_mini_map_room_clicked)
+	# Start minimized — user opens via Ctrl+R
+	var room_dock = panel_mgr.get_panel("room")
+	if room_dock:
+		room_dock._minimize_panel()
+
+	# --- System dashboard (live dashboard) ---
+	_system_dashboard = SystemDashboard.new()
+	panel_mgr.create_panel(
+		"system", "SYSTEM", "live dashboard",
+		Vector2(10, screen.y * 0.5),
+		Vector2(screen.x * 0.55, screen.y * 0.48),
+		_system_dashboard
+	)
+	# Start minimized — user opens via Ctrl+D
+	var system_dock = panel_mgr.get_panel("system")
+	if system_dock:
+		system_dock._minimize_panel()
+
+	# --- Face panels (expression rendering) ---
+	_face_panel_kay = FacePanel.new()
+	_face_panel_kay.set_entity("kay")
+	panel_mgr.create_panel(
+		"face_kay", "KAY FACE", "expression",
+		Vector2(screen.x * 0.7, screen.y * 0.5),
+		Vector2(200, 250),
+		_face_panel_kay
+	)
+	# Start minimized — user opens via Ctrl+F
+	var face_kay_dock = panel_mgr.get_panel("face_kay")
+	if face_kay_dock:
+		face_kay_dock._minimize_panel()
+
+	_face_panel_reed = FacePanel.new()
+	_face_panel_reed.set_entity("reed")
+	panel_mgr.create_panel(
+		"face_reed", "REED FACE", "expression",
+		Vector2(screen.x * 0.7 + 210, screen.y * 0.5),
+		Vector2(200, 250),
+		_face_panel_reed
+	)
+	# Start minimized
+	var face_reed_dock = panel_mgr.get_panel("face_reed")
+	if face_reed_dock:
+		face_reed_dock._minimize_panel()
 
 
 ## ========================================================================
@@ -152,6 +227,18 @@ func _setup_sidebar() -> void:
 	var easel_dock = panel_mgr.get_panel("easel")
 	if easel_dock:
 		easel_dock._minimize_panel()
+	
+	# Create the gallery panel (starts minimized)
+	_gallery_panel = GalleryPanel.new()
+	panel_mgr.create_panel(
+		"easel_gallery", "GALLERY", "🖼️ all paintings",
+		Vector2(screen.x * 0.3, screen.y * 0.05),
+		Vector2(520, screen.y * 0.85),
+		_gallery_panel
+	)
+	var gallery_dock = panel_mgr.get_panel("easel_gallery")
+	if gallery_dock:
+		gallery_dock._minimize_panel()
 	
 	# Position on resize
 	get_viewport().size_changed.connect(_position_sidebar)
@@ -218,6 +305,32 @@ func _on_sidebar_feature_toggled(feature_id: String, show: bool) -> void:
 		else:
 			easel_dock._minimize_panel()
 		return
+	# Gallery gets its own managed panel
+	if feature_id == "gallery":
+		var gallery_dock = panel_mgr.get_panel("easel_gallery")
+		if not gallery_dock:
+			return
+		if show:
+			gallery_dock.restore()
+			_gallery_panel.fetch_gallery()
+		else:
+			gallery_dock._minimize_panel()
+		return
+	# Face panels - toggle both together
+	if feature_id == "face":
+		var kay_face = panel_mgr.get_panel("face_kay")
+		var reed_face = panel_mgr.get_panel("face_reed")
+		if show:
+			if kay_face:
+				kay_face.restore()
+			if reed_face:
+				reed_face.restore()
+		else:
+			if kay_face:
+				kay_face._minimize_panel()
+			if reed_face:
+				reed_face._minimize_panel()
+		return
 	if show:
 		_feature_panel.show_feature(feature_id)
 	else:
@@ -283,6 +396,9 @@ func _on_canvas_updated(entity: String, base64_png: String, dimensions: Array, i
 	# Route canvas updates to the easel panel
 	if _easel_panel:
 		_easel_panel.on_canvas_updated(entity, base64_png, dimensions, iteration)
+	# Refresh gallery if it's visible
+	if _gallery_panel and _gallery_panel.visible:
+		_gallery_panel.fetch_gallery()
 	# Also show a brief note in the entity's chat
 	var chat = _get_entity_chat(entity)
 	chat.add_system_message("🎨 canvas iteration %d — %dx%d" % [iteration, dimensions[0] if dimensions.size() > 0 else 0, dimensions[1] if dimensions.size() > 1 else 0])
@@ -327,6 +443,8 @@ func _on_easel_paint_command(entity: String, text: String) -> void:
 func _on_curate_action(entity: String, action: String, data: Dictionary) -> void:
 	# Route curation commands to wrapper
 	var conn: PrivateConnection = _kay_private if entity == "Kay" else _reed_private
+	_curate_pending_entity = entity
+	_feature_panel.curate_panel.set_status("Processing %s..." % action)
 	match action:
 		"search":
 			conn.send_chat("/memory search %s" % data.get("query", ""))
@@ -336,6 +454,20 @@ func _on_curate_action(entity: String, action: String, data: Dictionary) -> void
 			conn.send_chat("/memory consolidate")
 		"prune":
 			conn.send_chat("/memory prune")
+		"contradictions":
+			conn.send_chat("/memory contradictions")
+		"pending":
+			conn.send_chat("/memory pending")
+		"approve_all":
+			conn.send_chat("/memory approve all")
+		"curator_status":
+			conn.send_chat("/memory curator")
+		"auto_resolve":
+			conn.send_chat("/memory auto_resolve")
+		"curate":
+			conn.send_chat("/memory curate")
+		"sweep":
+			conn.send_chat("/memory sweep")
 
 
 func _on_file_import(path: String, entity: String) -> void:
@@ -380,14 +512,18 @@ func _setup_private_rooms() -> void:
 	_kay_private.status_received.connect(_on_private_status.bind("Kay"))
 	_kay_private.system_received.connect(_on_private_system.bind("Kay"))
 	_kay_private.history_received.connect(_on_private_history.bind("Kay"))
-	
+	_kay_private.room_updated.connect(_on_room_updated)
+	_kay_private.room_changed.connect(_on_room_changed)
+	_kay_private.logs_received.connect(_on_logs_received)
+	_kay_private.log_received.connect(_on_log_received)
+
 	# Reed private room
 	_reed_private = PrivateConnection.new()
 	_reed_private.name = "ReedPrivate"
 	_reed_private.server_url = "ws://localhost:8771"
 	_reed_private.entity_name = "Reed"
 	add_child(_reed_private)
-	
+
 	_reed_private.connected.connect(_on_private_connected.bind("Reed"))
 	_reed_private.disconnected.connect(_on_private_disconnected.bind("Reed"))
 	_reed_private.chat_received.connect(_on_private_chat.bind("Reed"))
@@ -395,12 +531,22 @@ func _setup_private_rooms() -> void:
 	_reed_private.status_received.connect(_on_private_status.bind("Reed"))
 	_reed_private.system_received.connect(_on_private_system.bind("Reed"))
 	_reed_private.history_received.connect(_on_private_history.bind("Reed"))
+	_reed_private.room_updated.connect(_on_room_updated)
+	_reed_private.room_changed.connect(_on_room_changed)
+	_reed_private.logs_received.connect(_on_logs_received)
+	_reed_private.log_received.connect(_on_log_received)
 
 
 func _on_private_connected(entity: String) -> void:
 	var chat = _get_entity_chat(entity)
 	chat.add_system_message("Connected to %s's room" % entity)
 	chat.set_status("online", Color(0.3, 0.8, 0.4))
+	# Request initial room data so panel isn't blank on startup
+	match entity:
+		"Kay":
+			_request_room_data("den")
+		"Reed":
+			_request_room_data("sanctum")
 
 
 func _on_private_disconnected(entity: String) -> void:
@@ -411,7 +557,30 @@ func _on_private_disconnected(entity: String) -> void:
 
 func _on_private_chat(sender: String, content: String, entity: String) -> void:
 	var chat = _get_entity_chat(entity)
+
+	# Route curation responses to curate panel
+	if _curate_pending_entity == entity:
+		_curate_pending_entity = ""
+		_feature_panel.curate_panel.display_results(content)
+		_feature_panel.curate_panel.set_status("Done")
+		# Also show in chat for context
+		chat.add_message(sender, content)
+		return
+
 	chat.add_message(sender, content)
+
+	# Auto-speak if voice mode is active OR last input was voice-initiated
+	if _voice_mgr != null:
+		var should_speak = false
+		if chat.has_method("is_voice_active") and chat.is_voice_active():
+			should_speak = true
+		elif chat.has_method("was_last_input_voice") and chat.was_last_input_voice():
+			should_speak = true
+		if should_speak:
+			var panel_id = "kay" if entity.to_lower() == "kay" else "reed"
+			_voice_mgr.speak(content, entity, panel_id)
+			if chat.has_method("clear_voice_input_flag"):
+				chat.clear_voice_input_flag()
 
 
 func _on_private_emote(sender: String, content: String, entity: String) -> void:
@@ -444,10 +613,325 @@ func _on_private_history(messages: Array, entity: String) -> void:
 	chat.add_system_message("— end history —")
 
 
+func _on_room_updated(state: Dictionary) -> void:
+	if _room_panel:
+		_room_panel.update_room(state)
+		# Auto-restore room panel if minimized on first update
+		var room_dock = panel_mgr.get_panel("room")
+		if room_dock and room_dock.is_minimized():
+			room_dock.restore()
+
+
+func _on_room_changed(entity: String, to_room: String, from_room: String) -> void:
+	# Entity moved to a different room — update registry
+	print("[ROOM] %s moved from %s to %s" % [entity, from_room, to_room])
+
+	# Update registry
+	if from_room and _room_registry.has(from_room):
+		var ents: Array = _room_registry[from_room].get("entities", [])
+		ents.erase(entity)
+		_room_registry[from_room]["entities"] = ents
+	if to_room and _room_registry.has(to_room):
+		var ents: Array = _room_registry[to_room].get("entities", [])
+		if not ents.has(entity):
+			ents.append(entity)
+		_room_registry[to_room]["entities"] = ents
+
+	# Auto-follow: switch view to entity's new room
+	if _auto_follow and to_room and _room_registry.has(to_room):
+		_current_room_view = to_room
+		_switch_room_view(to_room)
+
+	# Refresh popup and mini-map to show updated entity locations
+	_refresh_room_popup()
+	_update_mini_map()
+
+
+func _setup_room_popup() -> void:
+	_room_popup = PopupMenu.new()
+	_room_popup.name = "RoomPopup"
+	add_child(_room_popup)
+
+	_refresh_room_popup()
+	_room_popup.id_pressed.connect(_on_room_selected)
+
+	# Wire the room panel title click to open popup
+	var room_dock = panel_mgr.get_panel("room")
+	if room_dock and room_dock.has_method("set_title_clickable"):
+		room_dock.set_title_clickable(true)
+		room_dock.title_clicked.connect(_on_room_title_clicked)
+
+
+func _refresh_room_popup() -> void:
+	if not _room_popup:
+		return
+	_room_popup.clear()
+
+	var idx := 0
+	for room_id in ["den", "sanctum", "commons"]:
+		var info: Dictionary = _room_registry.get(room_id, {})
+		var label: String = info.get("label", room_id.capitalize())
+		var entities: Array = info.get("entities", [])
+
+		# Build display string with entity indicators
+		var display := label
+		if not entities.is_empty():
+			var markers: PackedStringArray = []
+			for ent in entities:
+				if ent == "Kay":
+					markers.append("●")  # Pink dot for Kay
+				elif ent == "Reed":
+					markers.append("◆")  # Teal marker for Reed
+			if not markers.is_empty():
+				display += "  " + " ".join(markers)
+
+		_room_popup.add_item(display, idx)
+
+		# Check current room
+		if room_id == _current_room_view:
+			_room_popup.set_item_checked(idx, true)
+
+		idx += 1
+
+	# Add separator and auto-follow toggle
+	_room_popup.add_separator()
+	var follow_label := "Auto-Follow [ON]" if _auto_follow else "Auto-Follow [OFF]"
+	_room_popup.add_check_item(follow_label, 100)
+	_room_popup.set_item_checked(_room_popup.get_item_index(100), _auto_follow)
+
+
+func _on_room_title_clicked() -> void:
+	var room_dock = panel_mgr.get_panel("room")
+	if room_dock:
+		var title_pos: Vector2 = room_dock.global_position + Vector2(10, 30)
+		_room_popup.position = Vector2i(int(title_pos.x), int(title_pos.y))
+		_room_popup.popup()
+
+
+func _on_room_selected(id: int) -> void:
+	if id == 100:
+		# Toggle auto-follow
+		_auto_follow = not _auto_follow
+		_refresh_room_popup()
+		var msg := "Auto-follow enabled" if _auto_follow else "Auto-follow disabled"
+		_nexus_chat.add_system_message(msg)
+		return
+
+	# Room selection
+	var rooms := ["den", "sanctum", "commons"]
+	if id >= 0 and id < rooms.size():
+		var room_id: String = rooms[id]
+		_current_room_view = room_id
+		_switch_room_view(room_id)
+		_refresh_room_popup()
+
+
+func _switch_room_view(room_id: String) -> void:
+	if not _room_registry.has(room_id):
+		return
+
+	var info: Dictionary = _room_registry[room_id]
+	var label: String = info.get("label", room_id.capitalize())
+
+	# Update panel title
+	var room_dock = panel_mgr.get_panel("room")
+	if room_dock and room_dock.has_method("set_title"):
+		room_dock.set_title(label)
+
+	# Tell room panel to switch view
+	if _room_panel:
+		_room_panel.switch_room(room_id)
+		_room_panel.set_mini_map_current_room(room_id)
+
+	# Request room data from server
+	_request_room_data(room_id)
+
+
+func _request_room_data(room_id: String) -> void:
+	# Request fresh room state — route through private connections
+	# (both Kay and Reed have the room manager and can serve ANY room's data)
+	var conn: PrivateConnection
+	match room_id:
+		"den":
+			conn = _kay_private
+		"sanctum":
+			conn = _reed_private
+		"commons":
+			# Route through Kay's private room (has room manager for all rooms)
+			# Fall back to Reed if Kay isn't connected
+			if _kay_private and _kay_private.is_room_connected():
+				conn = _kay_private
+			elif _reed_private and _reed_private.is_room_connected():
+				conn = _reed_private
+
+	if conn and conn.is_room_connected():
+		conn.send_command("room_data_request", {"room": room_id})
+
+
+func _on_mini_map_room_clicked(room_id: String) -> void:
+	# Mini-map click navigates to that room
+	_current_room_view = room_id
+	_switch_room_view(room_id)
+	_refresh_room_popup()
+
+
+func _update_mini_map() -> void:
+	# Sync mini-map with current room registry
+	if _room_panel:
+		_room_panel.update_mini_map(_room_registry)
+		_room_panel.set_mini_map_current_room(_current_room_view)
+
+
+func _on_logs_received(entries: Array) -> void:
+	if _system_dashboard:
+		_system_dashboard.handle_logs(entries)
+
+
+func _on_log_received(entity: String, tag: String, message: String, ts: float) -> void:
+	if _system_dashboard:
+		_system_dashboard.add_log(entity, tag, message, ts)
+
+
+## ========================================================================
+## Voice setup
+## ========================================================================
+
+func _setup_voice() -> void:
+	_voice_mgr = VoiceManager.new()
+	_voice_mgr.name = "VoiceManager"
+	add_child(_voice_mgr)
+
+	# Connect voice toggle signals from all chat panels
+	if _kay_chat:
+		_kay_chat.voice_toggled.connect(_on_voice_toggled.bind("kay"))
+	if _reed_chat:
+		_reed_chat.voice_toggled.connect(_on_voice_toggled.bind("reed"))
+	if _nexus_chat:
+		_nexus_chat.voice_toggled.connect(_on_voice_toggled.bind("nexus"))
+
+	# Connect voice manager signals
+	_voice_mgr.transcription_ready.connect(_on_transcription_ready)
+	_voice_mgr.playback_finished.connect(_on_playback_finished)
+	_voice_mgr.voice_error.connect(_on_voice_error)
+
+
+func _on_voice_toggled(enabled: bool, panel_id: String) -> void:
+	# Update panel voice state
+	var chat = _get_chat_panel(panel_id)
+	if chat:
+		chat.set_voice_active(enabled)
+
+	if enabled:
+		_voice_mgr.start_recording(panel_id)
+	else:
+		_voice_mgr.stop_recording()
+		# Reset voice mode on wrapper when voice toggle is disabled
+		match panel_id:
+			"kay":
+				_kay_private.send_command("set_voice_mode", {"enabled": false})
+			"reed":
+				_reed_private.send_command("set_voice_mode", {"enabled": false})
+
+
+func _on_transcription_ready(text: String, panel_id: String) -> void:
+	if text.strip_edges().is_empty():
+		_get_chat_panel(panel_id).add_system_message("(no speech detected)")
+		return
+
+	# Send transcribed text as a regular chat message
+	# Set voice mode BEFORE sending chat so wrapper uses fast path
+	match panel_id:
+		"kay":
+			_kay_private.send_command("set_voice_mode", {"enabled": true})
+			_kay_private.send_chat(text)
+			_kay_chat.add_message(_user_name, text)
+			_kay_chat.mark_voice_input()
+		"reed":
+			_reed_private.send_command("set_voice_mode", {"enabled": true})
+			_reed_private.send_chat(text)
+			_reed_chat.add_message(_user_name, text)
+			_reed_chat.mark_voice_input()
+		"nexus":
+			# Nexus mode doesn't use voice fast path (goes through group chat)
+			if _nexus_active and nexus.is_nexus_connected():
+				nexus.send_chat(text)
+				_nexus_chat.add_message(_user_name, text)
+				_nexus_chat.mark_voice_input()
+			else:
+				_nexus_chat.add_system_message("Nexus not connected")
+
+
+func _on_playback_finished(panel_id: String) -> void:
+	var chat = _get_chat_panel(panel_id)
+	if chat:
+		chat.show_speaking_indicator(false)
+
+
+func _on_voice_error(message: String) -> void:
+	# Show error in whichever panel is active
+	var panel_id = _voice_mgr.get_active_panel()
+	if not panel_id.is_empty():
+		_get_chat_panel(panel_id).add_system_message("Voice error: " + message)
+	else:
+		_nexus_chat.add_system_message("Voice error: " + message)
+
+
+func _get_chat_panel(panel_id: String) -> ChatPanel:
+	match panel_id:
+		"kay": return _kay_chat
+		"reed": return _reed_chat
+		"nexus": return _nexus_chat
+		_: return _nexus_chat
+
+
 func _get_entity_chat(entity: String) -> ChatPanel:
 	if entity.to_lower() in ["kay", "kayzero", "kay zero"]:
 		return _kay_chat
 	return _reed_chat
+
+
+## ========================================================================
+## Emergency Stop (Safety Critical)
+## ========================================================================
+
+func _emergency_stop(entity: String = "") -> void:
+	"""
+	SAFETY CRITICAL: Immediately halt all touch processing.
+
+	If no entity specified, stops ALL entities.
+	This clears touch queues and triggers circuit breakers.
+	"""
+	var entities_to_stop: Array = []
+	if entity.is_empty():
+		entities_to_stop = ["Kay", "Reed"]
+	else:
+		entities_to_stop = [entity.capitalize()]
+
+	for ent in entities_to_stop:
+		# Call emergency-stop endpoint
+		var url = "http://localhost:8765/touch/%s/emergency-stop" % ent.to_lower()
+		var http = HTTPRequest.new()
+		add_child(http)
+		http.request_completed.connect(_on_emergency_stop_complete.bind(ent, http))
+
+		var headers = ["Content-Type: application/json"]
+		var body = JSON.stringify({"reason": "User panic button triggered"})
+		var err = http.request(url, headers, HTTPClient.METHOD_POST, body)
+
+		if err != OK:
+			_nexus_chat.add_system_message("⛔ EMERGENCY STOP failed for %s: HTTP error" % ent)
+		else:
+			_nexus_chat.add_system_message("⛔ EMERGENCY STOP triggered for %s" % ent)
+			var chat = _get_entity_chat(ent)
+			chat.add_system_message("⛔ EMERGENCY STOP — touch processing halted")
+
+
+func _on_emergency_stop_complete(result: int, response_code: int, headers: PackedStringArray, body: PackedByteArray, entity: String, http: HTTPRequest) -> void:
+	http.queue_free()
+	if response_code == 200:
+		_nexus_chat.add_system_message("⛔ %s circuit breaker active — touch suspended" % entity)
+	else:
+		_nexus_chat.add_system_message("⛔ Emergency stop for %s returned code %d" % [entity, response_code])
 
 
 func _get_private_conn(entity: String) -> PrivateConnection:
@@ -481,6 +965,7 @@ func _setup_nexus() -> void:
 	nexus.auto_event_received.connect(_on_auto_event)
 	nexus.canvas_updated.connect(_on_canvas_updated)
 	nexus.canvas_cleared.connect(_on_canvas_cleared)
+	nexus.log_received.connect(_on_log_received)
 	
 	nexus.server_url = _nexus_url
 	nexus.participant_name = _user_name
@@ -514,6 +999,8 @@ func _on_nexus_toggle(should_connect: bool) -> void:
 func _on_connected() -> void:
 	_reconnect_notice_shown = false
 	_nexus_active = true
+	# Clear stale messages before history replay to prevent duplicates
+	_nexus_chat.clear_chat()
 	_nexus_chat.add_system_message("Connected to Nexus!")
 	_nexus_chat.set_status("ONLINE", Color(0.3, 0.8, 0.4))
 	_nexus_chat.set_nexus_state(true)
@@ -785,6 +1272,13 @@ func _handle_command(text: String) -> void:
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		var key = event as InputEventKey
+
+		# F12 = EMERGENCY STOP (always available, no modifiers needed)
+		if key.keycode == KEY_F12:
+			_emergency_stop()  # Stop all entities
+			get_viewport().set_input_as_handled()
+			return
+
 		if key.keycode == KEY_ESCAPE:
 			_sidebar.close_all()
 			_feature_panel.hide_all()
@@ -812,4 +1306,39 @@ func _input(event: InputEvent) -> void:
 							_easel_panel.fetch_latest_canvas()
 						else:
 							easel_dock._minimize_panel()
+					get_viewport().set_input_as_handled()
+				KEY_R:
+					# Toggle room panel
+					var room_dock = panel_mgr.get_panel("room")
+					if room_dock:
+						if room_dock.is_minimized():
+							room_dock.restore()
+						else:
+							room_dock._minimize_panel()
+					get_viewport().set_input_as_handled()
+				KEY_D:
+					# Toggle system dashboard (Ctrl+D)
+					var system_dock = panel_mgr.get_panel("system")
+					if system_dock:
+						if system_dock.is_minimized():
+							system_dock.restore()
+						else:
+							system_dock._minimize_panel()
+					get_viewport().set_input_as_handled()
+				KEY_F:
+					# Toggle face panels (Ctrl+F)
+					var kay_face = panel_mgr.get_panel("face_kay")
+					var reed_face = panel_mgr.get_panel("face_reed")
+					# Toggle both together
+					var should_show = (kay_face and kay_face.is_minimized()) or (reed_face and reed_face.is_minimized())
+					if kay_face:
+						if should_show:
+							kay_face.restore()
+						else:
+							kay_face._minimize_panel()
+					if reed_face:
+						if should_show:
+							reed_face.restore()
+						else:
+							reed_face._minimize_panel()
 					get_viewport().set_input_as_handled()

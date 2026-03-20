@@ -3,6 +3,13 @@ import asyncio
 import os
 import json
 import time
+import sys
+
+# Add parent directory to path so resonant_core can be imported
+_wrapper_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _wrapper_root not in sys.path:
+    sys.path.insert(0, _wrapper_root)
+
 from agent_state import AgentState
 from protocol_engine import ProtocolEngine
 from utils.performance import reset_metrics, get_summary
@@ -50,6 +57,30 @@ from integrations.llm_integration import get_llm_response
 from context_filter import GlyphFilter
 from glyph_decoder import GlyphDecoder
 from engines.memory_forest import MemoryForest  # Import from engines (has load_from_file method)
+
+# Resonant Consciousness Architecture — oscillator heartbeat + audio bridge
+try:
+    from resonant_core.resonant_integration import ResonantIntegration
+    RESONANCE_AVAILABLE = True
+except ImportError as e:
+    RESONANCE_AVAILABLE = False
+    print(f"[WARNING] Resonant core not available: {e}")
+
+# Saccade engine (perceptual continuity between turns)
+from engines.saccade_engine import SaccadeEngine
+
+# Consciousness stream (continuous inner experience between turns)
+from engines.consciousness_stream import ConsciousnessStream
+
+# Room system (spatial embodiment)
+try:
+    from shared.room.room_bridge import RoomBridge
+    from shared.room.presets import create_the_den
+    from shared.room.autonomous_spatial import AutonomousSpatialEngine
+    ROOM_AVAILABLE = True
+except ImportError as e:
+    ROOM_AVAILABLE = False
+    print(f"[WARNING] Room system not available: {e}")
 
 context_filter = GlyphFilter()
 glyph_decoder = GlyphDecoder()
@@ -201,6 +232,75 @@ async def main():
     print("  - MemoryEngine: Importance scoring, temporal weight, priority")
     print("  - SocialEngine: Social effects, action tendencies, default needs")
     print("  - EmbodimentEngine: Energy/valence descriptors (neurochemicals removed)")
+
+    # Initialize Resonant Consciousness Architecture (oscillator heartbeat + audio ear)
+    resonance = None
+    if RESONANCE_AVAILABLE:
+        try:
+            resonance = ResonantIntegration(
+                state_dir="memory/resonant",
+                enable_audio=True,      # Kay's first ear
+                audio_device=None,      # Default mic (change to device index if needed)
+                audio_responsiveness=0.3,
+                memory_layers=memory.memory_layers,  # Phase 1: memory as interoception
+                interoception_interval=4.0,           # Heartbeat every 4 seconds
+            )
+            resonance.start()
+        except Exception as e:
+            print(f"[WARNING] Resonance initialization failed: {e}")
+            resonance = None
+
+    # Initialize Saccade Engine (perceptual continuity between turns)
+    saccade_engine = SaccadeEngine()
+    print("[STARTUP] Saccade engine initialized for perceptual continuity")
+
+    # Initialize Room Bridge (spatial embodiment - the Den)
+    room = None
+    room_bridge = None
+    if ROOM_AVAILABLE:
+        try:
+            room_state_file = os.path.join("data", "room_state.json")
+            os.makedirs(os.path.dirname(room_state_file), exist_ok=True)
+            room = create_the_den(state_file=room_state_file)
+            # Kay starts near the couch (North — the grounding anchor)
+            room.add_entity("kay", "Kay", distance=100, angle_deg=90, color="#2D1B4E")
+            room_bridge = RoomBridge(room, entity_id="kay")
+            print("[ROOM] Kay placed in The Den (inner ring, north — near the couch)")
+        except Exception as e:
+            print(f"[WARNING] Room initialization failed: {e}")
+            room = None
+            room_bridge = None
+
+    # Initialize Autonomous Spatial Engine (curiosity-driven exploration)
+    autonomous_spatial = None
+    if ROOM_AVAILABLE and room:
+        try:
+            autonomous_spatial = AutonomousSpatialEngine(
+                entity_id="kay",
+                room_engine=room,
+                persist_path="memory/autonomous_spatial_state.json"
+            )
+            print(f"[SPATIAL] Autonomous spatial engine initialized for Kay")
+        except Exception as e:
+            print(f"[WARNING] Autonomous spatial initialization failed: {e}")
+            autonomous_spatial = None
+
+    # Initialize Consciousness Stream (continuous inner experience)
+    consciousness_stream = None
+    try:
+        from integrations.peripheral_router import get_peripheral_router
+        _peripheral = get_peripheral_router()
+    except Exception:
+        _peripheral = None
+
+    consciousness_stream = ConsciousnessStream(
+        resonance=resonance,
+        room_bridge=room_bridge,
+        peripheral_router=_peripheral,
+        entity_name="kay",
+    )
+    consciousness_stream.start()
+    print("[STREAM] Kay's consciousness stream initialized")
 
     # NEW: Initialize creativity AMPLIFICATION system
     # Note: Baseline creativity is baked into Kay's system prompt (always active)
@@ -364,6 +464,11 @@ async def main():
 
     while True:
         user_input = input("You: ").strip()
+
+        # Wake consciousness stream on user input
+        if consciousness_stream:
+            consciousness_stream.notify_user_input()
+
         if user_input.lower() in ("quit", "exit"):
             # Generate session summary before exiting
             if turn_count > 0:
@@ -380,6 +485,9 @@ async def main():
                     if len(summary) > 800:
                         print(f"... ({len(summary)} chars total, saved to memory/session_summaries.json)")
                     print("="*60 + "\n")
+            # Stop resonant oscillator + audio bridge and save state
+            if resonance:
+                resonance.stop()
             break
 
         # Allow inline affect tuning
@@ -794,8 +902,15 @@ async def main():
                 "image_count": 1 if has_images else 0
             }
 
+            # Merge primary retrieval with any secondary retrieval from previous turn
+            secondary_buffer = getattr(state, 'secondary_retrieval_buffer', [])
+            if secondary_buffer:
+                print(f"[SECONDARY RETRIEVAL] Injecting {len(secondary_buffer)} memories from previous turn's topic extraction")
+                selected_memories = secondary_buffer + selected_memories
+                state.secondary_retrieval_buffer = []
+
             filtered_prompt_context = {
-                "recalled_memories": selected_memories,  # Now with adaptive limits
+                "recalled_memories": selected_memories,  # Now with adaptive limits + secondary buffer
                 "emotional_state": {"cocktail": filtered_context.get("emotional_state", {})},
                 "emotional_patterns": getattr(state, 'emotional_patterns', {}),
                 "user_input": user_input,
@@ -878,6 +993,71 @@ async def main():
         # Update creativity engine turn counter
         creativity_engine.update_turn(turn_count)
 
+        # --- Saccade block (perceptual continuity) ---
+        try:
+            saccade_block = saccade_engine.process_turn(state, turn_count)
+            if saccade_block:
+                filtered_prompt_context["saccade_block"] = saccade_block
+                print(f"[SACCADE] Turn {turn_count}: block generated ({len(saccade_block)} chars)")
+        except Exception as e:
+            print(f"[SACCADE] Error (non-fatal): {e}")
+
+        # --- Consciousness stream (between-message experience) ---
+        if consciousness_stream:
+            try:
+                stream_ctx = consciousness_stream.get_injection_context()
+                if stream_ctx:
+                    filtered_prompt_context["stream_context"] = stream_ctx
+                    print(f"[STREAM] Injecting {len(stream_ctx)} chars of between-message experience")
+            except Exception as e:
+                print(f"[STREAM] Injection error (non-fatal): {e}")
+
+        # --- Room bridge (spatial embodiment) ---
+        if room_bridge:
+            existing_extra = filtered_prompt_context.get("extra_system_context", "")
+            room_ctx = room_bridge.inject_room_context("")
+            if room_ctx:
+                filtered_prompt_context["extra_system_context"] = (existing_extra + "\n" + room_ctx).strip()
+
+        # --- Inject resonant oscillator context (audio + heartbeat state) ---
+        if resonance:
+            resonance.inject_into_context(filtered_prompt_context)
+            rc = filtered_prompt_context.get("resonant_context", "")
+            if rc:
+                print(f"[RESONANCE INJECT] Context: {rc}")
+            else:
+                print(f"[RESONANCE INJECT] WARNING: resonant_context is empty!")
+
+        # --- Autonomous spatial behavior (oscillator-driven exploration) ---
+        if autonomous_spatial and resonance:
+            try:
+                osc_state = resonance.get_oscillator_state()
+                # Update spatial preferences from oscillator
+                spatial_action = autonomous_spatial.update_from_oscillator(osc_state)
+                if spatial_action and room:
+                    room.apply_actions("kay", [spatial_action])
+                    print(f"[SPATIAL] Kay moves to {spatial_action['target']} ({spatial_action['reason']})")
+                    autonomous_spatial.mark_examined(
+                        spatial_action['target'],
+                        oscillator_state=osc_state
+                    )
+                # Periodic tick for curiosity-driven movement
+                tick_action = autonomous_spatial.tick(oscillator_state=osc_state)
+                if tick_action and room and not spatial_action:  # Don't double-move
+                    room.apply_actions("kay", [tick_action])
+                    print(f"[SPATIAL] Kay explores {tick_action['target']} (curiosity)")
+                    autonomous_spatial.mark_examined(
+                        tick_action['target'],
+                        oscillator_state=osc_state
+                    )
+                # Add spatial interest annotation to context
+                spatial_annotation = autonomous_spatial.get_annotation()
+                if spatial_annotation:
+                    existing_extra = filtered_prompt_context.get("extra_system_context", "")
+                    filtered_prompt_context["extra_system_context"] = (existing_extra + "\n" + spatial_annotation).strip()
+            except Exception as e:
+                print(f"[SPATIAL] Error (non-fatal): {e}")
+
         # --- Generate response from filtered context ---
         try:
             reply = get_llm_response(
@@ -895,11 +1075,105 @@ async def main():
                 traceback.print_exc()
             reply = "[Error: Could not generate response]"
         reply = body.embody_text(reply, state)
+
+        # --- Room action processing (spatial embodiment) ---
+        if room_bridge and reply:
+            try:
+                reply, room_results = room_bridge.process_response(reply)
+                if room_results:
+                    print(f"[ROOM] Actions: {', '.join(room_results)}")
+            except Exception as e:
+                print(f"[ROOM] Action processing error (non-fatal): {e}")
+
         print(f"Kay: {reply}\n")
 
         # NEW: Extract emotions from Kay's self-reported response (descriptive, not prescriptive)
         extracted_emotions = emotion_extractor.extract_emotions(reply)
         emotion_extractor.store_emotional_state(extracted_emotions, state.emotional_cocktail)
+
+        # ================================================================
+        # SECONDARY RETRIEVAL: Topic-based memory re-check
+        # ================================================================
+        # Kay's response may reference topics not in Re's input.
+        # Extract key topics from Kay's response and check if there are
+        # relevant memories that weren't retrieved on the first pass.
+        #
+        # Example: Re says "How you feeling?" -> retrieval finds nothing about
+        # local models. Kay responds about spatial offloading -> secondary
+        # retrieval finds the episodic memory where Kay originally suggested it.
+        # These memories are stored for the NEXT turn's context.
+        # ================================================================
+        try:
+            # Extract topic keywords from Kay's response (simple approach)
+            # Skip if response is very short (acknowledgments, etc.)
+            if len(reply) > 100:
+                import re as re_module
+
+                # Get significant words from Kay's response (4+ chars, not common)
+                common_words = {
+                    'that', 'this', 'with', 'from', 'have', 'been', 'were', 'they',
+                    'their', 'about', 'would', 'could', 'should', 'which', 'there',
+                    'what', 'when', 'where', 'some', 'than', 'them', 'then', 'just',
+                    'like', 'more', 'also', 'into', 'over', 'such', 'take', 'only',
+                    'come', 'each', 'make', 'very', 'after', 'know', 'most', 'back',
+                    'much', 'before', 'right', 'think', 'still', 'being', 'thing',
+                    'doing', 'going', 'really', 'actually', 'yeah', 'feel', 'feeling',
+                    'something', 'because', 'though', 'pretty', 'kind'
+                }
+
+                reply_words = set(
+                    w.lower() for w in re_module.findall(r'\b[a-zA-Z]{4,}\b', reply)
+                    if w.lower() not in common_words
+                )
+                input_words = set(
+                    w.lower() for w in re_module.findall(r'\b[a-zA-Z]{4,}\b', user_input)
+                    if w.lower() not in common_words
+                )
+
+                # New topics = words Kay used that Re didn't
+                new_topics = reply_words - input_words
+
+                if new_topics and len(new_topics) >= 2:
+                    # Build a topic query from Kay's novel terms
+                    # Sort by length (longer words = more specific)
+                    topic_terms = sorted(new_topics, key=len, reverse=True)[:8]
+                    topic_query = " ".join(topic_terms)
+
+                    # Run secondary retrieval using existing multi-factor method
+                    secondary_memories = memory.retrieve_multi_factor(
+                        state,
+                        topic_query,
+                        num_memories=10
+                    )
+
+                    if secondary_memories:
+                        # Filter to only memories NOT already in current context
+                        existing_facts = set()
+                        for m in (getattr(state, 'last_recalled_memories', []) or []):
+                            fact_text = m.get('fact', m.get('user_input', ''))
+                            if fact_text:
+                                existing_facts.add(fact_text[:100])
+
+                        novel_memories = [
+                            m for m in secondary_memories
+                            if m.get('fact', m.get('user_input', ''))[:100] not in existing_facts
+                        ]
+
+                        if novel_memories:
+                            # Store for next turn's context injection
+                            state.secondary_retrieval_buffer = novel_memories[:5]
+
+                            print(f"[SECONDARY RETRIEVAL] Found {len(novel_memories)} new memories from Kay's response topics")
+                            print(f"[SECONDARY RETRIEVAL] Topic query: '{topic_query[:80]}'")
+                            for m in novel_memories[:3]:
+                                print(f"  - {m.get('fact', m.get('user_input', ''))[:80]}")
+                        else:
+                            print(f"[SECONDARY RETRIEVAL] No novel memories found (all already in context)")
+                    else:
+                        print(f"[SECONDARY RETRIEVAL] No memories matched topic query")
+
+        except Exception as e:
+            print(f"[SECONDARY RETRIEVAL] Error: {e}")
 
         # NEW: Update emotional patterns and media context tracking
         if extracted_emotions.get('primary_emotions'):
@@ -907,9 +1181,16 @@ async def main():
                 emotions=extracted_emotions['primary_emotions'],
                 intensity=extracted_emotions.get('intensity'),
                 valence=extracted_emotions.get('valence'),
-                arousal=extracted_emotions.get('arousal')
+                arousal=extracted_emotions.get('arousal'),
+                # NEW: Pass per-emotion intensities for saccade alignment
+                emotion_intensities=extracted_emotions.get('emotion_intensities')
             )
             state.emotional_patterns = emotional_patterns.get_current_state()
+
+        # Feed emotions back to resonant oscillator (closes the feedback loop)
+        if resonance and extracted_emotions:
+            resonance.feed_response_emotions(extracted_emotions)
+            resonance.update_agent_state(state)
 
         # Track Kay's response in media context builder
         if media_orchestrator:

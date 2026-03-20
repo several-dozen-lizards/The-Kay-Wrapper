@@ -160,22 +160,118 @@ class KayNexusClient(NexusAIClient):
             await self.send_emote(text[1:-1])
         else:
             await self.send_chat(text)
+
+    async def _try_organic_comment(self):
+        """
+        Check if Kay has something to say unprompted.
+        
+        Pulls from stream buffer, scratchpad, curiosities.
+        Kay gets to comment or stay quiet.
+        """
+        if not self.bridge:
+            return
+
+        # Gather everything on Kay's mind
+        context = self.bridge.get_organic_context()
+
+        if not context:
+            return  # Nothing accumulated, nothing to say
+
+        log.info("Kay checking if something's on his mind...")
+
+        # Ask Kay — briefly — if anything grabs him
+        idle_prompt = (
+            "[IDLE OBSERVATION — You're between conversations. "
+            "Here's what's been on your mind:\n\n"
+            f"{context}\n\n"
+            "If something grabs you — something you noticed, a question forming, "
+            "a thought about what you see, something from your scratchpad or curiosities — "
+            "say it. One or two sentences. A question, an observation, thinking out loud. "
+            "Not an essay, not a performance. Just whatever's there. "
+            "If nothing's worth saying, respond with exactly: [quiet]]"
+        )
+
+        self._processing = True
+        try:
+            reply = await self.bridge.process_message(
+                idle_prompt,
+                source="nexus",
+                extra_system_context=(
+                    "This is an unprompted thought — Kay noticing something "
+                    "on his own, not responding to anyone. Be brief and natural. "
+                    "One or two sentences MAX. A passing observation, not a monologue."
+                )
+            )
+
+            if reply and "[quiet]" not in reply.lower():
+                # Trim if the model over-generated
+                reply = reply.strip()
+                if len(reply) > 300:
+                    # Take first two sentences
+                    sentences = reply.split('.')
+                    reply = '.'.join(sentences[:2]).strip() + '.'
+
+                log.info(f"Kay organic: {reply[:80]}...")
+                await self._send_burst(reply)
+            else:
+                log.info("Kay chose quiet")
+        finally:
+            self._processing = False
     
     async def _idle_loop(self):
-        """Periodically check if Kay wants to say something unprompted."""
+        """Periodically check if Kay has something to say unprompted."""
         while self._running:
             await asyncio.sleep(self.config.idle_check_interval)
             
             if self._processing:
                 continue
-            
-            # Small chance of organic initiation
-            import random
-            if random.random() < self.config.idle_initiation_chance:
-                log.info("Kay initiating organic conversation")
-                # TODO: Ask wrapper what's on Kay's mind
-                # For now this is a placeholder
+
+            if not self.bridge or not self.bridge.consciousness_stream:
+                continue
+
+            stream = self.bridge.consciousness_stream
+
+            # Background nag: scratchpad and curiosity feed interest during idle
+            # Small amounts each cycle — they accumulate over minutes
+            try:
+                active = self.bridge.scratchpad.view("active")
+                if active:
+                    high_weight = [i for i in active
+                                   if self.bridge.scratchpad.calculate_emotional_weight(i) > 0.4]
+                    if high_weight:
+                        stream.add_interest(0.03, "scratchpad nagging")
+                    elif len(active) > 3:
+                        stream.add_interest(0.01, "scratchpad background")
+            except Exception:
                 pass
+
+            try:
+                import os, json
+                curiosity_path = os.path.join(
+                    os.path.dirname(self.bridge.wrapper_dir),
+                    "nexus", "sessions", "curiosities",
+                    f"{self.bridge.entity_name.lower()}_curiosities.json"
+                )
+                if os.path.exists(curiosity_path):
+                    with open(curiosity_path, 'r', encoding='utf-8') as f:
+                        cdata = json.load(f)
+                    curiosities = cdata.get("curiosities", cdata) if isinstance(cdata, dict) else cdata
+                    unexplored = [c for c in curiosities
+                                  if not c.get("explored") and not c.get("dismissed")]
+                    high_pri = [c for c in unexplored if c.get("priority", 0) > 0.7]
+                    if high_pri:
+                        stream.add_interest(0.04, "curiosity nagging")
+                    elif len(unexplored) > 5:
+                        stream.add_interest(0.02, "curiosity background")
+            except Exception:
+                pass
+
+            # Check if enough real events accumulated to warrant speaking
+            if stream.check_interest():
+                try:
+                    await self._try_organic_comment()
+                except Exception as e:
+                    log.warning(f"Organic initiation failed: {e}")
     
     async def on_disconnect(self):
         """Clean shutdown."""

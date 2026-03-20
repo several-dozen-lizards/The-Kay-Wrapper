@@ -254,7 +254,10 @@ class StakesScanner:
         Reads from creativity log resolutions.
         """
         try:
-            log_path = "memory/creativity_log.json"
+            log_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "memory", "creativity_log.json"
+            )
             if not os.path.exists(log_path):
                 return False
 
@@ -375,7 +378,10 @@ class StakesScanner:
             days_old: Remove resolutions older than this many days
         """
         try:
-            log_path = "memory/creativity_log.json"
+            log_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "memory", "creativity_log.json"
+            )
             if not os.path.exists(log_path):
                 return
 

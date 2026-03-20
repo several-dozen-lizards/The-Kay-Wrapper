@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Dict, List, Optional
 from pathlib import Path
 
-CURIOSITY_STATE_FILE = "memory/curiosity_state.json"
+CURIOSITY_STATE_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "memory", "curiosity_state.json")
 
 def init_curiosity_state():
     """Initialize curiosity state file if it doesn't exist."""

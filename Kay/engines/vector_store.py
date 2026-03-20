@@ -16,15 +16,22 @@ try:
     CHROMADB_AVAILABLE = True
 except ImportError:
     CHROMADB_AVAILABLE = False
-    print("[WARNING] ChromaDB not installed. Run: pip install chromadb")
+    print(f"{etag('WARNING')}  ChromaDB not installed. Run: pip install chromadb")
 
 try:
     from sentence_transformers import SentenceTransformer
     EMBEDDER_AVAILABLE = True
 except ImportError:
     EMBEDDER_AVAILABLE = False
-    print("[WARNING] sentence-transformers not installed. Run: pip install sentence-transformers")
-    print("[INFO] Will use ChromaDB's default embeddings")
+    print(f"{etag('WARNING')}  sentence-transformers not installed. Run: pip install sentence-transformers")
+    print(f"{etag('INFO')}  Will use ChromaDB's default embeddings")
+
+# Entity-prefixed logging
+try:
+    from shared.entity_log import etag
+except ImportError:
+    def etag(tag): return f"[{tag}]"
+
 
 
 class VectorStore:
@@ -40,7 +47,7 @@ class VectorStore:
     - Metadata: source_file, chunk_id, timestamp, document_type
     """
 
-    def __init__(self, persist_directory: str = "memory/vector_db", use_sentence_transformers: bool = True):
+    def __init__(self, persist_directory: str = None, use_sentence_transformers: bool = True):
         """
         Initialize vector store.
 
@@ -51,6 +58,11 @@ class VectorStore:
         if not CHROMADB_AVAILABLE:
             raise ImportError("ChromaDB not installed. Run: pip install chromadb")
 
+        if persist_directory is None:
+            persist_directory = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "memory", "vector_db"
+            )
         self.persist_directory = persist_directory
         os.makedirs(persist_directory, exist_ok=True)
 
@@ -59,10 +71,10 @@ class VectorStore:
         self.use_custom_embeddings = use_sentence_transformers and EMBEDDER_AVAILABLE
 
         if self.use_custom_embeddings:
-            print("[VECTOR_DB] Loading sentence-transformer model 'all-MiniLM-L6-v2'...")
+            print(f"{etag('VECTOR_DB')}  Loading sentence-transformer model 'all-MiniLM-L6-v2'...")
             # Force CPU mode to avoid CUDA compatibility issues with newer GPUs
             self.embedder = SentenceTransformer('all-MiniLM-L6-v2', device='cpu')
-            print("[VECTOR_DB] Embedder loaded (CPU mode)")
+            print(f"{etag('VECTOR_DB')}  Embedder loaded (CPU mode)")
 
         # Initialize ChromaDB client
         self.client = chromadb.PersistentClient(
@@ -83,7 +95,7 @@ class VectorStore:
         )
 
         embedder_type = "sentence-transformers" if self.use_custom_embeddings else "ChromaDB default"
-        print(f"[VECTOR_DB] Initialized at {persist_directory} ({self.collection.count()} chunks, {embedder_type})")
+        print(f"{etag('VECTOR_DB')} Initialized at {persist_directory} ({self.collection.count()} chunks, {embedder_type})")
 
     def add_document(
         self,
@@ -123,7 +135,7 @@ class VectorStore:
         )
 
         if existing and existing['ids']:
-            print(f"[VECTOR_DB] Document already exists: {source_file} (skipping)")
+            print(f"{etag('VECTOR_DB')} Document already exists: {source_file} (skipping)")
             return {
                 "chunks_created": 0,
                 "document_id": doc_id,
@@ -135,7 +147,7 @@ class VectorStore:
         chunks = self._chunk_text(text, chunk_size, overlap)
 
         if not chunks:
-            print(f"[VECTOR_DB] No chunks created from {source_file}")
+            print(f"{etag('VECTOR_DB')} No chunks created from {source_file}")
             return {
                 "chunks_created": 0,
                 "document_id": doc_id,
@@ -188,7 +200,7 @@ class VectorStore:
                 metadatas=chunk_metadata
             )
 
-        print(f"[VECTOR_DB] Added {len(chunks)} chunks from {source_file}")
+        print(f"{etag('VECTOR_DB')} Added {len(chunks)} chunks from {source_file}")
 
         return {
             "chunks_created": len(chunks),
@@ -267,13 +279,13 @@ class VectorStore:
         )
 
         if not existing or not existing['ids']:
-            print(f"[VECTOR_DB] Document not found: {document_id}")
+            print(f"{etag('VECTOR_DB')} Document not found: {document_id}")
             return False
 
         # Delete all chunks
         self.collection.delete(ids=existing['ids'])
 
-        print(f"[VECTOR_DB] Deleted {len(existing['ids'])} chunks for document {document_id}")
+        print(f"{etag('VECTOR_DB')} Deleted {len(existing['ids'])} chunks for document {document_id}")
         return True
 
     def list_documents(self) -> List[Dict[str, Any]]:
@@ -423,7 +435,7 @@ class VectorStore:
 # Testing
 if __name__ == "__main__":
     if not CHROMADB_AVAILABLE:
-        print("[TEST SKIPPED] ChromaDB not available")
+        print(f"{etag('TEST SKIPPED')}  ChromaDB not available")
     else:
         # Test vector store
         store = VectorStore(persist_directory="memory/vector_db_test")
@@ -441,16 +453,16 @@ if __name__ == "__main__":
             metadata={"document_type": "notes"}
         )
 
-        print(f"[TEST] Add result: {result}")
+        print(f"{etag('TEST')} Add result: {result}")
 
         # Query
         query_results = store.query("What cats does Re have?", n_results=3)
-        print(f"[TEST] Query results: {len(query_results)}")
+        print(f"{etag('TEST')} Query results: {len(query_results)}")
         for i, result in enumerate(query_results):
             print(f"  [{i}] {result['text'][:100]}... (distance: {result['distance']:.4f})")
 
         # Stats
         stats = store.get_stats()
-        print(f"[TEST] Stats: {stats}")
+        print(f"{etag('TEST')} Stats: {stats}")
 
-        print("[TEST] Vector store test complete!")
+        print(f"{etag('TEST')}  Vector store test complete!")

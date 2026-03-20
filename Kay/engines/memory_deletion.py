@@ -91,7 +91,7 @@ class MemoryDeletion:
         print(f"[MEMORY DELETION] Protected (not deleted): {len(protected)}")
 
         # Save updated memory state
-        self.memory_engine.save_memories()
+        self.memory_engine.memory_layers._save_to_disk()
 
         return {
             'deleted': deleted_count,
@@ -134,7 +134,7 @@ class MemoryDeletion:
         print(f"[CORRUPTION FLAG] Total flagged: {flagged_count}")
 
         # Save updated memory state
-        self.memory_engine.save_memories()
+        self.memory_engine.memory_layers._save_to_disk()
 
         return flagged_count
 
@@ -202,7 +202,7 @@ class MemoryDeletion:
         print(f"[AUTO-PRUNE] Protected: {len(protected)} memories")
 
         # Save updated memory state
-        self.memory_engine.save_memories()
+        self.memory_engine.memory_layers._save_to_disk()
 
         return {
             'pruned': len(pruned),
@@ -225,8 +225,7 @@ class MemoryDeletion:
         all_memories = []
         if hasattr(self.memory_engine, 'memory_layers'):
             all_memories.extend(self.memory_engine.memory_layers.working_memory)
-            all_memories.extend(self.memory_engine.memory_layers.episodic_memory)
-            all_memories.extend(self.memory_engine.memory_layers.semantic_memory)
+            all_memories.extend(self.memory_engine.memory_layers.long_term_memory)
         else:
             # Fallback to flat memories
             all_memories = self.memory_engine.memories
@@ -284,16 +283,11 @@ class MemoryDeletion:
         try:
             # Remove from layered memory
             if hasattr(self.memory_engine, 'memory_layers'):
-                layer = memory.get('current_layer', 'semantic')
-                if layer == 'working':
-                    if memory in self.memory_engine.memory_layers.working_memory:
-                        self.memory_engine.memory_layers.working_memory.remove(memory)
-                elif layer == 'episodic':
-                    if memory in self.memory_engine.memory_layers.episodic_memory:
-                        self.memory_engine.memory_layers.episodic_memory.remove(memory)
-                elif layer == 'semantic':
-                    if memory in self.memory_engine.memory_layers.semantic_memory:
-                        self.memory_engine.memory_layers.semantic_memory.remove(memory)
+                # Two-tier: try working first, then long-term
+                if memory in self.memory_engine.memory_layers.working_memory:
+                    self.memory_engine.memory_layers.working_memory.remove(memory)
+                elif memory in self.memory_engine.memory_layers.long_term_memory:
+                    self.memory_engine.memory_layers.long_term_memory.remove(memory)
 
             # Remove from flat memories (if present)
             if memory in self.memory_engine.memories:
@@ -311,10 +305,8 @@ class MemoryDeletion:
         if hasattr(self.memory_engine, 'memory_layers'):
             if not layer_filter or layer_filter == 'working':
                 candidates.extend(self.memory_engine.memory_layers.working_memory)
-            if not layer_filter or layer_filter == 'episodic':
-                candidates.extend(self.memory_engine.memory_layers.episodic_memory)
-            if not layer_filter or layer_filter == 'semantic':
-                candidates.extend(self.memory_engine.memory_layers.semantic_memory)
+            if not layer_filter or layer_filter in ('long_term', 'episodic', 'semantic', None):
+                candidates.extend(self.memory_engine.memory_layers.long_term_memory)
         else:
             candidates = self.memory_engine.memories
 

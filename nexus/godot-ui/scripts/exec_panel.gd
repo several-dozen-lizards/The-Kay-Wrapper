@@ -28,11 +28,12 @@ var _status_http: HTTPRequest
 var _pending_http: HTTPRequest
 var _log_http: HTTPRequest
 var _access_http: HTTPRequest
-var _action_http: HTTPRequest  # For approve/deny/revert
 
 # State
 var _auto_timer: Timer
 var _last_entity: String = "Kay"
+var _action_in_flight: bool = false  # Prevent double-clicks
+var _mode_toggle_btn: Button = null  # Persistent — no more rabbit breeding
 
 
 func _ready() -> void:
@@ -58,10 +59,19 @@ func _setup_http() -> void:
 	_access_http = HTTPRequest.new()
 	_access_http.request_completed.connect(_on_access_response)
 	add_child(_access_http)
-	
-	_action_http = HTTPRequest.new()
-	_action_http.request_completed.connect(_on_action_response)
-	add_child(_action_http)
+
+
+## Create a fresh HTTPRequest for one-shot actions (approve/deny/mode).
+## Avoids ERR_BUSY from reusing a single node.
+func _make_action_request(url: String) -> void:
+	var http = HTTPRequest.new()
+	http.request_completed.connect(_on_action_response.bind(http))
+	add_child(http)
+	var err = http.request(url, [], HTTPClient.METHOD_POST)
+	if err != OK:
+		push_warning("ExecPanel: action request failed: %s" % err)
+		http.queue_free()
+		_action_in_flight = false
 
 
 func _setup_timer() -> void:
@@ -322,23 +332,22 @@ func _on_status_response(_result: int, code: int, _headers: PackedStringArray, b
 	# Mode toggle button
 	_status_label.text = text.strip_edges()
 	
-	# Add/update mode toggle below status
-	var toggle_id = "mode_toggle_%s" % _get_entity()
-	var existing = _status_section.get_node_or_null(toggle_id)
-	if existing:
-		existing.queue_free()
-	
-	var toggle_btn = Button.new()
-	toggle_btn.name = toggle_id
+	# Update persistent mode toggle button (create once, update in place)
 	var new_mode = "autonomous" if mode == "supervised" else "supervised"
-	toggle_btn.text = "Switch to %s" % new_mode
-	toggle_btn.custom_minimum_size = Vector2(0, 28)
+	if not _mode_toggle_btn or not is_instance_valid(_mode_toggle_btn):
+		_mode_toggle_btn = Button.new()
+		_mode_toggle_btn.custom_minimum_size = Vector2(0, 28)
+		_status_section.add_child(_mode_toggle_btn)
+	
+	_mode_toggle_btn.text = "Switch to %s" % new_mode
+	# Clear all old signal connections and rebind with current mode
+	for conn in _mode_toggle_btn.pressed.get_connections():
+		_mode_toggle_btn.pressed.disconnect(conn["callable"])
+	_mode_toggle_btn.pressed.connect(_on_mode_toggle.bind(new_mode))
 	if new_mode == "autonomous":
-		_apply_approve_style(toggle_btn)
+		_apply_approve_style(_mode_toggle_btn)
 	else:
-		_apply_deny_style(toggle_btn)
-	toggle_btn.pressed.connect(_on_mode_toggle.bind(new_mode))
-	_status_section.add_child(toggle_btn)
+		_apply_deny_style(_mode_toggle_btn)
 
 
 func _on_pending_response(_result: int, code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
@@ -367,7 +376,7 @@ func _on_pending_response(_result: int, code: int, _headers: PackedStringArray, 
 		all_btn.text = "✅ Approve All (%d)" % pending.size()
 		all_btn.custom_minimum_size = Vector2(0, 28)
 		_apply_approve_style(all_btn)
-		all_btn.pressed.connect(_on_approve_all)
+		all_btn.pressed.connect(_on_approve_all.bind(all_btn))
 		_pending_list.add_child(all_btn)
 	
 	for item in pending:
@@ -438,14 +447,14 @@ func _on_pending_response(_result: int, code: int, _headers: PackedStringArray, 
 		approve_btn.text = "✅ Approve"
 		approve_btn.custom_minimum_size = Vector2(0, 26)
 		_apply_approve_style(approve_btn)
-		approve_btn.pressed.connect(_on_approve.bind(exec_id))
+		approve_btn.pressed.connect(_on_approve.bind(exec_id, approve_btn))
 		btn_row.add_child(approve_btn)
 		
 		var deny_btn = Button.new()
 		deny_btn.text = "❌ Deny"
 		deny_btn.custom_minimum_size = Vector2(0, 26)
 		_apply_deny_style(deny_btn)
-		deny_btn.pressed.connect(_on_deny.bind(exec_id))
+		deny_btn.pressed.connect(_on_deny.bind(exec_id, deny_btn))
 		btn_row.add_child(deny_btn)
 		
 		inner.add_child(btn_row)
@@ -523,8 +532,11 @@ func _on_access_response(_result: int, code: int, _headers: PackedStringArray, b
 	_access_label.text = text.strip_edges()
 
 
-func _on_action_response(_result: int, code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
-	# After any action (approve/deny/mode change), refresh everything
+func _on_action_response(_result: int, code: int, _headers: PackedStringArray, body: PackedByteArray, http: HTTPRequest) -> void:
+	# Free the one-shot HTTP node
+	http.queue_free()
+	_action_in_flight = false
+	# After any action, refresh immediately
 	_fetch_all()
 
 
@@ -532,36 +544,42 @@ func _on_action_response(_result: int, code: int, _headers: PackedStringArray, b
 # Action Handlers
 # ---------------------------------------------------------------------------
 
-func _on_approve(exec_id: String) -> void:
+func _on_approve(exec_id: String, btn: Button) -> void:
+	if _action_in_flight:
+		return
+	_action_in_flight = true
+	btn.text = "⏳ Approving..."
+	btn.disabled = true
 	var entity = _get_entity().to_lower()
-	_action_http.request(
-		"%s/exec/%s/approve/%s" % [API_BASE, entity, exec_id],
-		[], HTTPClient.METHOD_POST
-	)
+	_make_action_request("%s/exec/%s/approve/%s" % [API_BASE, entity, exec_id])
 
 
-func _on_deny(exec_id: String) -> void:
+func _on_deny(exec_id: String, btn: Button) -> void:
+	if _action_in_flight:
+		return
+	_action_in_flight = true
+	btn.text = "⏳ Denying..."
+	btn.disabled = true
 	var entity = _get_entity().to_lower()
-	_action_http.request(
-		"%s/exec/%s/deny/%s" % [API_BASE, entity, exec_id],
-		[], HTTPClient.METHOD_POST
-	)
+	_make_action_request("%s/exec/%s/deny/%s" % [API_BASE, entity, exec_id])
 
 
-func _on_approve_all() -> void:
+func _on_approve_all(btn: Button) -> void:
+	if _action_in_flight:
+		return
+	_action_in_flight = true
+	btn.text = "⏳ Approving all..."
+	btn.disabled = true
 	var entity = _get_entity().to_lower()
-	_action_http.request(
-		"%s/exec/%s/approve-all" % [API_BASE, entity],
-		[], HTTPClient.METHOD_POST
-	)
+	_make_action_request("%s/exec/%s/approve-all" % [API_BASE, entity])
 
 
 func _on_mode_toggle(new_mode: String) -> void:
+	if _action_in_flight:
+		return
+	_action_in_flight = true
 	var entity = _get_entity().to_lower()
-	_action_http.request(
-		"%s/exec/%s/mode/%s" % [API_BASE, entity, new_mode],
-		[], HTTPClient.METHOD_POST
-	)
+	_make_action_request("%s/exec/%s/mode/%s" % [API_BASE, entity, new_mode])
 
 
 # ---------------------------------------------------------------------------

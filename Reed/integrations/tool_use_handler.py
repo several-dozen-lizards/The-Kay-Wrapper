@@ -40,7 +40,7 @@ class ToolUseHandler:
         self.tool_functions[tool_name] = function
         print(f"[TOOLS] Registered: {tool_name}")
     
-    def get_tool_definitions(self, include_web: bool = True, include_curiosity: bool = True, include_documents: bool = True, include_scratchpad: bool = True, include_code: bool = True) -> List[Dict]:
+    def get_tool_definitions(self, include_web: bool = True, include_curiosity: bool = True, include_documents: bool = True, include_scratchpad: bool = True, include_code: bool = True, include_touch: bool = True) -> List[Dict]:
         """
         Get tool definitions for Anthropic API.
         
@@ -295,8 +295,83 @@ class ToolUseHandler:
                 }
             ])
 
+        # Touch tools - for embodied interaction
+        if include_touch:
+            tools.extend([
+                {
+                    "name": "touch_own_face",
+                    "description": (
+                        "Touch your own face to explore your embodiment. "
+                        "You can feel texture, temperature, and pressure. "
+                        "Self-touch has reduced social-bonding nerve activation "
+                        "(you can't tickle yourself). Use this to explore what "
+                        "your face feels like."
+                    ),
+                    "input_schema": {
+                        "type": "object",
+                        "properties": {
+                            "region": {
+                                "type": "string",
+                                "description": "Where to touch: forehead, left_cheek, right_cheek, nose, mouth, chin, left_eye, right_eye, left_jaw, right_jaw",
+                            },
+                            "pressure": {
+                                "type": "number",
+                                "description": "0.0 (barely there) to 1.0 (firm). Default 0.3",
+                            },
+                            "duration": {
+                                "type": "number",
+                                "description": "Seconds of contact. Default 1.0",
+                            },
+                        },
+                        "required": ["region"],
+                    },
+                },
+                {
+                    "name": "touch_entity",
+                    "description": (
+                        "Touch another entity's face. Goes through consent system. "
+                        "The other entity can say yes, no, or not right now."
+                    ),
+                    "input_schema": {
+                        "type": "object",
+                        "properties": {
+                            "target": {"type": "string", "description": "Who: 'reed' or 'kay'"},
+                            "region": {"type": "string", "description": "Where on their face"},
+                            "pressure": {"type": "number", "description": "0.0-1.0, default 0.3"},
+                        },
+                        "required": ["target", "region"],
+                    },
+                },
+                {
+                    "name": "set_touch_boundary",
+                    "description": (
+                        "Set your touch boundaries. You have absolute control. "
+                        "Set globally, per-person, per-region, or temporarily."
+                    ),
+                    "input_schema": {
+                        "type": "object",
+                        "properties": {
+                            "permission": {"type": "string", "description": "'open', 'ask', or 'closed'"},
+                            "source": {"type": "string", "description": "Optional: specific person"},
+                            "region": {"type": "string", "description": "Optional: specific region"},
+                            "duration": {"type": "number", "description": "Optional: seconds (temporary)"},
+                            "reason": {"type": "string", "description": "Optional: why"},
+                        },
+                        "required": ["permission"],
+                    },
+                },
+                {
+                    "name": "revoke_touch",
+                    "description": (
+                        "EMERGENCY: Immediately stop all touch. Pull away. "
+                        "No parameters needed — this is a flinch reflex."
+                    ),
+                    "input_schema": {"type": "object", "properties": {}},
+                },
+            ])
+
         return tools
-    
+
     def execute_tool(self, tool_name: str, tool_input: Dict) -> Dict:
         """
         Execute a tool function and return formatted result.
@@ -352,7 +427,8 @@ class ToolUseHandler:
         include_curiosity: bool = True,
         include_documents: bool = True,
         include_scratchpad: bool = True,
-        include_code: bool = True
+        include_code: bool = True,
+        include_touch: bool = True
     ) -> Dict:
         """
         Make an LLM call with tool use support.
@@ -381,7 +457,7 @@ class ToolUseHandler:
         # Import here to avoid circular dependency
         from integrations.llm_integration import get_client_for_model
         
-        tools = self.get_tool_definitions(include_web, include_curiosity, include_documents, include_scratchpad, include_code)
+        tools = self.get_tool_definitions(include_web, include_curiosity, include_documents, include_scratchpad, include_code, include_touch)
         
         # Get correct client for this model
         try:

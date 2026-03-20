@@ -33,7 +33,10 @@ class MemoryLayerManager:
     NO EPISODIC OR SEMANTIC TIERS - This prevents regression to three-tier architecture.
     """
 
-    def __init__(self, file_path: str = "memory/memory_layers.json"):
+    def __init__(self, file_path: str = None):
+        if file_path is None:
+            # Use absolute path relative to project root to avoid CWD issues
+            file_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "memory", "memory_layers.json")
         self.file_path = file_path
 
         # TWO-TIER STORAGE ONLY

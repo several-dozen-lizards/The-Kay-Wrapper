@@ -111,7 +111,12 @@ class AutonomousMemoryTier:
     - Performance (conversation, with external witness)
     """
 
-    def __init__(self, file_path: str = "memory/autonomous_memories.json"):
+    def __init__(self, file_path: str = None):
+        if file_path is None:
+            file_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "memory", "autonomous_memories.json"
+            )
         self.file_path = file_path
         self.insights: List[AutonomousInsight] = []
 

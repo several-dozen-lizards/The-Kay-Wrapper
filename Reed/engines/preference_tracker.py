@@ -20,7 +20,12 @@ class PreferenceTracker:
     - Kay can express: "I'm mostly a tea person, but I enjoy coffee too"
     """
 
-    def __init__(self, file_path: str = "memory/preferences.json"):
+    def __init__(self, file_path: str = None):
+        if file_path is None:
+            file_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "memory", "preferences.json"
+            )
         self.file_path = file_path
         self.preferences: Dict[str, Dict[str, any]] = defaultdict(lambda: {
             "mentions": [],  # List of {text, timestamp, context}

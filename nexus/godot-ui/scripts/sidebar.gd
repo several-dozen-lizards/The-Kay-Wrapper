@@ -21,6 +21,7 @@ const FEATURES = [
 	{"id": "canvas", "icon": "🎨", "tip": "Canvas"},
 	{"id": "gallery", "icon": "🖼", "tip": "Gallery"},
 	{"id": "stats", "icon": "📊", "tip": "Stats"},
+	{"id": "face", "icon": "😶", "tip": "Face Expression (Ctrl+F)"},
 	{"id": "exec", "icon": "🔒", "tip": "Code Execution"},
 	{"id": "settings", "icon": "⚙", "tip": "Settings"},
 ]

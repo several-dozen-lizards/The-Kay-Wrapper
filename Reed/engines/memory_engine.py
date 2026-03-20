@@ -197,8 +197,10 @@ class MemoryEngine:
     - IDENTITY MEMORY: Permanent facts that never decay
     """
 
-    def __init__(self, semantic_memory: Optional[Any] = None, file_path: str = "memory/memories.json", motif_engine: Optional[Any] = None, momentum_engine: Optional[Any] = None, emotion_engine: Optional[Any] = None, vector_store: Optional[Any] = None):
+    def __init__(self, semantic_memory: Optional[Any] = None, file_path: str = None, motif_engine: Optional[Any] = None, momentum_engine: Optional[Any] = None, emotion_engine: Optional[Any] = None, vector_store: Optional[Any] = None):
         self.semantic_memory = semantic_memory
+        if file_path is None:
+            file_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "memory", "memories.json")
         self.file_path = file_path
         self.motif_engine = motif_engine
         self.momentum_engine = momentum_engine

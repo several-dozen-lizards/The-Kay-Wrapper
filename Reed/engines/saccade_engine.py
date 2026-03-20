@@ -187,18 +187,22 @@ class SaccadeEngine:
         delta = SaccadeDelta()
 
         # --- Emotional deltas ---
+        # TIGHTENED: Raise threshold from 0.05 to 0.15 and require minimum intensity
+        # to suppress noise from flat-intensity assignments and label churn
         all_emotions = set(list(prev.emotions.keys()) + list(curr.emotions.keys()))
         for emotion in all_emotions:
             prev_val = prev.emotions.get(emotion, 0.0)
             curr_val = curr.emotions.get(emotion, 0.0)
             change = curr_val - prev_val
 
-            if abs(change) > 0.05:  # Ignore noise
-                delta.emotional_deltas[emotion] = round(change, 3)
+            # TIGHTENED: Require significant change (0.15) AND meaningful intensity (0.3)
+            if abs(change) > 0.15 and (curr_val > 0.3 or prev_val > 0.3):
+                delta.emotional_deltas[emotion] = round(change, 2)
 
-            if prev_val < 0.1 and curr_val >= 0.3:
+            # TIGHTENED: Raise emerged/faded thresholds for stronger signal
+            if prev_val < 0.15 and curr_val >= 0.4:
                 delta.emotions_emerged.append(emotion)
-            elif prev_val >= 0.3 and curr_val < 0.1:
+            elif prev_val >= 0.4 and curr_val < 0.15:
                 delta.emotions_faded.append(emotion)
 
         # Dominant direction
@@ -342,7 +346,8 @@ class SaccadeEngine:
         if delta is None:
             return ""  # No delta available yet (first turn)
 
-        lines = ["[SACCADE — Perceptual Continuity]"]
+        # REFRAMED: Make clear these are observations, not prescriptions
+        lines = ["[SACCADE — What shifted since last turn (observational, not prescriptive)]"]
 
         # Emotional trajectory
         if delta.emotional_deltas:
@@ -400,6 +405,8 @@ class SaccadeEngine:
             if summary:
                 lines.append(f"Momentum: {summary}")
 
+        # REFRAMED: Add explicit note that these are observations, not instructions
+        lines.append("(Extracted observations. Your actual experience may differ. Trust felt sense over labels.)")
         lines.append("[/SACCADE]")
 
         block = "\n".join(lines)

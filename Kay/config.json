@@ -18,5 +18,13 @@
     "turn_window": 7,
     "min_turns_before_detection": 4,
     "confidence_threshold": 0.7
+  },
+  "visual_sensor": {
+    "enabled": true,
+    "camera_index": 0,
+    "capture_interval": 15.0,
+    "rich_interval": 180.0,
+    "vision_model": "moondream",
+    "enable_rich": true
   }
 }

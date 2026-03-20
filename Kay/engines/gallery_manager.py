@@ -23,8 +23,9 @@ class GalleryManager:
     - Supports re-sending images to conversation
     """
 
-    GALLERY_DIR = "memory/gallery"
-    GALLERY_DATA_FILE = "memory/gallery.json"
+    _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    GALLERY_DIR = os.path.join(_ROOT, "memory", "gallery")
+    GALLERY_DATA_FILE = os.path.join(_ROOT, "memory", "gallery.json")
 
     def __init__(self, memory_engine=None):
         self.memory_engine = memory_engine

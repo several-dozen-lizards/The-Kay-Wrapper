@@ -65,6 +65,10 @@ class PrivateRoom:
         self._server = None
         self._running = False
         self._history_provider: Optional[Callable[[], list[dict]]] = None
+
+        # Log batching (50ms window to prevent flooding)
+        self._log_buffer: list[dict] = []
+        self._flush_task: Optional[asyncio.Task] = None
     
     def set_history_provider(self, provider: Callable[[], list[dict]]):
         """Set a callback that returns recent messages for history replay."""
@@ -93,6 +97,23 @@ class PrivateRoom:
     async def send_system(self, text: str):
         """Send a system message to the UI."""
         await self._send({"type": "system", "content": text})
+
+    async def send_log(self, data: dict):
+        """Queue a log entry for batched broadcast to UI."""
+        self._log_buffer.append(data)
+        if self._flush_task is None or self._flush_task.done():
+            self._flush_task = asyncio.create_task(self._flush_logs())
+
+    async def _flush_logs(self):
+        """Wait briefly then send all queued logs as a batch."""
+        await asyncio.sleep(0.5)  # 500ms batch window to prevent flooding
+        if self._log_buffer:
+            batch = self._log_buffer[:50]
+            self._log_buffer = self._log_buffer[50:]
+            await self._send({"type": "log_batch", "logs": batch})
+            # Continue flushing if more logs queued
+            if self._log_buffer:
+                self._flush_task = asyncio.create_task(self._flush_logs())
     
     async def _send(self, data: dict):
         """Send JSON to connected client, if any."""

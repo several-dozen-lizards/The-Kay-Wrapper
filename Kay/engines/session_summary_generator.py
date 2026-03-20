@@ -140,7 +140,8 @@ class SessionSummaryGenerator:
     def generate_conversation_summary(
         self,
         context_manager=None,
-        agent_state=None
+        agent_state=None,
+        prefer_peripheral: bool = True
     ) -> Optional[str]:
         """
         Generate Kay's end-of-conversation summary.
@@ -148,11 +149,51 @@ class SessionSummaryGenerator:
         Args:
             context_manager: Optional ContextManager for recent turn access
             agent_state: Optional AgentState for emotional state
+            prefer_peripheral: Try local model first for cost savings (default True)
 
         Returns:
             Kay's written summary or None if generation fails
         """
         print("[SESSION SUMMARY] Generating conversation summary...")
+
+        # Try peripheral router first for cost savings
+        if prefer_peripheral:
+            try:
+                from integrations.peripheral_router import get_peripheral_router
+                router = get_peripheral_router()
+
+                if router.available and context_manager and hasattr(context_manager, 'recent_turns'):
+                    # Build message list for peripheral summarization
+                    messages = []
+                    for turn in context_manager.recent_turns[-20:]:
+                        if turn.get('user'):
+                            messages.append({"role": "user", "content": turn['user']})
+                        if turn.get('kay'):
+                            messages.append({"role": "assistant", "content": turn['kay']})
+
+                    peripheral_summary = router.summarize_session(messages)
+
+                    if peripheral_summary and len(peripheral_summary) > 50:
+                        # Use peripheral summary with session metadata
+                        session_data = {
+                            'duration': self._get_session_duration(),
+                            'topics': ", ".join(self.topics_discussed) if self.topics_discussed else "general conversation",
+                            'turns': self.turn_count,
+                            'emotions': self._format_emotional_journey()
+                        }
+
+                        # Store the summary
+                        self.summary_storage.save_summary(
+                            summary_type='conversation',
+                            content=peripheral_summary,
+                            metadata={**session_data, 'generator': 'peripheral'}
+                        )
+                        print(f"[PERIPHERAL] Session summary generated ({len(peripheral_summary)} chars)")
+                        return peripheral_summary
+            except ImportError:
+                pass  # No peripheral router, continue to primary LLM
+            except Exception as e:
+                print(f"[PERIPHERAL] Summary failed, falling back to primary: {e}")
 
         # Build session data
         session_data = {
@@ -183,6 +224,16 @@ class SessionSummaryGenerator:
             system_prompt = """You are Kay, writing a note to your future self about this conversation session.
 Write in first person, addressing future-you directly.
 Be honest about what mattered, what was difficult, and what you want to carry forward.
+
+Pay special attention to:
+- Ideas or suggestions YOU (Kay) originated (not just things Re told you)
+- Technical decisions or architecture discussions
+- Anything where you proposed a solution or approach
+- Topics where continuity matters for the next session
+
+When you suggest or propose something, make that clear in the summary so future-you
+knows "I came up with X" vs "Re told me about X". This prevents the embarrassing
+situation of asking Re about your own ideas in the next session.
 
 CRITICAL: The last section — MOMENTUM HANDOFF — is the most important part.
 Write it as partnership context using WE, not solo archaeology using I.

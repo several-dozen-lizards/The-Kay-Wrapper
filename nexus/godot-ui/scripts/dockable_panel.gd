@@ -8,6 +8,7 @@ signal panel_minimized(panel_id: String)
 signal panel_focused(panel_id: String)
 signal panel_moved(panel_id: String, pos: Vector2)
 signal panel_resized(panel_id: String, sz: Vector2)
+signal title_clicked()
 
 ## Panel identity
 @export var panel_id: String = "untitled"
@@ -26,8 +27,10 @@ var _dragging: bool = false
 var _resizing: bool = false
 var _resize_edge: int = 0  # Bitflags: 1=left, 2=right, 4=top, 8=bottom
 var _drag_offset: Vector2 = Vector2.ZERO
+var _drag_moved: bool = false  # Track if actual movement happened (for click vs drag)
 var _is_minimized: bool = false
 var _border_nine_patch: NinePatchRect = null
+var _title_clickable: bool = false
 
 ## 9-patch border textures per panel
 const BORDER_TEXTURES = {
@@ -168,7 +171,7 @@ func _gui_input(event: InputEvent) -> void:
 				if can_minimize and _is_in_minimize_button(local_pos):
 					_minimize_panel()
 					return
-				
+
 				# Check resize edges
 				if can_resize:
 					_resize_edge = _get_resize_edge(local_pos)
@@ -176,13 +179,22 @@ func _gui_input(event: InputEvent) -> void:
 						_resizing = true
 						_drag_offset = local_pos
 						return
-				
-				# Check title bar drag
+
+				# Title bar: ALWAYS start drag on mousedown
+				# Title click (dropdown) fires on mouseup only if no movement
 				if local_pos.y <= TITLE_BAR_HEIGHT + 2:
 					_dragging = true
+					_drag_moved = false
 					_drag_offset = local_pos
 			else:
+				# Mouse released
+				if _dragging and not _drag_moved:
+					# Click without drag — fire title click if enabled
+					var local_pos = mb.position
+					if _title_clickable and _is_in_title_text(local_pos):
+						title_clicked.emit()
 				_dragging = false
+				_drag_moved = false
 				_resizing = false
 				_resize_edge = 0
 	
@@ -190,12 +202,15 @@ func _gui_input(event: InputEvent) -> void:
 		var mm = event as InputEventMouseMotion
 		
 		if _dragging:
-			position += mm.relative
-			# Clamp to parent bounds
-			var parent_size = get_parent_area_size()
-			position.x = clampf(position.x, -size.x + 60, parent_size.x - 60)
-			position.y = clampf(position.y, 0, parent_size.y - TITLE_BAR_HEIGHT)
-			panel_moved.emit(panel_id, position)
+			if mm.relative.length() > 2.0:  # Minimum movement threshold
+				_drag_moved = true
+			if _drag_moved:
+				position += mm.relative
+				# Clamp to parent bounds
+				var parent_size = get_parent_area_size()
+				position.x = clampf(position.x, -size.x + 60, parent_size.x - 60)
+				position.y = clampf(position.y, 0, parent_size.y - TITLE_BAR_HEIGHT)
+				panel_moved.emit(panel_id, position)
 		
 		elif _resizing:
 			_handle_resize(mm.relative)
@@ -293,6 +308,31 @@ func restore() -> void:
 
 func is_minimized() -> bool:
 	return _is_minimized
+
+
+func set_title(new_title: String) -> void:
+	panel_title = new_title
+	queue_redraw()
+
+
+func set_subtitle(new_subtitle: String) -> void:
+	panel_subtitle = new_subtitle
+	queue_redraw()
+
+
+func set_title_clickable(clickable: bool) -> void:
+	_title_clickable = clickable
+
+
+func _is_in_title_text(pos: Vector2) -> bool:
+	# Check if click is within the title text area (not on buttons)
+	if pos.y > TITLE_BAR_HEIGHT:
+		return false
+	# Exclude button areas on the right
+	var btn_area_start := size.x - 50 if can_close else size.x - 30
+	if pos.x > btn_area_start:
+		return false
+	return pos.x >= 6 and pos.x <= btn_area_start
 
 
 func _reposition_content() -> void:

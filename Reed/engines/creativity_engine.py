@@ -56,7 +56,7 @@ class CreativityEngine:
         curiosity_engine=None,
         momentum_engine=None,
         stakes_scanner=None,
-        log_path: str = "memory/creativity_log.json"
+        log_path: str = None
     ):
         self.scratchpad = scratchpad_engine
         self.memory_engine = memory_engine
@@ -64,6 +64,11 @@ class CreativityEngine:
         self.curiosity_engine = curiosity_engine
         self.momentum_engine = momentum_engine
         self.stakes_scanner = stakes_scanner
+        if log_path is None:
+            log_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "memory", "creativity_log.json"
+            )
         self.log_path = log_path
 
         # State tracking

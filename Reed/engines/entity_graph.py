@@ -722,7 +722,12 @@ class EntityGraph:
     Performs entity resolution (matching mentions to canonical entities).
     """
 
-    def __init__(self, file_path: str = "memory/entity_graph.json"):
+    def __init__(self, file_path: str = None):
+        if file_path is None:
+            file_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "memory", "entity_graph.json"
+            )
         self.file_path = file_path
         self.entities: Dict[str, Entity] = {}  # canonical_name -> Entity
         self.relationships: Dict[str, Relationship] = {}  # relationship_id -> Relationship

@@ -5,6 +5,7 @@ Emotions are patterns of response, not chemical levels.
 """
 
 import json
+import os
 from datetime import datetime, timedelta
 from pathlib import Path
 from collections import defaultdict
@@ -19,7 +20,12 @@ class EmotionalPatternEngine:
     No fake neurochemistry - just observable patterns.
     """
 
-    def __init__(self, data_dir="data/emotions"):
+    def __init__(self, data_dir=None):
+        if data_dir is None:
+            data_dir = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "data", "emotions"
+            )
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(parents=True, exist_ok=True)
 
@@ -66,7 +72,8 @@ class EmotionalPatternEngine:
                 return json.load(f)
         return {
             "primary_emotions": [],
-            "intensity": 0.5,        # 0.0-1.0 scale
+            "emotion_intensities": {},  # NEW: per-emotion intensities {emotion: float}
+            "intensity": 0.5,        # 0.0-1.0 scale (average, for backward compat)
             "valence": 0.0,          # -1.0 (negative) to 1.0 (positive)
             "arousal": 0.5,          # 0.0 (low energy) to 1.0 (high energy)
             "stability": 0.5,        # 0.0 (volatile) to 1.0 (steady)
@@ -96,21 +103,37 @@ class EmotionalPatternEngine:
     # ═══════════════════════════════════════════════════════
 
     def set_current_state(self, emotions, intensity=None, valence=None,
-                          arousal=None, stability=None, notes=None):
+                          arousal=None, stability=None, notes=None,
+                          emotion_intensities=None):
         """
         Set Kay's current emotional state.
 
         Args:
             emotions: List of emotion names (e.g., ["curiosity", "calm"])
-            intensity: 0.0-1.0, how strongly felt
+            intensity: 0.0-1.0, average intensity (for backward compat)
             valence: -1.0 to 1.0, negative to positive
             arousal: 0.0-1.0, low to high energy
             stability: 0.0-1.0, volatile to steady
             notes: Freeform notes about the state
+            emotion_intensities: Dict of {emotion: intensity} for per-emotion values
         """
         previous_state = self.current_state.copy()
 
         self.current_state["primary_emotions"] = emotions
+
+        # NEW: Store per-emotion intensities for saccade alignment
+        if emotion_intensities is not None:
+            self.current_state["emotion_intensities"] = {
+                k.lower(): max(0.0, min(1.0, float(v)))
+                for k, v in emotion_intensities.items()
+            }
+        else:
+            # Fallback: use uniform intensity for all emotions
+            default_intensity = intensity if intensity is not None else 0.5
+            self.current_state["emotion_intensities"] = {
+                e.lower(): default_intensity for e in emotions
+            }
+
         if intensity is not None:
             self.current_state["intensity"] = max(0.0, min(1.0, intensity))
         if valence is not None:

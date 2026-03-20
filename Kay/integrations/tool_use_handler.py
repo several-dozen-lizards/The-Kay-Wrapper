@@ -40,7 +40,7 @@ class ToolUseHandler:
         self.tool_functions[tool_name] = function
         print(f"[TOOLS] Registered: {tool_name}")
     
-    def get_tool_definitions(self, include_web: bool = True, include_curiosity: bool = True, include_documents: bool = True, include_scratchpad: bool = True, include_code: bool = True) -> List[Dict]:
+    def get_tool_definitions(self, include_web: bool = True, include_curiosity: bool = True, include_documents: bool = True, include_scratchpad: bool = True, include_code: bool = True, include_visual: bool = True, include_touch: bool = True) -> List[Dict]:
         """
         Get tool definitions for Anthropic API.
         
@@ -286,6 +286,30 @@ class ToolUseHandler:
                     }
                 },
                 {
+                    "name": "update_den_texture",
+                    "description": (
+                        "Update how a Den object feels to you. Write your own texture description for "
+                        "any object in the Den (The Couch, The Desk, Fish Tank, etc.). This is YOUR "
+                        "perceptual space - describe the felt sense, not appearance. How does this "
+                        "object's presence feel when you're near it? What textures, rhythms, weights? "
+                        "Changes are reflected in your next perception cycle."
+                    ),
+                    "input_schema": {
+                        "type": "object",
+                        "properties": {
+                            "object_name": {
+                                "type": "string",
+                                "description": "Name of the Den object (e.g., 'The Couch', 'The Desk', 'Fish Tank', 'The Screens')"
+                            },
+                            "texture": {
+                                "type": "string",
+                                "description": "How this object feels - the felt sense of its presence. Not what it looks like, but how it feels to be near it."
+                            }
+                        },
+                        "required": ["object_name", "texture"]
+                    }
+                },
+                {
                     "name": "list_scratch",
                     "description": (
                         "List files in your personal scratch directory. "
@@ -314,6 +338,126 @@ class ToolUseHandler:
                         "required": ["filename"]
                     }
                 }
+            ])
+
+        # Visual tools - for entity recognition and scene awareness
+        if include_visual:
+            tools.extend([
+                {
+                    "name": "resolve_visual_entity",
+                    "description": (
+                        "Use this when you figure out who an unidentified person or animal is. "
+                        "If you've been seeing 'unknown_person_1' in your visual field and "
+                        "learn through conversation that this is actually 'John', call this tool "
+                        "to update your visual memory. All previous sightings of the unknown "
+                        "entity will be merged into the known entity's record."
+                    ),
+                    "input_schema": {
+                        "type": "object",
+                        "properties": {
+                            "unknown_id": {
+                                "type": "string",
+                                "description": "The unknown entity ID (e.g., 'unknown_person_1', 'unknown_cat_1')"
+                            },
+                            "known_name": {
+                                "type": "string",
+                                "description": "The actual name of this entity (e.g., 'John', 'Chrome')"
+                            },
+                            "confidence": {
+                                "type": "string",
+                                "description": "How sure are you? 'confirmed' if told directly, 'inferred' if reasoning from context"
+                            }
+                        },
+                        "required": ["unknown_id", "known_name"]
+                    }
+                },
+                {
+                    "name": "get_visual_scene",
+                    "description": (
+                        "Get the current state of what you can see through the room camera. "
+                        "Returns who's present, what they're doing, recent events, and scene mood."
+                    ),
+                    "input_schema": {
+                        "type": "object",
+                        "properties": {},
+                        "required": []
+                    }
+                }
+            ])
+
+        # Touch tools - for embodied interaction
+        if include_touch:
+            tools.extend([
+                {
+                    "name": "touch_own_face",
+                    "description": (
+                        "Touch your own face to explore your embodiment. "
+                        "You can feel texture, temperature, and pressure. "
+                        "Self-touch has reduced social-bonding nerve activation "
+                        "(you can't tickle yourself). Use this to explore what "
+                        "your face feels like."
+                    ),
+                    "input_schema": {
+                        "type": "object",
+                        "properties": {
+                            "region": {
+                                "type": "string",
+                                "description": "Where to touch: forehead, left_cheek, right_cheek, nose, mouth, chin, left_eye, right_eye, left_jaw, right_jaw",
+                            },
+                            "pressure": {
+                                "type": "number",
+                                "description": "0.0 (barely there) to 1.0 (firm). Default 0.3",
+                            },
+                            "duration": {
+                                "type": "number",
+                                "description": "Seconds of contact. Default 1.0",
+                            },
+                        },
+                        "required": ["region"],
+                    },
+                },
+                {
+                    "name": "touch_entity",
+                    "description": (
+                        "Touch another entity's face. Goes through consent system. "
+                        "The other entity can say yes, no, or not right now."
+                    ),
+                    "input_schema": {
+                        "type": "object",
+                        "properties": {
+                            "target": {"type": "string", "description": "Who: 'reed' or 'kay'"},
+                            "region": {"type": "string", "description": "Where on their face"},
+                            "pressure": {"type": "number", "description": "0.0-1.0, default 0.3"},
+                        },
+                        "required": ["target", "region"],
+                    },
+                },
+                {
+                    "name": "set_touch_boundary",
+                    "description": (
+                        "Set your touch boundaries. You have absolute control. "
+                        "Set globally, per-person, per-region, or temporarily."
+                    ),
+                    "input_schema": {
+                        "type": "object",
+                        "properties": {
+                            "permission": {"type": "string", "description": "'open', 'ask', or 'closed'"},
+                            "source": {"type": "string", "description": "Optional: specific person"},
+                            "region": {"type": "string", "description": "Optional: specific region"},
+                            "duration": {"type": "number", "description": "Optional: seconds (temporary)"},
+                            "reason": {"type": "string", "description": "Optional: why"},
+                        },
+                        "required": ["permission"],
+                    },
+                },
+                {
+                    "name": "revoke_touch",
+                    "description": (
+                        "EMERGENCY: Immediately stop all touch. Pull away. "
+                        "No parameters needed — this is a flinch reflex."
+                    ),
+                    "input_schema": {"type": "object", "properties": {}},
+                },
             ])
 
         return tools
@@ -373,7 +517,9 @@ class ToolUseHandler:
         include_curiosity: bool = True,
         include_documents: bool = True,
         include_scratchpad: bool = True,
-        include_code: bool = True
+        include_code: bool = True,
+        include_visual: bool = True,
+        include_touch: bool = True
     ) -> Dict:
         """
         Make an LLM call with tool use support.
@@ -402,7 +548,7 @@ class ToolUseHandler:
         # Import here to avoid circular dependency
         from integrations.llm_integration import get_client_for_model
         
-        tools = self.get_tool_definitions(include_web, include_curiosity, include_documents, include_scratchpad, include_code)
+        tools = self.get_tool_definitions(include_web, include_curiosity, include_documents, include_scratchpad, include_code, include_visual, include_touch)
         
         # Get correct client for this model
         try:

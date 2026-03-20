@@ -40,7 +40,7 @@ class VectorStore:
     - Metadata: source_file, chunk_id, timestamp, document_type
     """
 
-    def __init__(self, persist_directory: str = "memory/vector_db", use_sentence_transformers: bool = True):
+    def __init__(self, persist_directory: str = None, use_sentence_transformers: bool = True):
         """
         Initialize vector store.
 
@@ -51,6 +51,11 @@ class VectorStore:
         if not CHROMADB_AVAILABLE:
             raise ImportError("ChromaDB not installed. Run: pip install chromadb")
 
+        if persist_directory is None:
+            persist_directory = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "memory", "vector_db"
+            )
         self.persist_directory = persist_directory
         os.makedirs(persist_directory, exist_ok=True)
 

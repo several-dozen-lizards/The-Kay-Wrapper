@@ -12,6 +12,12 @@ if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
         sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
         sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
+# Add parent directory to path so resonant_core can be imported
+import os as _os
+_wrapper_root = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+if _wrapper_root not in sys.path:
+    sys.path.insert(0, _wrapper_root)
+
 import asyncio
 import os
 import json
@@ -68,6 +74,24 @@ from integrations.llm_integration import get_llm_response
 
 from context_filter import GlyphFilter
 from glyph_decoder import GlyphDecoder
+
+# Resonant Consciousness Architecture — oscillator heartbeat
+try:
+    from resonant_core.resonant_integration import ResonantIntegration
+    RESONANCE_AVAILABLE = True
+except ImportError as e:
+    RESONANCE_AVAILABLE = False
+    print(f"[WARNING] Resonant core not available: {e}")
+    print("[WARNING] Oscillator heartbeat will be disabled")
+
+# Room system (spatial embodiment)
+try:
+    from shared.room.presets import create_reeds_sanctum
+    from shared.room.autonomous_spatial import AutonomousSpatialEngine
+    ROOM_AVAILABLE = True
+except ImportError as e:
+    ROOM_AVAILABLE = False
+    print(f"[WARNING] Room system not available: {e}")
 from engines.memory_forest import MemoryForest  # Import from engines (has load_from_file method)
 
 context_filter = GlyphFilter()
@@ -220,6 +244,35 @@ async def main():
     print("  - MemoryEngine: Importance scoring, temporal weight, priority")
     print("  - SocialEngine: Social effects, action tendencies, default needs")
     print("  - EmbodimentEngine: Energy/valence descriptors (neurochemicals removed)")
+
+    # NEW: Initialize Resonant Consciousness Architecture (oscillator heartbeat)
+    resonance = None
+    if RESONANCE_AVAILABLE:
+        try:
+            resonance = ResonantIntegration(state_dir="memory/resonant")
+            resonance.start()
+        except Exception as e:
+            print(f"[WARNING] Resonance initialization failed: {e}")
+            resonance = None
+
+    # Initialize Room System — Reed's Sanctum
+    room = None
+    autonomous_spatial = None
+    if ROOM_AVAILABLE:
+        try:
+            room = create_reeds_sanctum(state_file="memory/reed_sanctum_state.json")
+            room.add_entity("reed", "Reed", distance=0, angle_deg=0, color="#00CED1")  # Start at gol
+            print(f"[ROOM] Reed's Sanctum initialized with {len(room.objects)} objects")
+            autonomous_spatial = AutonomousSpatialEngine(
+                entity_id="reed",
+                room_engine=room,
+                persist_path="memory/autonomous_spatial_state.json"
+            )
+            print(f"[SPATIAL] Autonomous spatial engine initialized for Reed")
+        except Exception as e:
+            print(f"[WARNING] Room/spatial initialization failed: {e}")
+            room = None
+            autonomous_spatial = None
 
     # NEW: Initialize creativity AMPLIFICATION system
     # Note: Baseline creativity is baked into Reed's system prompt (always active)
@@ -430,6 +483,9 @@ async def main():
                     print(f"[CONTINUOUS] Checkpoint saved for resume on next boot")
                 except Exception as e:
                     print(f"[CONTINUOUS] Checkpoint save failed: {e}")
+            # Stop resonant oscillator and save state
+            if resonance:
+                resonance.stop()
             break
 
         # Allow inline affect tuning
@@ -950,7 +1006,32 @@ async def main():
             filtered_prompt_context["curation_context"] = pending_curation_prompt
             print("[CURATION] Injected curation review prompt into context")
 
+        # --- Autonomous spatial behavior (oscillator-driven exploration) ---
+        if autonomous_spatial and resonance:
+            try:
+                osc_state = resonance.get_oscillator_state()
+                spatial_action = autonomous_spatial.update_from_oscillator(osc_state)
+                if spatial_action and room:
+                    room.apply_actions("reed", [spatial_action])
+                    print(f"[SPATIAL] Reed moves to {spatial_action['target']} ({spatial_action['reason']})")
+                    autonomous_spatial.mark_examined(spatial_action['target'], oscillator_state=osc_state)
+                tick_action = autonomous_spatial.tick(oscillator_state=osc_state)
+                if tick_action and room and not spatial_action:
+                    room.apply_actions("reed", [tick_action])
+                    print(f"[SPATIAL] Reed explores {tick_action['target']} (curiosity)")
+                    autonomous_spatial.mark_examined(tick_action['target'], oscillator_state=osc_state)
+                spatial_annotation = autonomous_spatial.get_annotation()
+                if spatial_annotation:
+                    existing_extra = filtered_prompt_context.get("extra_system_context", "")
+                    filtered_prompt_context["extra_system_context"] = (existing_extra + "\n" + spatial_annotation).strip()
+            except Exception as e:
+                print(f"[SPATIAL] Error (non-fatal): {e}")
+
         # --- Generate response from filtered context ---
+        # NEW: Inject resonant oscillator context
+        if resonance:
+            resonance.inject_into_context(filtered_prompt_context)
+
         try:
             reply = get_llm_response(
                 filtered_prompt_context,
@@ -973,13 +1054,20 @@ async def main():
         extracted_emotions = emotion_extractor.extract_emotions(reply)
         emotion_extractor.store_emotional_state(extracted_emotions, state.emotional_cocktail)
 
+        # NEW: Feed emotions back to resonant oscillator (closes the feedback loop)
+        if resonance and extracted_emotions:
+            resonance.feed_response_emotions(extracted_emotions)
+            resonance.update_agent_state(state)
+
         # NEW: Update emotional patterns and media context tracking
         if extracted_emotions.get('primary_emotions'):
             emotional_patterns.set_current_state(
                 emotions=extracted_emotions['primary_emotions'],
                 intensity=extracted_emotions.get('intensity'),
                 valence=extracted_emotions.get('valence'),
-                arousal=extracted_emotions.get('arousal')
+                arousal=extracted_emotions.get('arousal'),
+                # NEW: Pass per-emotion intensities for saccade alignment
+                emotion_intensities=extracted_emotions.get('emotion_intensities')
             )
             state.emotional_patterns = emotional_patterns.get_current_state()
 

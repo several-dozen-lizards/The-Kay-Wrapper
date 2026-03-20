@@ -69,6 +69,8 @@ var _panel_id: String = "nexus"
 var _theme_data: Dictionary = {}
 var _embedded: bool = false  # True when inside a DockablePanel
 var _nexus_connected: bool = false  # Nexus connection state (nexus panel only)
+var _voice_active: bool = false
+var _last_input_was_voice: bool = false  # Voice input mode active
 var _bg_texture_rect: TextureRect = null
 var _bg_overlay: ColorRect = null
 var _accent_texture_rect: TextureRect = null  # Thin header accent strip (inside layout)
@@ -488,11 +490,52 @@ func _configure_controls() -> void:
 
 
 func _on_voice_toggled(pressed: bool) -> void:
+	_voice_active = pressed
 	voice_toggled.emit(pressed)
 	if pressed:
-		add_system_message("Voice input enabled (placeholder)")
+		add_system_message("Voice input active - speak now")
+		if voice_toggle:
+			voice_toggle.text = "rec"
+			# Add recording indicator style
+			var btn_style = StyleBoxFlat.new()
+			btn_style.bg_color = Color(0.6, 0.2, 0.2)
+			btn_style.set_corner_radius_all(3)
+			btn_style.content_margin_left = 6
+			btn_style.content_margin_right = 6
+			btn_style.content_margin_top = 3
+			btn_style.content_margin_bottom = 3
+			voice_toggle.add_theme_stylebox_override("pressed", btn_style)
 	else:
-		add_system_message("Voice input disabled")
+		add_system_message("Voice input stopped")
+		if voice_toggle:
+			voice_toggle.text = "mic"
+
+
+func is_voice_active() -> bool:
+	return _voice_active
+
+
+func set_voice_active(active: bool) -> void:
+	_voice_active = active
+	if voice_toggle:
+		voice_toggle.button_pressed = active
+
+
+func mark_voice_input() -> void:
+	_last_input_was_voice = true
+
+
+func was_last_input_voice() -> bool:
+	return _last_input_was_voice
+
+
+func clear_voice_input_flag() -> void:
+	_last_input_was_voice = false
+
+
+func show_speaking_indicator(speaking: bool) -> void:
+	if speaking:
+		add_system_message("Speaking...")
 
 
 func _on_image_pressed() -> void:

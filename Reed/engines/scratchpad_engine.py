@@ -17,7 +17,12 @@ from typing import List, Dict, Optional
 
 
 class ScratchpadEngine:
-    def __init__(self, data_path: str = "memory/scratchpad.json"):
+    def __init__(self, data_path: str = None):
+        if data_path is None:
+            data_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "memory", "scratchpad.json"
+            )
         self.data_path = data_path
         self._ensure_file_exists()
     

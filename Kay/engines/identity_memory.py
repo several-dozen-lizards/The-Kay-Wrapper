@@ -18,6 +18,13 @@ from enum import Enum
 from typing import Dict, List, Any, Set
 from datetime import datetime
 
+# Entity-prefixed logging
+try:
+    from shared.entity_log import etag
+except ImportError:
+    def etag(tag): return f"[{tag}]"
+
+
 
 class IdentitySourceType(Enum):
     """Types of sources for identity facts - distinguishes fiction from fact."""
@@ -45,9 +52,12 @@ class IdentityMemory:
     This separation prevents Kay from confusing "things I read" with "who I am".
     """
 
-    def __init__(self, file_path: str = "memory/identity_memory.json"):
+    def __init__(self, file_path: str = None):
+        _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if file_path is None:
+            file_path = os.path.join(_root, "memory", "identity_memory.json")
         self.file_path = file_path
-        self.fictional_knowledge_path = "memory/fictional_knowledge.json"
+        self.fictional_knowledge_path = os.path.join(_root, "memory", "fictional_knowledge.json")
 
         # Separate stores for different identity types
         self.re_identity: List[Dict[str, Any]] = []  # Facts about Re
@@ -72,13 +82,13 @@ class IdentityMemory:
                 self.kay_identity = data.get("kay", [])
                 self.entities = data.get("entities", {})
 
-                print(f"[IDENTITY] Loaded {len(self.re_identity)} Re facts, "
+                print(f"{etag('IDENTITY')} Loaded {len(self.re_identity)} Re facts, "
                       f"{len(self.kay_identity)} Kay facts, "
                       f"{len(self.entities)} entity types")
         except FileNotFoundError:
-            print("[IDENTITY] No existing identity memory, starting fresh")
+            print(f"{etag('IDENTITY')}  No existing identity memory, starting fresh")
         except Exception as e:
-            print(f"[IDENTITY] Error loading: {e}")
+            print(f"{etag('IDENTITY')} Error loading: {e}")
 
     def _load_fictional_knowledge(self):
         """Load fictional knowledge (things Kay has read about, not identity)."""
@@ -86,12 +96,12 @@ class IdentityMemory:
             with open(self.fictional_knowledge_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 self.fictional_knowledge = data.get("fictional_knowledge", [])
-                print(f"[IDENTITY] Loaded {len(self.fictional_knowledge)} fictional knowledge entries")
+                print(f"{etag('IDENTITY')} Loaded {len(self.fictional_knowledge)} fictional knowledge entries")
         except FileNotFoundError:
-            print("[IDENTITY] No fictional knowledge file, starting fresh")
+            print(f"{etag('IDENTITY')}  No fictional knowledge file, starting fresh")
             self.fictional_knowledge = []
         except Exception as e:
-            print(f"[IDENTITY] Error loading fictional knowledge: {e}")
+            print(f"{etag('IDENTITY')} Error loading fictional knowledge: {e}")
             self.fictional_knowledge = []
 
     def _save_fictional_knowledge(self):
@@ -306,7 +316,7 @@ class IdentityMemory:
         self.fictional_knowledge.append(fictional_entry)
         self._save_fictional_knowledge()
 
-        print(f"[IDENTITY FICTIONAL] Stored as fictional knowledge (source: {source_document}): {fictional_entry['content'][:60]}...")
+        print(f"{etag('IDENTITY FICTIONAL')} Stored as fictional knowledge (source: {source_document}): {fictional_entry['content'][:60]}...")
         return True
 
     def add_fact(self, fact: Dict[str, Any]) -> bool:
@@ -340,7 +350,7 @@ class IdentityMemory:
             # Check for duplicates
             if not self._is_duplicate(self.re_identity, fact):
                 self.re_identity.append(fact)
-                print(f"[IDENTITY VERIFIED] Added Re fact (source: {source_type.value}): {fact.get('fact', '')[:60]}...")
+                print(f"{etag('IDENTITY VERIFIED')} Added Re fact (source: {source_type.value}): {fact.get('fact', '')[:60]}...")
 
         # Facts about Kay (the AI)
         elif perspective == "kay":
@@ -348,13 +358,13 @@ class IdentityMemory:
                 self.kay_identity.append(fact)
                 # Use specific log tag based on source type for dashboard routing
                 if source_type == IdentitySourceType.ARCHITECTURAL_FACT:
-                    print(f"[IDENTITY VERIFIED] ARCHITECTURAL: {fact.get('fact', '')[:60]}...")
+                    print(f"{etag('IDENTITY VERIFIED')} ARCHITECTURAL: {fact.get('fact', '')[:60]}...")
                 elif source_type == IdentitySourceType.SELF_REPORT:
-                    print(f"[IDENTITY VERIFIED] Kay self_report: {fact.get('fact', '')[:60]}...")
+                    print(f"{etag('IDENTITY VERIFIED')} Kay self_report: {fact.get('fact', '')[:60]}...")
                 elif source_type == IdentitySourceType.USER_ASSIGNED:
-                    print(f"[IDENTITY VERIFIED] User assigned to Kay: {fact.get('fact', '')[:60]}...")
+                    print(f"{etag('IDENTITY VERIFIED')} User assigned to Kay: {fact.get('fact', '')[:60]}...")
                 else:
-                    print(f"[IDENTITY] Added Kay fact (source: {source_type.value}): {fact.get('fact', '')[:60]}...")
+                    print(f"{etag('IDENTITY')} Added Kay fact (source: {source_type.value}): {fact.get('fact', '')[:60]}...")
 
         # Facts about entities (pets, family, etc.)
         for entity_name in entities:
@@ -368,7 +378,7 @@ class IdentityMemory:
 
                 if not self._is_duplicate(self.entities[entity_name], fact):
                     self.entities[entity_name].append(fact)
-                    print(f"[IDENTITY VERIFIED] Added {entity_name} ({entity_type}) fact (source: {source_type.value}): {fact.get('fact', '')[:60]}...")
+                    print(f"{etag('IDENTITY VERIFIED')} Added {entity_name} ({entity_type}) fact (source: {source_type.value}): {fact.get('fact', '')[:60]}...")
 
         self._save_to_disk()
         return True
@@ -696,7 +706,7 @@ class IdentityMemory:
                     })
 
         if result["facts_invalidated"] > 0:
-            print(f"[IDENTITY CORRECTION] Invalidated {result['facts_invalidated']} identity facts containing '{wrong_value}'")
+            print(f"{etag('IDENTITY CORRECTION')} Invalidated {result['facts_invalidated']} identity facts containing '{wrong_value}'")
             self._save_to_disk()
 
         return result

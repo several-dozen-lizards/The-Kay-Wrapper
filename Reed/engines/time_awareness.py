@@ -26,9 +26,12 @@ class TimeAwareness:
     - Gaps within a session
     """
 
-    STATE_FILE = "memory/time_state.json"
-
     def __init__(self):
+        # Compute absolute path for state file
+        self.STATE_FILE = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "memory", "time_state.json"
+        )
         self.session_start: datetime = datetime.now()
         self.last_message_time: datetime = datetime.now()
         self.last_session_data: Dict = {}

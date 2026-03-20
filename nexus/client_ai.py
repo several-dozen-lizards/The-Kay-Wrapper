@@ -166,7 +166,7 @@ class NexusAIClient(ABC):
 
     async def _connect_and_listen(self):
         ws_url = f"{self.server_url}/ws/{self.name}?type={self.participant_type}"
-        async with websockets.connect(ws_url, ping_interval=None, ping_timeout=None) as ws:
+        async with websockets.connect(ws_url, ping_interval=20, ping_timeout=10) as ws:
             self.ws = ws
             self.connected.set()
             self._reconnect_count = 0  # Reset on successful connection
@@ -236,7 +236,7 @@ class EchoAIClient(NexusAIClient):
 
     async def on_connect(self):
         await super().on_connect()
-        await self.send_emote("materializes in the Nexus")
+        # Entry emote removed — server's system message already announces entry
 
 
 if __name__ == "__main__":

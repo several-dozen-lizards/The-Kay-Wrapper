@@ -13,6 +13,7 @@ signal error_received(message: String)
 signal auto_event_received(msg_type: String, entity: String, data: Dictionary)
 signal canvas_updated(entity: String, base64_png: String, dimensions: Array, iteration: int)
 signal canvas_cleared(entity: String)
+signal log_received(entity: String, tag: String, message: String, ts: float)
 
 @export var server_url: String = "ws://localhost:8765"
 @export var participant_name: String = "Re"
@@ -146,11 +147,30 @@ func _handle_raw_message(raw: String) -> void:
 	if err != OK:
 		push_warning("NexusConnection: Bad JSON: %s" % raw.left(100))
 		return
-	
+
 	var event: Dictionary = json_parser.data
 	var event_type: String = event.get("event_type", "")
 	var data: Dictionary = event.get("data", {})
-	
+
+	# Handle raw log messages (not wrapped in ServerEvent format)
+	var raw_type: String = event.get("type", "")
+	if raw_type == "log":
+		log_received.emit(
+			event.get("entity", ""), event.get("tag", ""),
+			event.get("message", ""), event.get("ts", 0.0)
+		)
+		return
+	elif raw_type == "log_batch":
+		var logs = event.get("logs", [])
+		if logs is Array:
+			for entry in logs:
+				if entry is Dictionary:
+					log_received.emit(
+						entry.get("entity", ""), entry.get("tag", ""),
+						entry.get("message", ""), entry.get("ts", 0.0)
+					)
+		return
+
 	match event_type:
 		"message":
 			message_received.emit(data)

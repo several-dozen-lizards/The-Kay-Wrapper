@@ -217,6 +217,121 @@ if TOOLS_AVAILABLE and client:
             print("[LLM] Code execution tools registered successfully")
         except Exception as code_e:
             print(f"[LLM] Failed to register code execution tools: {code_e}")
+
+        # Touch tools — embodied interaction (file-based communication)
+        try:
+            REED_MEMORY_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "memory")
+
+            def _touch_own_face(region="cheek", pressure=0.3, duration=1.0):
+                """Touch your own face — writes to touch queue for processing."""
+                import time as _time
+                event = {
+                    "type": "touch_start",
+                    "source_entity": "self",
+                    "region": region,
+                    "pressure": float(pressure),
+                    "duration": float(duration),
+                    "object": "hand",
+                    "timestamp": _time.time(),
+                }
+                queue_path = os.path.join(REED_MEMORY_DIR, "touch_queue.jsonl")
+                with open(queue_path, "a") as f:
+                    f.write(json.dumps(event) + "\n")
+                return {
+                    "queued": True,
+                    "region": region,
+                    "pressure": pressure,
+                    "message": f"Touching own {region} (pressure {pressure:.1f}). "
+                               f"You'll feel the sensation on your next tick.",
+                }
+
+            def _touch_entity(target="", region="cheek", pressure=0.3):
+                """Touch another entity's face — sends to their touch queue."""
+                import time as _time
+                if not target:
+                    return {"error": "Must specify target: 'reed' or 'kay'"}
+                target = target.lower()
+                event = {
+                    "type": "entity_touch",
+                    "source_entity": "reed",
+                    "region": region,
+                    "pressure": float(pressure),
+                    "object": "hand",
+                    "timestamp": _time.time(),
+                }
+                target_mem = os.path.join(
+                    os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                    target.capitalize(), "memory"
+                )
+                queue_path = os.path.join(target_mem, "touch_queue.jsonl")
+                os.makedirs(os.path.dirname(queue_path), exist_ok=True)
+                with open(queue_path, "a") as f:
+                    f.write(json.dumps(event) + "\n")
+                return {"sent": True, "target": target, "region": region}
+
+            def _set_touch_boundary(permission="ask", source=None,
+                                    region=None, duration=None, reason=None):
+                """Set your touch boundaries — writes to consent file."""
+                import time as _time
+                consent_path = os.path.join(REED_MEMORY_DIR, "touch_consent.json")
+                consent = {}
+                if os.path.exists(consent_path):
+                    with open(consent_path) as f:
+                        consent = json.load(f)
+
+                if duration:
+                    consent["_safety_override"] = {
+                        "state": permission,
+                        "until": _time.time() + float(duration),
+                        "reason": reason or "temporary boundary",
+                    }
+                elif source and region:
+                    specific = consent.get("specific_permissions", {})
+                    specific[f"{source}:{region}"] = permission
+                    consent["specific_permissions"] = specific
+                elif source:
+                    sp = consent.get("source_permissions", {})
+                    sp[source] = permission
+                    consent["source_permissions"] = sp
+                elif region:
+                    rp = consent.get("region_permissions", {})
+                    rp[region] = permission
+                    consent["region_permissions"] = rp
+                else:
+                    consent["global_state"] = permission
+
+                with open(consent_path, "w") as f:
+                    json.dump(consent, f, indent=2)
+                return {"set": True, "permission": permission}
+
+            def _revoke_touch():
+                """Emergency stop — clear queue, set consent to closed."""
+                import time as _time
+                queue_path = os.path.join(REED_MEMORY_DIR, "touch_queue.jsonl")
+                if os.path.exists(queue_path):
+                    os.remove(queue_path)
+                consent_path = os.path.join(REED_MEMORY_DIR, "touch_consent.json")
+                consent = {}
+                if os.path.exists(consent_path):
+                    with open(consent_path) as f:
+                        consent = json.load(f)
+                consent["_safety_override"] = {
+                    "state": "closed",
+                    "until": _time.time() + 30,
+                    "reason": "emergency revoke",
+                }
+                with open(consent_path, "w") as f:
+                    json.dump(consent, f, indent=2)
+                return {"revoked": True}
+
+            tool_handler.register_tool("touch_own_face", _touch_own_face)
+            tool_handler.register_tool("touch_entity", _touch_entity)
+            tool_handler.register_tool("set_touch_boundary", _set_touch_boundary)
+            tool_handler.register_tool("revoke_touch", _revoke_touch)
+            print("[LLM] Touch tools registered successfully")
+        except Exception as touch_e:
+            print(f"[LLM] Failed to register touch tools: {touch_e}")
+
     except Exception as e:
         print(f"[LLM] Failed to initialize tools: {e}")
         TOOLS_AVAILABLE = False
@@ -1435,6 +1550,21 @@ DO NOT flip-flop or contradict yourself. Stay consistent with your weighted pref
         spiral_block = f"\n{spiral_context}\n"
 
     # ------------------------------------------------------------------
+    # Resonant oscillator context (background heartbeat state + spatial)
+    # Injected by ResonantIntegration.inject_into_context()
+    # ------------------------------------------------------------------
+    resonant_block = ""
+    resonant_context = context.get("resonant_context", "")
+    if resonant_context:
+        interpretive_frame = """The following reflects your current body-state — treat it as felt sense, not data to report.
+Oscillator bands map to cognitive mode (gamma=focused, beta=active, alpha=relaxed, theta=reflective, delta=deep rest).
+Tension reflects accumulated unresolved emotional weight. Room state reflects your ambient environment.
+Spatial awareness shows what you perceive in the Den — objects feel more or less present depending on your
+proximity and cognitive state. [near:X] is what's most vivid. [feel:X] is its texture. [periphery:X] is what
+you're vaguely aware of. Objects you don't perceive aren't listed."""
+        resonant_block = f"\n### RESONANT STATE ###\n{interpretive_frame}\n{resonant_context}\n"
+
+    # ------------------------------------------------------------------
     # Creativity AMPLIFIED mode (three-layer sourcing during curiosity/triggers)
     # Note: Baseline creativity is in DEFAULT_SYSTEM_PROMPT (always active)
     # This block AMPLIFIES that baseline during explicit exploration
@@ -1836,6 +1966,7 @@ REALITY CHECK:
         f"### Your current emotional state ###\n"
         f"{emotion_state}\n"
         f"(Previous self-report: {top_emotions})\n"
+        f"{resonant_block}\n"
         f"{momentum_block}\n"
         f"{saccade_block}\n"
         f"{meta_awareness_block}\n"
@@ -2437,7 +2568,7 @@ def _save_cache(cache):
 
 # ---------------------------------------------------------------------
 @measure_performance("llm_response", target=0.500)
-def query_llm_json(prompt, temperature=0.9, model=MODEL, system_prompt=None, session_context=None, use_cache=False, context_dict=None, affect_level=3.5, image_content=None, enable_tools=False):
+def query_llm_json(prompt, temperature=0.9, model=MODEL, system_prompt=None, session_context=None, use_cache=False, context_dict=None, affect_level=3.5, image_content=None, enable_tools=False, max_tokens=None):
     """
     Main Anthropic query with enhanced anti-repetition mechanisms and optional prompt caching.
 
@@ -2452,6 +2583,7 @@ def query_llm_json(prompt, temperature=0.9, model=MODEL, system_prompt=None, ses
         affect_level: Emotional affect level (default 3.5)
         image_content: Optional list of image content blocks (base64 encoded) for vision
         enable_tools: Whether to enable tool use (document, web, curiosity tools)
+        max_tokens: Optional max tokens limit (defaults to 8192 if None)
 
     Returns:
         LLM response text or dict (if tools were used)
@@ -2566,28 +2698,29 @@ def query_llm_json(prompt, temperature=0.9, model=MODEL, system_prompt=None, ses
             messages = sanitize_list(messages)
             
             # Route to correct API based on provider
+            effective_max_tokens = max_tokens or 8192
             if provider_type == 'openai':
                 # OpenAI API format
                 api_params = {
                     "model": model,
-                    "max_tokens": 8192,
+                    "max_tokens": effective_max_tokens,
                     "temperature": temperature,
                     "messages": messages,
                 }
                 # Note: OpenAI doesn't support tools in the same way yet
                 resp = active_client.chat.completions.create(**api_params)
-                
+
             else:  # Anthropic
                 api_params = {
                     "model": model,
-                    "max_tokens": 8192,
+                    "max_tokens": effective_max_tokens,
                     "temperature": temperature,
                     "system": "",  # Empty - all content in message blocks
                     "messages": messages,
                 }
                 if tools:
                     api_params["tools"] = tools
-                
+
                 resp = active_client.messages.create(**api_params)
 
         else:
@@ -2598,6 +2731,7 @@ def query_llm_json(prompt, temperature=0.9, model=MODEL, system_prompt=None, ses
 
             prompt_with_meta = f"{prompt}\n\n{meta_notes}"
 
+            effective_max_tokens = max_tokens or 8192
             if VERBOSE_DEBUG:
                 print("---- SYSTEM PROMPT SENT ----")
                 print(sys_prompt[:500])
@@ -2605,14 +2739,14 @@ def query_llm_json(prompt, temperature=0.9, model=MODEL, system_prompt=None, ses
                 print("---- USER PROMPT SENT ----")
                 print(prompt_with_meta[:500])
                 print("----------------------------")
-                print(f"[LLM CONFIG] max_tokens: 8192, temperature: {temperature}, model: {model}")
+                print(f"[LLM CONFIG] max_tokens: {effective_max_tokens}, temperature: {temperature}, model: {model}")
 
             # Route to correct API based on provider
             if provider_type == 'openai':
                 # OpenAI API format - system goes in messages array
                 resp = active_client.chat.completions.create(
                     model=model,
-                    max_tokens=8192,
+                    max_tokens=effective_max_tokens,
                     temperature=temperature,
                     messages=[
                         {"role": "system", "content": sanitize_unicode(sys_prompt)},
@@ -2622,7 +2756,7 @@ def query_llm_json(prompt, temperature=0.9, model=MODEL, system_prompt=None, ses
             else:  # Anthropic
                 resp = active_client.messages.create(
                     model=model,
-                    max_tokens=8192,
+                    max_tokens=effective_max_tokens,
                     temperature=temperature,
                     system=sanitize_unicode(sys_prompt),
                     messages=[{"role": "user", "content": sanitize_unicode(prompt_with_meta)}],
@@ -2718,7 +2852,7 @@ def query_llm_json(prompt, temperature=0.9, model=MODEL, system_prompt=None, ses
         return "[LLM ERROR]: " + str(e)
 
 # ---------------------------------------------------------------------
-def get_llm_response(prompt_or_context, affect: float = 3.5, temperature=0.9, system_prompt=None, session_context=None, use_cache=False, image_filepaths=None, enable_tools=False):
+def get_llm_response(prompt_or_context, affect: float = 3.5, temperature=0.9, system_prompt=None, session_context=None, use_cache=False, image_filepaths=None, enable_tools=False, max_tokens=None):
     """
     Accept either a context dict or raw text and return model output.
 
@@ -2730,6 +2864,7 @@ def get_llm_response(prompt_or_context, affect: float = 3.5, temperature=0.9, sy
         session_context: Session context for anti-repetition
         use_cache: Whether to use prompt caching (default False)
         image_filepaths: Optional list of image file paths for vision
+        max_tokens: Optional max tokens limit (defaults to 8192 if None)
 
     Returns:
         LLM response text
@@ -2782,7 +2917,8 @@ def get_llm_response(prompt_or_context, affect: float = 3.5, temperature=0.9, sy
                 context_dict=prompt_or_context,
                 affect_level=affect,
                 image_content=image_content,  # Pass images to vision-enabled call
-                enable_tools=True  # Enable document, web, and curiosity tools
+                enable_tools=True,  # Enable document, web, and curiosity tools
+                max_tokens=max_tokens  # Pass through for voice mode limiting
             )
         else:
             # LEGACY: Build full prompt (backwards compatible)
@@ -2801,11 +2937,11 @@ def get_llm_response(prompt_or_context, affect: float = 3.5, temperature=0.9, sy
                 bullet_count = prompt.count("\n- ") + prompt.count("\n  - ")
                 print(f"[LLM PROMPT] Bullet points in prompt: {bullet_count}")
 
-            return query_llm_json(prompt, temperature=temperature, model=MODEL, system_prompt=system_prompt, session_context=session_context, enable_tools=True)
+            return query_llm_json(prompt, temperature=temperature, model=MODEL, system_prompt=system_prompt, session_context=session_context, enable_tools=True, max_tokens=max_tokens)
     else:
         # Raw prompt string (legacy)
         prompt = prompt_or_context
-        return query_llm_json(prompt, temperature=temperature, model=MODEL, system_prompt=system_prompt, session_context=session_context, enable_tools=True)
+        return query_llm_json(prompt, temperature=temperature, model=MODEL, system_prompt=system_prompt, session_context=session_context, enable_tools=True, max_tokens=max_tokens)
 
 
 # ---------------------------------------------------------------------

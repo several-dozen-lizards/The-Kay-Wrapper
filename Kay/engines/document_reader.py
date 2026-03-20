@@ -22,6 +22,13 @@ import time
 from pathlib import Path
 import re
 
+# Entity-prefixed logging
+try:
+    from shared.entity_log import etag
+except ImportError:
+    def etag(tag): return f"[{tag}]"
+
+
 
 class SequentialDocumentReader:
     """
@@ -79,11 +86,11 @@ class SequentialDocumentReader:
         all_chunks = self._get_all_document_chunks(doc_id)
 
         if not all_chunks:
-            print(f"[SEQUENTIAL READ] No chunks found for doc_id: {doc_id}")
+            print(f"{etag('SEQUENTIAL READ')} No chunks found for doc_id: {doc_id}")
             return None
 
         filename = all_chunks[0].get('metadata', {}).get('source_file', 'unknown')
-        print(f"[SEQUENTIAL READ] Reading {len(all_chunks)} chunks from {filename} in batches of {batch_size}")
+        print(f"{etag('SEQUENTIAL READ')} Reading {len(all_chunks)} chunks from {filename} in batches of {batch_size}")
 
         batch_summaries = []
 
@@ -93,7 +100,7 @@ class SequentialDocumentReader:
             batch_num = (i // batch_size) + 1
             total_batches = (len(all_chunks) + batch_size - 1) // batch_size
 
-            print(f"[SEQUENTIAL READ] Processing batch {batch_num}/{total_batches} ({len(batch)} chunks)")
+            print(f"{etag('SEQUENTIAL READ')} Processing batch {batch_num}/{total_batches} ({len(batch)} chunks)")
 
             # Combine batch chunks into text
             batch_text = "\n\n".join([chunk['text'] for chunk in batch])
@@ -130,9 +137,9 @@ class SequentialDocumentReader:
             'timestamp': time.time()
         }
 
-        print(f"[SEQUENTIAL READ] Complete: {filename}")
-        print(f"[SEQUENTIAL READ] Comprehensive summary: {len(comprehensive_summary)} chars")
-        print(f"[SEQUENTIAL READ] Key entities: {len(key_entities)}")
+        print(f"{etag('SEQUENTIAL READ')} Complete: {filename}")
+        print(f"{etag('SEQUENTIAL READ')} Comprehensive summary: {len(comprehensive_summary)} chars")
+        print(f"{etag('SEQUENTIAL READ')} Key entities: {len(key_entities)}")
 
         return result
 
@@ -150,7 +157,7 @@ class SequentialDocumentReader:
             List of chunk dicts sorted by chunk_index
         """
         if not self.vector_store:
-            print("[SEQUENTIAL READ] No vector store available")
+            print(f"{etag('SEQUENTIAL READ')}  No vector store available")
             return []
 
         try:
@@ -179,7 +186,7 @@ class SequentialDocumentReader:
             return doc_chunks
 
         except Exception as e:
-            print(f"[SEQUENTIAL READ ERROR] Failed to retrieve chunks: {e}")
+            print(f"{etag('SEQUENTIAL READ ERROR')} Failed to retrieve chunks: {e}")
             import traceback
             traceback.print_exc()
             return []
@@ -322,7 +329,7 @@ Key characteristics:
 
         # Check for fresh uploads
         if recent_uploads and len(recent_uploads) > 0:
-            print("[MODE DETECTION] Fresh upload detected - suggesting SEQUENTIAL mode")
+            print(f"{etag('MODE DETECTION')}  Fresh upload detected - suggesting SEQUENTIAL mode")
             # Don't auto-trigger, but make it likely if user asks about the doc
             if any(phrase in user_lower for phrase in [
                 "this document", "this file", "what's this", "tell me about this"
@@ -339,7 +346,7 @@ Key characteristics:
         ]
 
         if any(phrase in user_lower for phrase in reading_phrases):
-            print("[MODE DETECTION] Explicit reading request detected - SEQUENTIAL mode")
+            print(f"{etag('MODE DETECTION')}  Explicit reading request detected - SEQUENTIAL mode")
             return "SEQUENTIAL"
 
         # Default to vector search (fast, targeted)
@@ -411,7 +418,7 @@ class DocumentReader:
             True if document was loaded successfully
         """
         if not doc_text or not doc_text.strip():
-            print(f"[DOC READER] Cannot load empty document: {doc_name}")
+            print(f"{etag('DOC READER')} Cannot load empty document: {doc_name}")
             return False
 
         # Store document metadata
@@ -426,7 +433,7 @@ class DocumentReader:
         self.total_chunks = len(self.chunks)
         self.current_position = 0
 
-        print(f"[DOC READER] Loaded {doc_name}: {self.total_chunks} chunks ({len(doc_text):,} chars)")
+        print(f"{etag('DOC READER')} Loaded {doc_name}: {self.total_chunks} chunks ({len(doc_text):,} chars)")
         return True
 
     def _split_into_chunks(self, text: str) -> List[str]:
@@ -551,10 +558,10 @@ class DocumentReader:
 
         if self.current_position < self.total_chunks - 1:
             self.current_position += 1
-            print(f"[DOC READER] Navigation: advance -> section {self.current_position + 1}/{self.total_chunks}")
+            print(f"{etag('DOC READER')} Navigation: advance -> section {self.current_position + 1}/{self.total_chunks}")
             return True
         else:
-            print(f"[DOC READER] Navigation: already at end of document")
+            print(f"{etag('DOC READER')} Navigation: already at end of document")
             return False
 
     def previous(self) -> bool:
@@ -569,10 +576,10 @@ class DocumentReader:
 
         if self.current_position > 0:
             self.current_position -= 1
-            print(f"[DOC READER] Navigation: previous -> section {self.current_position + 1}/{self.total_chunks}")
+            print(f"{etag('DOC READER')} Navigation: previous -> section {self.current_position + 1}/{self.total_chunks}")
             return True
         else:
-            print(f"[DOC READER] Navigation: already at beginning of document")
+            print(f"{etag('DOC READER')} Navigation: already at beginning of document")
             return False
 
     def jump_to(self, position: int) -> bool:
@@ -590,10 +597,10 @@ class DocumentReader:
 
         if 0 <= position < self.total_chunks:
             self.current_position = position
-            print(f"[DOC READER] Navigation: jump -> section {self.current_position + 1}/{self.total_chunks}")
+            print(f"{etag('DOC READER')} Navigation: jump -> section {self.current_position + 1}/{self.total_chunks}")
             return True
         else:
-            print(f"[DOC READER] Navigation: invalid position {position + 1} (valid: 1-{self.total_chunks})")
+            print(f"{etag('DOC READER')} Navigation: invalid position {position + 1} (valid: 1-{self.total_chunks})")
             return False
 
     def get_status(self) -> Optional[Dict]:
@@ -656,7 +663,7 @@ class DocumentReader:
             if success:
                 # Restore position
                 self.current_position = min(state['position'], self.total_chunks - 1)
-                print(f"[DOC READER] Restored reading position: section {self.current_position + 1}/{self.total_chunks}")
+                print(f"{etag('DOC READER')} Restored reading position: section {self.current_position + 1}/{self.total_chunks}")
                 return True
 
         return False
@@ -668,7 +675,7 @@ class DocumentReader:
         self.chunks = []
         self.total_chunks = 0
         self.chunk_comments = {}
-        print("[DOC READER] Document cleared")
+        print(f"{etag('DOC READER')}  Document cleared")
 
     def add_comment(self, chunk_index: int, comment: str):
         """
@@ -680,7 +687,7 @@ class DocumentReader:
         """
         if 0 <= chunk_index < self.total_chunks:
             self.chunk_comments[chunk_index] = comment
-            print(f"[DOC READER] Stored comment for section {chunk_index + 1}/{self.total_chunks}")
+            print(f"{etag('DOC READER')} Stored comment for section {chunk_index + 1}/{self.total_chunks}")
 
     def get_comment(self, chunk_index: int) -> str:
         """

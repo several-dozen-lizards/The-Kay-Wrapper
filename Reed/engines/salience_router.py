@@ -15,6 +15,7 @@ Cognitive States:
 Philosophy: Support natural LLM cognition, don't program it.
 """
 
+import os
 import time
 from enum import Enum
 from typing import Dict, Optional, Tuple
@@ -261,7 +262,11 @@ class SalienceRouter:
     def _save_transition_log(self):
         """Save transition log to disk"""
         try:
-            log_path = "memory/transition_log.json"
+            log_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "memory", "transition_log.json"
+            )
+            os.makedirs(os.path.dirname(log_path), exist_ok=True)
             with open(log_path, 'w') as f:
                 json.dump(self.transition_log, f, indent=2)
         except Exception as e:

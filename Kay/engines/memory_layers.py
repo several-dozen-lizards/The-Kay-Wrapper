@@ -19,6 +19,13 @@ except ImportError:
     client = None
     MODEL = None
 
+# Entity-prefixed logging
+try:
+    from shared.entity_log import etag
+except ImportError:
+    def etag(tag): return f"[{tag}]"
+
+
 
 class MemoryLayerManager:
     """
@@ -33,7 +40,10 @@ class MemoryLayerManager:
     NO EPISODIC OR SEMANTIC TIERS - This prevents regression to three-tier architecture.
     """
 
-    def __init__(self, file_path: str = "memory/memory_layers.json"):
+    def __init__(self, file_path: str = None):
+        if file_path is None:
+            # Use absolute path relative to project root to avoid CWD issues
+            file_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "memory", "memory_layers.json")
         self.file_path = file_path
 
         # TWO-TIER STORAGE ONLY
@@ -62,7 +72,7 @@ class MemoryLayerManager:
         self._load_from_disk()
 
         # Confirm two-tier architecture after load
-        print("[MEMORY] Two-tier architecture confirmed (working + long-term)")
+        print(f"{etag('MEMORY')}  Two-tier architecture confirmed (working + long-term)")
 
     def _reset_turn_stats(self):
         """Reset per-turn operation counters."""
@@ -89,7 +99,7 @@ class MemoryLayerManager:
 
             if parts:
                 summary = ", ".join(parts)
-                print(f"[MEMORY LAYERS] {summary}")
+                print(f"{etag('MEMORY LAYERS')} {summary}")
 
         # Reset for next turn
         self._reset_turn_stats()
@@ -110,7 +120,7 @@ class MemoryLayerManager:
 
             # MIGRATION: If old three-tier data exists, migrate it
             if "episodic" in data or "semantic" in data:
-                print("[MEMORY LAYERS] Migrating three-tier -> two-tier architecture...")
+                print(f"{etag('MEMORY LAYERS')}  Migrating three-tier -> two-tier architecture...")
 
                 episodic = data.get("episodic", [])
                 semantic = data.get("semantic", [])
@@ -123,19 +133,19 @@ class MemoryLayerManager:
                 for mem in self.long_term_memory:
                     mem["current_layer"] = "long_term"
 
-                print(f"[MEMORY LAYERS] Migrated {len(episodic)} episodic + {len(semantic)} semantic -> {len(self.long_term_memory)} long-term")
+                print(f"{etag('MEMORY LAYERS')} Migrated {len(episodic)} episodic + {len(semantic)} semantic -> {len(self.long_term_memory)} long-term")
 
                 # Save migrated data
                 self._save_to_disk()
 
-            print(f"[MEMORY LAYERS] Loaded {len(self.working_memory)} working, "
+            print(f"{etag('MEMORY LAYERS')} Loaded {len(self.working_memory)} working, "
                   f"{len(self.long_term_memory)} long-term")
 
         except FileNotFoundError:
-            print("[MEMORY LAYERS] No existing layers found, starting fresh")
+            print(f"{etag('MEMORY LAYERS')}  No existing layers found, starting fresh")
             self._last_file_mtime = None
         except Exception as e:
-            print(f"[MEMORY LAYERS] Error loading layers: {e}")
+            print(f"{etag('MEMORY LAYERS')} Error loading layers: {e}")
 
     def _save_to_disk(self):
         """Save memory layers to JSON (TWO-TIER ONLY).
@@ -179,7 +189,7 @@ class MemoryLayerManager:
         Uses doc_id + type as unique identifier for document memories,
         and timestamp + fact hash for other memories.
         """
-        print("[MEMORY LAYERS] External file modification detected - merging changes...")
+        print(f"{etag('MEMORY LAYERS')}  External file modification detected - merging changes...")
 
         try:
             with open(self.file_path, "r", encoding="utf-8") as f:
@@ -224,12 +234,12 @@ class MemoryLayerManager:
                     new_longterm += 1
 
             if new_working > 0 or new_longterm > 0:
-                print(f"[MEMORY LAYERS] Merged {new_working} working + {new_longterm} long-term memories from external changes")
+                print(f"{etag('MEMORY LAYERS')} Merged {new_working} working + {new_longterm} long-term memories from external changes")
             else:
-                print("[MEMORY LAYERS] No new memories to merge from external changes")
+                print(f"{etag('MEMORY LAYERS')}  No new memories to merge from external changes")
 
         except Exception as e:
-            print(f"[MEMORY LAYERS] Error merging external changes: {e}")
+            print(f"{etag('MEMORY LAYERS')} Error merging external changes: {e}")
             import traceback
             traceback.print_exc()
 
@@ -300,7 +310,7 @@ class MemoryLayerManager:
         """
         # Validate layer
         if layer not in ["working", "long_term"]:
-            print(f"[MEMORY LAYERS ERROR] Invalid layer '{layer}' - must be 'working' or 'long_term'")
+            print(f"{etag('MEMORY LAYERS ERROR')} Invalid layer '{layer}' - must be 'working' or 'long_term'")
             layer = "working"  # Default to working
 
         # Ensure memory has required metadata
@@ -330,8 +340,8 @@ class MemoryLayerManager:
             existing = self._find_similar_longterm_fact(fact, entities, threshold=0.7)
 
             if existing:
-                print(f"[MEMORY DEDUP] Skipping duplicate long-term fact: {fact[:60]}...")
-                print(f"[MEMORY DEDUP] Similar to existing: {existing.get('fact', existing.get('user_input', ''))[:60]}...")
+                print(f"{etag('MEMORY DEDUP')} Skipping duplicate long-term fact: {fact[:60]}...")
+                print(f"{etag('MEMORY DEDUP')} Similar to existing: {existing.get('fact', existing.get('user_input', ''))[:60]}...")
                 return  # Don't add duplicate
 
         # Add to appropriate layer
@@ -345,7 +355,7 @@ class MemoryLayerManager:
         self.turn_stats['added'] += 1
 
         if VERBOSE_DEBUG:
-            print(f"[MEMORY LAYERS] Added to {layer}: {memory.get('fact', memory.get('user_input', ''))[:60]}...")
+            print(f"{etag('MEMORY LAYERS')} Added to {layer}: {memory.get('fact', memory.get('user_input', ''))[:60]}...")
 
         self._save_to_disk()
 
@@ -363,7 +373,7 @@ class MemoryLayerManager:
             self.turn_stats['promoted_to_longterm'] += 1
 
             if VERBOSE_DEBUG:
-                print(f"[MEMORY LAYERS] Aged to long-term: {oldest_mem.get('fact', oldest_mem.get('user_input', ''))[:40]}...")
+                print(f"{etag('MEMORY LAYERS')} Aged to long-term: {oldest_mem.get('fact', oldest_mem.get('user_input', ''))[:40]}...")
 
     def access_memory(self, memory: Dict[str, Any]):
         """
@@ -546,7 +556,7 @@ class MemoryLayerManager:
 
         # CRITICAL: Document imports should NEVER get narrative synthesis
         if memory.get("source_document") or memory.get("is_imported") or memory.get("doc_id"):
-            print(f"[NARRATIVE] Skipping document import - narratives are for experiences, not readings")
+            print(f"{etag('NARRATIVE')} Skipping document import - narratives are for experiences, not readings")
             return False
 
         importance = memory.get("importance_score", 0)
@@ -568,7 +578,7 @@ class MemoryLayerManager:
         # Check for existing similar narrative (prevents duplicates)
         existing = self._find_similar_narrative(entities, threshold=0.6)
         if existing:
-            print(f"[NARRATIVE] Skipping duplicate - similar narrative already exists: {existing.get('narrative_summary', '')[:60]}...")
+            print(f"{etag('NARRATIVE')} Skipping duplicate - similar narrative already exists: {existing.get('narrative_summary', '')[:60]}...")
             return False
 
         return True
@@ -629,14 +639,14 @@ class MemoryLayerManager:
             Narrative summary string (or empty if generation fails)
         """
         if not client or not MODEL:
-            print("[NARRATIVE] LLM not available, skipping synthesis")
+            print(f"{etag('NARRATIVE')}  LLM not available, skipping synthesis")
             return ""
 
         # Find related memories
         related_memories = self._find_related_memories(memory, max_related=5)
 
         if not related_memories:
-            print("[NARRATIVE] No related memories found, skipping synthesis")
+            print(f"{etag('NARRATIVE')}  No related memories found, skipping synthesis")
             return ""
 
         # Collect facts from related memories
@@ -693,11 +703,11 @@ Output ONLY the narrative summary, no preamble."""
             )
 
             narrative = resp.content[0].text.strip()
-            print(f"[NARRATIVE] Synthesized: {narrative[:80]}...")
+            print(f"{etag('NARRATIVE')} Synthesized: {narrative[:80]}...")
             return narrative
 
         except Exception as e:
-            print(f"[NARRATIVE SYNTHESIS ERROR] {e}")
+            print(f"{etag('NARRATIVE SYNTHESIS ERROR')} {e}")
             return ""
 
     def calculate_importance_from_ultramap(self, emotional_cocktail: Dict[str, Any], emotion_tags: List[str]) -> float:
@@ -845,7 +855,7 @@ Output ONLY the narrative summary, no preamble."""
         # Add to layer
         self.add_memory(memory, layer=target_layer)
 
-        print(f"[MIGRATION] Migrated to {target_layer}: {memory.get('fact', '')[:40]}... (age: {age_days:.1f}d)")
+        print(f"{etag('MIGRATION')} Migrated to {target_layer}: {memory.get('fact', '')[:40]}... (age: {age_days:.1f}d)")
 
     def apply_user_correction(
         self,
@@ -921,7 +931,7 @@ Output ONLY the narrative summary, no preamble."""
 
         total_marked = result["working_marked"] + result["longterm_marked"]
         if total_marked > 0:
-            print(f"[MEMORY LAYERS CORRECTION] Marked {total_marked} memories as containing corrected value '{wrong_value}'")
+            print(f"{etag('MEMORY LAYERS CORRECTION')} Marked {total_marked} memories as containing corrected value '{wrong_value}'")
             self._save_to_disk()
 
         return result

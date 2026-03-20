@@ -10,6 +10,13 @@ import os
 from typing import Dict, List, Any, Optional, Set, Tuple
 from datetime import datetime
 
+# Entity-prefixed logging
+try:
+    from shared.entity_log import etag
+except ImportError:
+    def etag(tag): return f"[{tag}]"
+
+
 
 class Entity:
     """
@@ -172,9 +179,9 @@ class Entity:
 
         # Log attribute addition (show both original and normalized if different)
         if value != normalized_value:
-            print(f"[ENTITY] {self.canonical_name}.{attribute} = {normalized_value} (normalized from: {value}) (turn {turn}, source: {source})")
+            print(f"{etag('ENTITY')} {self.canonical_name}.{attribute} = {normalized_value} (normalized from: {value}) (turn {turn}, source: {source})")
         else:
-            print(f"[ENTITY] {self.canonical_name}.{attribute} = {value} (turn {turn}, source: {source})")
+            print(f"{etag('ENTITY')} {self.canonical_name}.{attribute} = {value} (turn {turn}, source: {source})")
 
     def get_current_value(self, attribute: str) -> Optional[Any]:
         """Get most recent value for an attribute."""
@@ -333,7 +340,7 @@ class Entity:
             # All last N mentions are the same value - RESOLVED
             canonical_value = last_n_values[0]
             if not suppress_logging:
-                print(f"[CONTRADICTION RESOLVED] {self.canonical_name}.{attr} = {canonical_value} (consistent for {threshold} turns) [RELEVANT]")
+                print(f"{etag('CONTRADICTION RESOLVED')} {self.canonical_name}.{attr} = {canonical_value} (consistent for {threshold} turns) [RELEVANT]")
 
             # Track resolution
             self.contradiction_resolution[attr] = {
@@ -360,7 +367,7 @@ class Entity:
             # If dominant value mentioned 3x more, treat as canonical
             if dominant_count >= second_count * 3 and dominant_count >= threshold:
                 if not suppress_logging:
-                    print(f"[CONTRADICTION RESOLVED] {self.canonical_name}.{attr} = {dominant_value} (dominant: {dominant_count}x vs {second_count}x) [RELEVANT]")
+                    print(f"{etag('CONTRADICTION RESOLVED')} {self.canonical_name}.{attr} = {dominant_value} (dominant: {dominant_count}x vs {second_count}x) [RELEVANT]")
 
                 # Track resolution
                 self.contradiction_resolution[attr] = {
@@ -719,7 +726,9 @@ class EntityGraph:
     Performs entity resolution (matching mentions to canonical entities).
     """
 
-    def __init__(self, file_path: str = "memory/entity_graph.json"):
+    def __init__(self, file_path: str = None):
+        if file_path is None:
+            file_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "memory", "entity_graph.json")
         self.file_path = file_path
         self.entities: Dict[str, Entity] = {}  # canonical_name -> Entity
         self.relationships: Dict[str, Relationship] = {}  # relationship_id -> Relationship
@@ -772,11 +781,11 @@ class EntityGraph:
                 for rel_id, rel_data in data.get("relationships", {}).items():
                     self.relationships[rel_id] = Relationship.from_dict(rel_data)
 
-                print(f"[ENTITY GRAPH] Loaded {len(self.entities)} entities, {len(self.relationships)} relationships")
+                print(f"{etag('ENTITY GRAPH')} Loaded {len(self.entities)} entities, {len(self.relationships)} relationships")
         except FileNotFoundError:
-            print("[ENTITY GRAPH] No existing graph found, starting fresh")
+            print(f"{etag('ENTITY GRAPH')}  No existing graph found, starting fresh")
         except Exception as e:
-            print(f"[ENTITY GRAPH] Error loading graph: {e}")
+            print(f"{etag('ENTITY GRAPH')} Error loading graph: {e}")
 
     def _save_to_disk(self):
         """Save entity graph to JSON."""
@@ -933,7 +942,7 @@ class EntityGraph:
         self.entities[name] = entity
         self.canonical_mapping[normalized] = name  # Map normalized -> canonical
 
-        print(f"[ENTITY GRAPH] Created new entity: {name} (type: {entity_type})")
+        print(f"{etag('ENTITY GRAPH')} Created new entity: {name} (type: {entity_type})")
 
         self._save_to_disk()
         return entity
@@ -960,7 +969,7 @@ class EntityGraph:
         if entity2_name in self.entities:
             self.entities[entity2_name].relationships.append(rel_id)
 
-        print(f"[ENTITY GRAPH] Added relationship: {entity1_name} {relation_type} {entity2_name}")
+        print(f"{etag('ENTITY GRAPH')} Added relationship: {entity1_name} {relation_type} {entity2_name}")
 
         self._save_to_disk()
 
@@ -1047,8 +1056,8 @@ class EntityGraph:
                 # Visual contains this entity
                 self.add_relationship(visual_id, "contains", entity_name, turn, "system")
 
-        print(f"[ENTITY GRAPH] Recorded visual memory: {visual_id}")
-        print(f"[ENTITY GRAPH] Visual valence: {emotional_valence:.2f}, entities: {entities_detected}")
+        print(f"{etag('ENTITY GRAPH')} Recorded visual memory: {visual_id}")
+        print(f"{etag('ENTITY GRAPH')} Visual valence: {emotional_valence:.2f}, entities: {entities_detected}")
 
         self._save_to_disk()
         return visual_id
@@ -1118,7 +1127,7 @@ class EntityGraph:
         if entity_filter is not None:
             entities_to_check = [e for e in self.entities.values() if e.canonical_name in entity_filter]
             if not suppress_logging:
-                print(f"[ENTITY FILTER] Checking {len(entities_to_check)}/{len(self.entities)} entities for contradictions")
+                print(f"{etag('ENTITY FILTER')} Checking {len(entities_to_check)}/{len(self.entities)} entities for contradictions")
 
         for entity in entities_to_check:
             contradictions = entity.detect_contradictions(current_turn, resolution_threshold, suppress_logging=suppress_logging)
@@ -1146,7 +1155,7 @@ class EntityGraph:
                 total_pruned += pruned
 
         if total_pruned > 0:
-            print(f"[ENTITY GRAPH] Pruned {total_pruned} old attribute entries (>{max_age_days} days) from {len(pruned_by_entity)} entities")
+            print(f"{etag('ENTITY GRAPH')} Pruned {total_pruned} old attribute entries (>{max_age_days} days) from {len(pruned_by_entity)} entities")
             self._save_to_disk()
 
         return pruned_by_entity
@@ -1286,7 +1295,7 @@ class EntityGraph:
             turn=turn,
             source="inferred"
         )
-        print(f"[GOAL TRACKING] {entity_name} goal '{goal_value}' → {status}")
+        print(f"{etag('GOAL TRACKING')} {entity_name} goal '{goal_value}' → {status}")
         self._save_to_disk()
 
     def get_active_goals(self, entity_name: str) -> List[Dict[str, Any]]:
@@ -1394,7 +1403,7 @@ class EntityGraph:
                 f"(confidence: {confidence})"
             )
 
-            print(f"[ENTITY GRAPH] {result['message']}")
+            print(f"{etag('ENTITY GRAPH')} {result['message']}")
             return result
 
         # Same owner - reinforce existing relationship
@@ -1452,7 +1461,7 @@ class EntityGraph:
                 result["entities_searched"].append(ent_name)
 
         if not matching_entities:
-            print(f"[USER CORRECTION] No entities found matching '{entity_name}'")
+            print(f"{etag('USER CORRECTION')} No entities found matching '{entity_name}'")
             return result
 
         # For each matching entity, find and correct attributes
@@ -1467,7 +1476,7 @@ class EntityGraph:
                     value_str = str(value).lower()
                     if wrong_value_lower in value_str:
                         # Found a value to correct!
-                        print(f"[USER CORRECTION] Found: {entity.canonical_name}.{attr_name} = '{value}' (source: {source})")
+                        print(f"{etag('USER CORRECTION')} Found: {entity.canonical_name}.{attr_name} = '{value}' (source: {source})")
 
                         # Add the corrected value from user
                         entity.add_attribute(
@@ -1496,13 +1505,13 @@ class EntityGraph:
                             "new_value": correct_value
                         })
 
-                        print(f"[USER CORRECTION] Applied: {entity.canonical_name}.{attr_name} = '{correct_value}' (user correction)")
+                        print(f"{etag('USER CORRECTION')} Applied: {entity.canonical_name}.{attr_name} = '{correct_value}' (user correction)")
 
         if result["corrections_applied"] > 0:
             self._save_to_disk()
-            print(f"[USER CORRECTION] Total: {result['corrections_applied']} corrections applied")
+            print(f"{etag('USER CORRECTION')} Total: {result['corrections_applied']} corrections applied")
         else:
-            print(f"[USER CORRECTION] No matching attributes found with value '{wrong_value}'")
+            print(f"{etag('USER CORRECTION')} No matching attributes found with value '{wrong_value}'")
 
         return result
 

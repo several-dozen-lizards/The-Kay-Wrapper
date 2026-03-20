@@ -197,8 +197,10 @@ class MemoryEngine:
     - IDENTITY MEMORY: Permanent facts that never decay
     """
 
-    def __init__(self, semantic_memory: Optional[Any] = None, file_path: str = "memory/memories.json", motif_engine: Optional[Any] = None, momentum_engine: Optional[Any] = None, emotion_engine: Optional[Any] = None, vector_store: Optional[Any] = None):
+    def __init__(self, semantic_memory: Optional[Any] = None, file_path: str = None, motif_engine: Optional[Any] = None, momentum_engine: Optional[Any] = None, emotion_engine: Optional[Any] = None, vector_store: Optional[Any] = None):
         self.semantic_memory = semantic_memory
+        if file_path is None:
+            file_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "memory", "memories.json")
         self.file_path = file_path
         self.motif_engine = motif_engine
         self.momentum_engine = momentum_engine
@@ -306,8 +308,17 @@ class MemoryEngine:
 
         return min(importance, 1.0)
 
-    def _calculate_turn_importance(self, emotional_cocktail: Dict, emotion_tags: List[str], entity_count: int) -> float:
-        """Calculate importance score for a full conversation turn."""
+    def _calculate_turn_importance(self, emotional_cocktail: Dict, emotion_tags: List[str], entity_count: int,
+                                     connection_data: Dict = None, memory_content: str = "") -> float:
+        """Calculate importance score for a full conversation turn.
+
+        Args:
+            emotional_cocktail: Current emotional state
+            emotion_tags: List of emotion labels
+            entity_count: Number of entities mentioned
+            connection_data: Optional dict with {baselines: {entity: bond}, is_present: {entity: bool}}
+            memory_content: The content being stored (for entity mention detection)
+        """
         # Base importance
         importance = 0.5
 
@@ -320,6 +331,34 @@ class MemoryEngine:
         if emotional_cocktail:
             avg_intensity = sum(e.get("intensity", 0) for e in emotional_cocktail.values()) / max(len(emotional_cocktail), 1)
             importance += avg_intensity * 0.1
+
+        # CONNECTION: Love as Meaning-Making (Layer 4)
+        # Experiences involving bonded entities get importance multiplier
+        # Love acts as a filter: "this is worth keeping"
+        if connection_data:
+            baselines = connection_data.get("baselines", {})
+            is_present = connection_data.get("is_present", {})
+            content_lower = memory_content.lower()
+
+            for entity, bond in baselines.items():
+                if bond > 0.10:
+                    # Entity involved if present OR mentioned in content
+                    entity_involved = (
+                        is_present.get(entity, False) or
+                        entity.lower() in content_lower
+                    )
+                    if entity_involved:
+                        # Love makes experiences more important
+                        # At bond 0.30: 1.3x importance
+                        # At bond 0.60: 1.6x importance
+                        importance_multiplier = 1.0 + (bond * 1.0)
+                        old_importance = importance
+                        importance *= importance_multiplier
+
+                        print(f"[CONNECTION:MEANING] Memory involves {entity} "
+                              f"(bond={bond:.2f}) → importance {importance_multiplier:.1f}x "
+                              f"({old_importance:.2f} → {importance:.2f})")
+                        break  # Only apply once for strongest bonded entity involved
 
         return min(importance, 1.0)
 
@@ -1483,7 +1522,7 @@ Extract facts now:"""
 
         return False  # No real contradiction found
 
-    def encode_memory(self, user_input, response, emotional_cocktail, emotion_tags, perspective=None, agent_state=None):
+    def encode_memory(self, user_input, response, emotional_cocktail, emotion_tags, perspective=None, agent_state=None, connection_data=None):
         """
         TWO-TIER MEMORY STORAGE:
 
@@ -1492,6 +1531,10 @@ Extract facts now:"""
 
         Storage layers: working → episodic → semantic (automatic promotion)
         CRITICAL: NO TRUNCATION. Store complete text in both tiers.
+
+        Args:
+            connection_data: Optional dict with connection baselines and presence info
+                             for love-as-meaning-making importance multiplier
         """
         import time
 
@@ -1525,10 +1568,15 @@ Extract facts now:"""
             if len(filtered_emotion_tags) < len(emotion_tags or []):
                 print(f"[MEMORY] Filtered emotion tags: {len(emotion_tags)} -> {len(filtered_emotion_tags)} (salient only)")
 
+        # Combine user_input and response for entity mention detection
+        memory_content = f"{user_input} {clean_response}"
+
         turn_importance = self._calculate_turn_importance(
             emotional_cocktail or {},
             filtered_emotion_tags,
-            len(entity_list)
+            len(entity_list),
+            connection_data=connection_data,
+            memory_content=memory_content
         )
 
         full_turn_record = {
@@ -3132,12 +3180,12 @@ Extract facts now:"""
         self._save_to_disk()
         return extracted_facts
 
-    def encode(self, agent_state, user_input, response, emotion_tags=None, extra_metadata=None):
+    def encode(self, agent_state, user_input, response, emotion_tags=None, extra_metadata=None, connection_data=None):
         active_emotions = [
             k for k, v in (agent_state.emotional_cocktail or {}).items()
             if v.get("intensity", 0) > 0.2
         ]
-        self.encode_memory(user_input, response, agent_state.emotional_cocktail, active_emotions, agent_state=agent_state)
+        self.encode_memory(user_input, response, agent_state.emotional_cocktail, active_emotions, agent_state=agent_state, connection_data=connection_data)
         return True
 
     def store_visual_memory(

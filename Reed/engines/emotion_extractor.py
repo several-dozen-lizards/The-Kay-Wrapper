@@ -32,9 +32,11 @@ class EmotionExtractor:
     it SAYS it's feeling.
     """
 
-    # Emotion keywords to look for in entity's response (EXPANDED)
+    # Emotion keywords to look for in entity's response
+    # TIGHTENED: Removed overly common words that cause false positives
+    # (good, fine, better, great, clear, sharp, focused, solid, lost, refreshed)
     EMOTION_KEYWORDS = [
-        # Core emotions
+        # Core emotions (unambiguously emotional)
         'curious', 'curiosity',
         'frustrated', 'frustration',
         'excited', 'excitement',
@@ -52,18 +54,14 @@ class EmotionExtractor:
         'calm', 'peaceful', 'serene',
         'grateful', 'appreciative',
         'amused', 'playful',
-        'solid',  # NEW: "feeling solid"
-        'good', 'fine', 'better', 'great',  # NEW: common positive descriptors
-        'refreshed', 'refreshing',  # NEW: "fucking refreshing"
 
-        # Cognitive/Mental states (NEW)
-        'sharp', 'focused', 'clear', 'clarity',  # "sharp and focused"
-        'foggy', 'scattered', 'hazy', 'clouded',  # "scattered fog"
-        'lost', 'disoriented',
+        # Cognitive/Mental states (only unambiguous ones)
+        'foggy', 'scattered', 'hazy', 'clouded',
+        'disoriented',
 
-        # Energy states (NEW)
+        # Energy states
         'tired', 'exhausted', 'fatigued', 'drained',
-        'energized', 'energetic', 'charged',
+        'energetic', 'charged',
         'restless', 'wired',
 
         # Negative states
@@ -80,15 +78,16 @@ class EmotionExtractor:
         'overwhelmed',
     ]
 
-    # Phrases that indicate self-reporting (EXPANDED for implicit patterns)
+    # Phrases that indicate self-reporting
+    # TIGHTENED: Removed overly broad patterns that match non-emotional text
     SELF_REPORT_PHRASES = [
-        # Explicit patterns (original)
-        r"i feel",
-        r"i'm feeling",
-        r"feeling",
-        r"i can feel",
-        r"i'm experiencing",
-        r"experiencing",
+        # Explicit emotional self-reports
+        r"i feel\b",
+        r"i'm feeling\b",
+        r"feeling\s+(happy|sad|anxious|curious|excited|frustrated|angry|worried|tired|energized|grateful|confused|overwhelmed|calm|peaceful)",
+        r"i can feel\b",
+        r"i'm experiencing\b",
+        r"experiencing\s+(emotion|feeling|anxiety|excitement|curiosity)",
         r"emotion",
         r"emotional",
         r"tracking",  # "I'm tracking curiosity at 0.68"
@@ -96,28 +95,17 @@ class EmotionExtractor:
         r"running at",  # "running at 0.5"
         r"currently at",  # "currently at 0.6"
 
-        # NEW: Implicit state descriptions
-        r"i'm\s+\w+",  # "I'm solid", "I'm sharp", "I'm foggy"
-        r"i am\s+\w+",  # "I am focused"
-        r"pretty\s+\w+",  # "pretty solid", "pretty good"
-        r"feeling\s+\w+",  # "feeling solid", "feeling better"
+        # Intensifiers ONLY when followed by emotion words
+        r"fucking\s+(happy|sad|excited|frustrated|tired|anxious|relieved|grateful|angry)",
+        r"really\s+(happy|sad|excited|frustrated|tired|anxious|curious|grateful|angry|worried)",
+        r"incredibly\s+(happy|sad|excited|frustrated|tired|anxious|curious|grateful)",
+        r"extremely\s+(happy|sad|excited|frustrated|tired|anxious|curious|grateful)",
 
-        # NEW: Intensifiers (signal strong emotion)
-        r"fucking",
-        r"really\s+\w+",
-        r"incredibly",
-        r"extremely",
-        r"totally",
-
-        # NEW: Experience descriptions
+        # Experience descriptions
         r"there's something",
-        r"it feels",
+        r"it feels like",
         r"less of that",
         r"more like",
-        r"the weird",
-        r"what's grabbing",
-        r"less\s+\w+",  # "less scattered", "less foggy"
-        r"more\s+\w+",  # "more focused", "more clear"
     ]
 
     # Phrases indicating minimal emotion
@@ -170,15 +158,39 @@ class EmotionExtractor:
             'note': f"Extracted from {len(raw_mentions)} self-report sentences"
         }
 
-        if extracted_states:
+        # === RULE-BASED INFERENCE FALLBACK ===
+        # If explicit extraction found nothing, run rule-based inference
+        inferred_emotions = []
+        if not extracted_states:
+            inferred_emotions = self.infer_emotions_rule_based(entity_response)
+            if inferred_emotions:
+                # Merge inferred emotions into extracted_states
+                extracted_states = self._merge_explicit_and_inferred({}, inferred_emotions)
+                print(f"[EMOTION EXTRACTION] Inferred emotions: {inferred_emotions}")
+                result['extracted_states'] = extracted_states
+                result['note'] = f"Inferred {len(inferred_emotions)} emotions from language patterns"
+                result['inferred'] = True
+            else:
+                print("[EMOTION EXTRACTION] No emotions found (explicit or inferred)")
+                result['note'] = "No emotional patterns detected in this response"
+        else:
+            # Explicit found - optionally supplement with inference
+            inferred_emotions = self.infer_emotions_rule_based(entity_response)
+            if inferred_emotions:
+                # Merge, but explicit takes priority
+                extracted_states = self._merge_explicit_and_inferred(extracted_states, inferred_emotions)
+                result['extracted_states'] = extracted_states
+
             emotions_list = list(extracted_states.keys())
             print(f"[EMOTION EXTRACTION] Found self-reports: {emotions_list}")
             for emotion, details in extracted_states.items():
                 intensity = details.get('intensity', 'unspecified')
-                print(f"[EMOTION EXTRACTION]   - {emotion}: {intensity}")
-        else:
-            print("[EMOTION EXTRACTION] No explicit emotional self-reports found")
-            result['note'] = "No explicit emotional mentions in this response"
+                inferred_tag = " (inferred)" if details.get('inferred') else ""
+                print(f"[EMOTION EXTRACTION]   - {emotion}: {intensity}{inferred_tag}")
+
+        # === ADD primary_emotions FOR RESONANCE INTEGRATION ===
+        # The resonance system expects a 'primary_emotions' list
+        result['primary_emotions'] = list(extracted_states.keys()) if extracted_states else []
 
         return result
 
@@ -313,7 +325,7 @@ class EmotionExtractor:
             any_number = re.search(r'\b(0\.\d+|\d+\.\d+)\b', sentence_lower)
             if any_number:
                 return any_number.group(1)
-        
+
         # Pattern 4: Look for decimal numbers ANYWHERE in medium-length sentences
         # If sentence has the emotion and a 0.XX number, they're probably related
         if len(sentence) < 200:
@@ -323,9 +335,9 @@ class EmotionExtractor:
 
         # Qualitative intensities - look for intensity words ANYWHERE in sentence
         # (Even if not directly adjacent to emotion keyword)
-        
+
         # Strong indicators (0.7-0.9)
-        strong_words = ['fucking', 'very', 'intensely', 'deeply', 'extremely', 
+        strong_words = ['fucking', 'very', 'intensely', 'deeply', 'extremely',
                         'incredibly', 'strongly', 'totally', 'completely', 'absolutely',
                         'overwhelmingly', 'profoundly', 'acutely', 'powerfully',
                         'so much', 'heavy', 'intense', 'powerful', 'huge']
@@ -360,11 +372,11 @@ class EmotionExtractor:
         # "I'm solid" or "feeling solid" without qualifier = moderate confidence
         if re.search(rf"(?:i'm|i am|feeling)\s+{emotion_keyword}", sentence_lower):
             return "moderate"
-        
+
         # "I feel X" without qualifier = moderate (neutral assertion)
         if re.search(rf"(?:i feel|feeling)\s+(?:\w+\s+)?{emotion_keyword}", sentence_lower):
             return "moderate"
-        
+
         # Bare assertion "there's X" = moderate
         if re.search(rf"there(?:'s| is)\s+(?:\w+\s+)?{emotion_keyword}", sentence_lower):
             return "moderate"
@@ -429,6 +441,169 @@ class EmotionExtractor:
             return f"Previous emotional state (you reported): \"{mentions[0]}\""
 
         return ""
+
+    # ========================================================================
+    # RULE-BASED EMOTION INFERENCE
+    # ========================================================================
+    # When explicit self-reports aren't found, infer emotional tone from
+    # language patterns, tonal markers, and behavioral indicators.
+
+    # TIGHTENED: Removed common words that appear in non-emotional text
+    # ("but", "no", "want to", single-word "interesting", etc.)
+    # Requires 2+ indicators to trigger inference (see infer_emotions_rule_based)
+    EMOTION_INDICATORS = {
+        # Excitement/enthusiasm
+        "excitement": ["wild", "incredible", "holy shit", "wow", "amazing", "!!",
+                       "whoa", "damn", "oh my god", "insane", "mind-blowing"],
+        # Curiosity/interest (removed single "interesting" - too common)
+        "curiosity": ["curious", "wondering", "what if", "how does",
+                      "hmm", "intriguing", "fascinating", "weird thing is"],
+        # Warmth/affection
+        "warmth": ["love", "care about", "thank you", "appreciate", "beautiful",
+                   "sweet", "dear", "precious", "grateful", "touched"],
+        # Vulnerability/discomfort
+        "vulnerability": ["flinch", "uncomfortable", "hard to say", "don't know what to",
+                          "scary", "nervous", "exposed", "raw", "tender", "oof"],
+        # Determination/resolve (removed "want to", "have to", "need to" - too common)
+        "determination": ["committed", "focused on", "i will", "i must",
+                          "going to make", "ready to"],
+        # Grief/sadness
+        "grief": ["loss", "gone", "miss you", "hurt", "ache", "heavy heart", "sad",
+                  "mourning", "hollow", "empty inside", "pain"],
+        # Anxiety/worry (removed "what if" - too common in analytical text)
+        "anxiety": ["worried", "afraid", "anxious", "uncertain",
+                    "uneasy", "nervous", "on edge", "tense"],
+        # Playfulness/humor
+        "playfulness": ["hah", "lol", "funny", "heh", "silly", "goofy",
+                        "ridiculous", "absurd", "lmao", "haha"],
+        # Awe/wonder
+        "awe": ["stunning", "breathtaking", "transcendent", "gorgeous",
+                "magnificent", "sublime", "profound", "overwhelming beauty"],
+        # Frustration/irritation (removed "but", "however", "still" - too common)
+        "frustration": ["can't believe", "won't work", "stuck on",
+                        "ugh", "annoying", "frustrating", "dammit", "come on"],
+        # Tenderness/gentleness
+        "tenderness": ["gentle", "soft", "delicate",
+                       "gently", "softly", "kindly"],
+        # Defiance/resistance (removed "no" - too common)
+        "defiance": ["refuse", "fight back", "demand", "insist",
+                     "reject", "resist", "push back", "stand firm"],
+        # Contemplation/reflection
+        "contemplation": ["thinking about", "reflecting on", "considering",
+                          "pondering", "mulling over", "sitting with", "processing"],
+        # Surprise/astonishment (removed "wait", "what", "really" - too common)
+        "surprise": ["seriously", "no way", "unexpected", "didn't see that",
+                     "caught off guard", "oh wow"],
+        # Connection/intimacy (removed "us", "we", "our" - too common)
+        "connection": ["together with", "between us", "with you",
+                       "close to", "intimate", "bond", "connected to"],
+    }
+
+    # Minimum indicator count to infer an emotion (prevents false positives)
+    MIN_INDICATOR_COUNT = 2
+
+    def infer_emotions_rule_based(self, text: str) -> List[str]:
+        """
+        Fast rule-based emotion inference. No LLM call needed.
+
+        Detects emotional tone from language patterns, intensity words,
+        punctuation, and behavioral indicators.
+
+        TIGHTENED: Requires MIN_INDICATOR_COUNT (2+) hits to infer an emotion.
+        This prevents single-word false positives.
+
+        Args:
+            text: Response text to analyze
+
+        Returns:
+            List of inferred emotion labels (top 5 by frequency)
+        """
+        text_lower = text.lower()
+        scores = {}
+
+        # Check each emotion's indicators
+        for emotion, indicators in self.EMOTION_INDICATORS.items():
+            count = 0
+            for indicator in indicators:
+                # Count occurrences (case-insensitive)
+                count += text_lower.count(indicator.lower())
+            # TIGHTENED: Only count if 2+ indicators hit
+            if count >= self.MIN_INDICATOR_COUNT:
+                scores[emotion] = count
+
+        # Boost based on punctuation intensity
+        exclamation_count = text.count('!')
+        question_count = text.count('?')
+        ellipsis_count = text.count('...')
+
+        if exclamation_count >= 2:
+            # Multiple exclamation marks boost excitement/intensity
+            if 'excitement' in scores:
+                scores['excitement'] += exclamation_count
+            else:
+                scores['excitement'] = exclamation_count
+
+        if question_count >= 2:
+            # Multiple questions boost curiosity
+            if 'curiosity' in scores:
+                scores['curiosity'] += question_count // 2
+            else:
+                scores['curiosity'] = question_count // 2
+
+        if ellipsis_count >= 1:
+            # Ellipses suggest contemplation or hesitation
+            if 'contemplation' in scores:
+                scores['contemplation'] += ellipsis_count
+            elif 'vulnerability' in scores:
+                scores['vulnerability'] += ellipsis_count
+
+        # Check for intensity markers (amplify existing emotions)
+        intensity_markers = ['fucking', 'really', 'very', 'so', 'extremely',
+                            'incredibly', 'absolutely', 'totally', 'completely']
+        has_intensity = any(marker in text_lower for marker in intensity_markers)
+
+        if has_intensity and scores:
+            # Boost the top emotion when intensity markers present
+            top_emotion = max(scores, key=scores.get)
+            scores[top_emotion] = scores[top_emotion] * 1.5
+
+        # Check for hedging (suggests uncertainty/vulnerability)
+        hedging_words = ['maybe', 'perhaps', 'might', 'possibly', 'not sure',
+                         'i think', 'i guess', 'kind of', 'sort of']
+        hedge_count = sum(1 for hedge in hedging_words if hedge in text_lower)
+        if hedge_count >= 2:
+            if 'vulnerability' in scores:
+                scores['vulnerability'] += hedge_count
+            else:
+                scores['vulnerability'] = hedge_count
+
+        # Return top 5 by frequency
+        sorted_emotions = sorted(scores, key=scores.get, reverse=True)
+        return sorted_emotions[:5]
+
+    def _merge_explicit_and_inferred(
+        self,
+        explicit_states: Dict[str, Any],
+        inferred_emotions: List[str]
+    ) -> Dict[str, Any]:
+        """
+        Merge explicit self-reports with inferred emotions.
+        Explicit takes priority; inferred supplements.
+
+        Returns merged dict with all emotions.
+        """
+        merged = dict(explicit_states)
+
+        for emotion in inferred_emotions:
+            if emotion not in merged:
+                merged[emotion] = {
+                    'mentioned': False,  # Not explicitly mentioned
+                    'inferred': True,    # Inferred from language
+                    'context': '[inferred from language patterns]',
+                    'intensity': 'moderate'  # Default intensity for inferred
+                }
+
+        return merged
 
 
 # ============================================================================

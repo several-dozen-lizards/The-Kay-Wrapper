@@ -7,6 +7,7 @@ Focuses on: behavioral signatures, emotional rhythms, connection landmarks.
 """
 
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 import logging
@@ -20,7 +21,12 @@ class RelationshipMemory:
     Focuses on: behavioral signatures, emotional rhythms, connection landmarks.
     """
 
-    def __init__(self, data_dir="data/relationship"):
+    def __init__(self, data_dir=None):
+        if data_dir is None:
+            data_dir = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "data", "relationship"
+            )
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(parents=True, exist_ok=True)
 
