@@ -480,8 +480,8 @@ class NexusAutonomousProcessor:
 
         # Paint directories per entity
         self._painters: Dict[str, EntityPainter] = {
-            "reed": EntityPainter("D:/ChristinaStuff/ReedMemory/Paint"),
-            "kay": EntityPainter("D:/ChristinaStuff/AlphaKayZero/Paint"),
+            "reed": EntityPainter("D:/Wrappers/ReedMemory/Paint"),
+            "kay": EntityPainter("D:/Wrappers/Kay/Paint"),
         }
 
         # Load last sessions from disk

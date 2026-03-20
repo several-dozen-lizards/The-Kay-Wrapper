@@ -7,7 +7,7 @@ Complete curiosity mutual exclusion fix:
 
 import sys
 
-filepath = r"D:\ChristinaStuff\AlphaKayZero\autonomous_ui_integration.py"
+filepath = r"D:\Wrappers\Kay\autonomous_ui_integration.py"
 
 try:
     with open(filepath, 'r', encoding='utf-8') as f:
@@ -101,7 +101,7 @@ except Exception as e:
 # Now update the UI file to make button toggle
 print("\n[PHASE 2] Updating autonomous_ui.py...")
 
-ui_filepath = r"D:\ChristinaStuff\AlphaKayZero\autonomous_ui.py"
+ui_filepath = r"D:\Wrappers\Kay\autonomous_ui.py"
 
 try:
     with open(ui_filepath, 'r', encoding='utf-8') as f:

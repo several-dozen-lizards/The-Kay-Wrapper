@@ -2,7 +2,7 @@
 
 This document identifies files, code fragments, and functions that are **NOT connected** to the main application flow (main.py or kay_ui.py).
 
-**Location**: D:\ChristinaStuff\alphakayzero
+**Location**: D:\Wrappers\alphakayzero
 
 ---
 
@@ -358,4 +358,4 @@ Entry Points (main.py, kay_ui.py)
 ---
 
 *Generated: December 2024*
-*Location: D:\ChristinaStuff\alphakayzero*
+*Location: D:\Wrappers\alphakayzero*

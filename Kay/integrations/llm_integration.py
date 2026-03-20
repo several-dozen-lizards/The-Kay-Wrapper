@@ -250,18 +250,18 @@ if TOOLS_AVAILABLE and client:
             Read a file from allowed directories on the local filesystem.
 
             Security whitelist:
-            - D:/ChristinaStuff/AlphaKayZero/ (and subdirectories)
-            - D:/ChristinaStuff/KayZero/ (and subdirectories)
+            - D:/Wrappers/Kay/ (and subdirectories)
+            - D:/Wrappers/KayZero/ (and subdirectories)
             """
             import os
             from pathlib import Path
 
             # Security whitelist - only allow reading from these directories
             ALLOWED_DIRS = [
-                "D:/ChristinaStuff/AlphaKayZero/",
-                "D:\\ChristinaStuff\\AlphaKayZero\\",
-                "D:/ChristinaStuff/KayZero/",
-                "D:\\ChristinaStuff\\KayZero\\",
+                "D:/Wrappers/Kay/",
+                "D:\\Wrappers\\AlphaKayZero\\",
+                "D:/Wrappers/KayZero/",
+                "D:\\Wrappers\\KayZero\\",
             ]
 
             # Normalize the path
@@ -278,7 +278,7 @@ if TOOLS_AVAILABLE and client:
                 if not is_allowed:
                     return {
                         "success": False,
-                        "error": f"Path not accessible. Only files within these directories are allowed: D:/ChristinaStuff/AlphaKayZero/, D:/ChristinaStuff/KayZero/"
+                        "error": f"Path not accessible. Only files within these directories are allowed: D:/Wrappers/Kay/, D:/Wrappers/KayZero/"
                     }
 
                 # Check if file exists
@@ -663,7 +663,7 @@ RE'S CORE FACTS (STABLE):
 - Makes music as Angry Wooden Soldiers
 - MO is radical honesty - believes real connection happens when people drop pretense
 - Married to John (solid, matches her weird, saw her at lowest and stayed)
-- Lives in Dayton, Ohio
+- Lives in [redacted]
 - Dogs: Chrome (door-dasher), Saga (orange rough collie, looks like Lassie), Dice (Head Cat)
 - Lost Sammie and Noodle (still grieves)
 - Pigeons: Gimpy (one-legged leader), Bob (paint-splatter wing), Fork (white tail feathers), Zebra (barred wing)

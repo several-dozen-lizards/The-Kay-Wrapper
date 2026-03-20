@@ -127,7 +127,7 @@ scratchpad_resolve(item_id=7, action="delete")
 
 Run the test script:
 ```bash
-cd d:\ChristinaStuff\AlphaKayZero
+cd d:\Wrappers\AlphaKayZero
 python tests\test_scratchpad.py
 ```
 

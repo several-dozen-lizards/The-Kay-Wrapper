@@ -408,7 +408,7 @@ class KayNexusClient(NexusAIClient):
         # --- Identity context ---
         parts.append(
             "[PRIVATE ROOM CONTEXT]\n"
-            "You are in a private 1:1 conversation with Re (Christina), your person.\n"
+            "You are in a private 1:1 conversation with Re, your person.\n"
             "This is an intimate space — no audience, no group dynamics.\n"
             "\n"
             "Key people in your world:\n"

@@ -11,7 +11,7 @@ Usage:
 
 Requires:
   - ANTHROPIC_API_KEY in environment or .env
-  - Reed's memory files at D:/ChristinaStuff/ReedMemory/
+  - Reed's memory files at D:/Wrappers/ReedMemory/
 """
 
 import asyncio
@@ -114,7 +114,7 @@ log = logging.getLogger("nexus.reed")
 # ---------------------------------------------------------------------------
 # Reed's identity and memory
 # ---------------------------------------------------------------------------
-REED_MEMORY_DIR = Path("D:/ChristinaStuff/ReedMemory")
+REED_MEMORY_DIR = Path("D:/Wrappers/ReedMemory")
 
 # ---------------------------------------------------------------------------
 # Paint tool — lets Reed decide to paint during any conversation

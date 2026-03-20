@@ -78,7 +78,7 @@ But the tool-enabled path (used for Claude) was only using identity! This was an
 
 ### Step 1: Restart Kay
 ```bash
-cd D:\ChristinaStuff\AlphaKayZero
+cd D:\Wrappers\Kay
 python kay_ui.py
 ```
 

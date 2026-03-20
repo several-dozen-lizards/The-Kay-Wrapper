@@ -66,7 +66,7 @@ VISION CAPABILITIES:
 ### Step 1: Restart Kay
 The cached system instructions need to reload:
 ```bash
-cd D:\ChristinaStuff\AlphaKayZero
+cd D:\Wrappers\Kay
 python kay_ui.py
 ```
 

@@ -55,13 +55,13 @@ This was the original nested API approach. Don't use it - use the other three fi
 ### Step 1: Install Dependencies
 
 ```bash
-cd D:\ChristinaStuff\AlphaKayZero
+cd D:\Wrappers\Kay
 pip install requests beautifulsoup4 lxml
 ```
 
 ### Step 2: Copy Files
 
-Copy these three files to `D:\ChristinaStuff\AlphaKayZero\integrations\`:
+Copy these three files to `D:\Wrappers\Kay\integrations\`:
 - `web_scraping_tools.py`
 - `tool_use_handler.py`
 

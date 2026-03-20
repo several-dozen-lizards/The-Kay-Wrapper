@@ -1,4 +1,4 @@
 @echo off
-cd /d D:\ChristinaStuff\AlphaKayZero
+cd /d D:\Wrappers\Kay
 python kay_ui.py
 pause

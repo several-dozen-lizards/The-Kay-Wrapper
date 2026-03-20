@@ -28,7 +28,7 @@ Pick which providers you want to try. I recommend starting with **Google Gemini*
 
 ### 3. Update Your .env File
 
-Open `D:\ChristinaStuff\AlphaKayZero\.env` and add these lines:
+Open `D:\Wrappers\Kay\.env` and add these lines:
 
 ```env
 # Add new API keys
@@ -44,7 +44,7 @@ COHERE_MODEL=command-r-plus
 
 ### 4. Update kay_ui.py (3 minutes)
 
-Open `D:\ChristinaStuff\AlphaKayZero\kay_ui.py`
+Open `D:\Wrappers\Kay\kay_ui.py`
 
 **Change A:** Find line ~3060 (in the provider dropdown):
 ```python
@@ -65,7 +65,7 @@ All three replacement functions are in the `code_updates_for_kay_ui.py` file!
 
 ### 5. Update llm_integration.py (2 minutes)
 
-Open `D:\ChristinaStuff\AlphaKayZero\integrations\llm_integration.py`
+Open `D:\Wrappers\Kay\integrations\llm_integration.py`
 
 **Find the provider initialization section** (around lines 30-80, starts with "# Determine provider from environment")
 
@@ -74,7 +74,7 @@ Open `D:\ChristinaStuff\AlphaKayZero\integrations\llm_integration.py`
 ### 6. Test! (1 minute)
 
 ```bash
-cd D:\ChristinaStuff\AlphaKayZero
+cd D:\Wrappers\Kay
 python kay_ui.py
 ```
 

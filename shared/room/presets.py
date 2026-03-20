@@ -141,7 +141,7 @@ def create_the_den(state_file: str = None) -> RoomEngine:
         "window", "Window",
         distance=280, angle_deg=NORTH - 15, z=0.6,
         size=40,
-        interaction_text="Looking out at Dayton. Sometimes pigeons on the sill. The boundary between microcosm and macrocosm.",
+        interaction_text="Looking out at the city. Sometimes pigeons on the sill. The boundary between microcosm and macrocosm.",
         sprite="window",
     )
 

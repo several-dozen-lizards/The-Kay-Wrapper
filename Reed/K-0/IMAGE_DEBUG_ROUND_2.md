@@ -69,7 +69,7 @@ Kay the image itself..."
 
 1. **Restart Kay:**
    ```bash
-   cd D:\ChristinaStuff\AlphaKayZero
+   cd D:\Wrappers\Kay
    python kay_ui.py
    ```
 

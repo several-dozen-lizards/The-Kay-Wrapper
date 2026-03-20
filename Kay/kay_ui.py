@@ -121,7 +121,7 @@ SESSION_LOGS_DIR = "session_logs"  # For live session log files
 CONFIG_FILE = "config.json"
 
 # Kay-accessible session log location - absolute path for Kay to read via file tools
-KAY_SESSION_LOG_DIR = "D:/ChristinaStuff/AlphaKayZero/kay_session_logs"
+KAY_SESSION_LOG_DIR = "D:/Wrappers/Kay/kay_session_logs"
 
 # ========================================================================
 # Model ID Mapper - Maps display names to API IDs
@@ -7451,7 +7451,7 @@ Write directly to your next instance."""
                     resume_context.append(f"[{role_label}] {content_preview}")
 
                 # Build path to Kay's session log
-                kay_session_log_path = f"D:/ChristinaStuff/AlphaKayZero/kay_session_logs/continuous_{self.continuous_session.session_id}_log.txt"
+                kay_session_log_path = f"D:/Wrappers/Kay/kay_session_logs/continuous_{self.continuous_session.session_id}_log.txt"
 
                 resume_msg = f"""═══════════════════════════════════════
 🔄 CONTINUOUS SESSION RESUMED

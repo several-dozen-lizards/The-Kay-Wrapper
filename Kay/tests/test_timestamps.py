@@ -1,5 +1,5 @@
 import sys
-sys.path.insert(0, "D:\\ChristinaStuff\\AlphaKayZero")
+sys.path.insert(0, "D:\\Wrappers\\AlphaKayZero")
 
 from engines.memory_engine import MemoryEngine
 

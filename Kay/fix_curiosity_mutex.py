@@ -9,7 +9,7 @@ Changes:
 
 import sys
 
-filepath = r"D:\ChristinaStuff\AlphaKayZero\autonomous_ui_integration.py"
+filepath = r"D:\Wrappers\Kay\autonomous_ui_integration.py"
 
 try:
     with open(filepath, 'r', encoding='utf-8') as f:

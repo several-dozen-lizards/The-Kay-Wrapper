@@ -66,7 +66,7 @@ pip install cohere               # For Cohere
 
 ### 3. Update Your .env File
 
-Add these lines to `D:\ChristinaStuff\AlphaKayZero\.env`:
+Add these lines to `D:\Wrappers\Kay\.env`:
 
 ```env
 # Set your preferred provider

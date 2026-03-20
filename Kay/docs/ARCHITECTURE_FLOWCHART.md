@@ -494,7 +494,7 @@ This document provides a comprehensive overview of how the AlphaKayZero system w
 ## File Structure Overview
 
 ```
-D:\ChristinaStuff\alphakayzero\
+D:\Wrappers\alphakayzero\
 ├── main.py                    # Terminal entry point
 ├── kay_ui.py                  # GUI entry point
 ├── kay_cli.py                 # CLI entry point

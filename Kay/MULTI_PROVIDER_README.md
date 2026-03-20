@@ -7,7 +7,7 @@ Added support for 6 LLM providers to Kay: Anthropic, OpenAI, Google/Gemini, Mist
 
 1. **Install packages:**
    ```bash
-   cd D:\ChristinaStuff
+   cd D:\Wrappers
    pip install google-generativeai cohere
    ```
 
@@ -25,7 +25,7 @@ Added support for 6 LLM providers to Kay: Anthropic, OpenAI, Google/Gemini, Mist
 
 4. **Apply update:**
    ```bash
-   cd D:\ChristinaStuff\AlphaKayZero
+   cd D:\Wrappers\Kay
    python ..\apply_multi_provider_update.py
    ```
 

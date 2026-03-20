@@ -101,7 +101,7 @@ class IdentityMemory:
         bootstrap_path = os.path.join(os.path.dirname(self.file_path), "identity_bootstrap.json")
         if not os.path.exists(bootstrap_path):
             # Try alternate location
-            bootstrap_path = r"D:\ChristinaStuff\ReedMemory\identity_memory_reed.json"
+            bootstrap_path = r"D:\Wrappers\ReedMemory\identity_memory_reed.json"
 
         if os.path.exists(bootstrap_path):
             try:

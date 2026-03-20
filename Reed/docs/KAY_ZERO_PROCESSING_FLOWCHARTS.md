@@ -1073,8 +1073,8 @@ ENTITY GRAPH
 │                                                               │
 │ EXAMPLE:                                                     │
 │ Entity: "Re"                                                 │
-│ Aliases: ["Christina", "C.", "Re Steele"]                    │
-│ Attributes: {species: "harpy", location: "Dayton"}           │
+│ Aliases: ["Re", "C.", "Re"]                    │
+│ Attributes: {species: "harpy", location: "[redacted]"}           │
 │ Relations: {married_to: "John", has_cat: "Chrome"}           │
 │                                                               │
 │ STORAGE: memory/entity_graph.json                            │
@@ -1396,7 +1396,7 @@ Memory stored with: {curiosity: 0.7, tenderness: 0.5}
 ### File Locations
 
 ```
-D:/ChristinaStuff/AlphaKayZero/
+D:/Wrappers/Kay/
 
 MEMORY SYSTEM:
 ├── memory/
@@ -1558,4 +1558,4 @@ MAIN EXECUTION:
 
 ---
 
-**Document Complete:** This flowchart documentation reflects the CURRENT implementation at `D:/ChristinaStuff/AlphaKayZero` as of January 2026.
+**Document Complete:** This flowchart documentation reflects the CURRENT implementation at `D:/Wrappers/Kay` as of January 2026.

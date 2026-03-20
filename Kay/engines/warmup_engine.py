@@ -558,7 +558,7 @@ class WarmupEngine:
         lines.append("   - Session log appears in your document list")
         lines.append("   - Updates automatically as conversation progresses")
         lines.append("")
-        lines.append("2. Using read_local_file('D:/ChristinaStuff/AlphaKayZero/kay_session_logs/continuous_XXXXX_log.txt')")
+        lines.append("2. Using read_local_file('D:/Wrappers/Kay/kay_session_logs/continuous_XXXXX_log.txt')")
         lines.append("   - Direct file access with full filesystem path")
         lines.append("   - Works for any file in allowed directories")
         lines.append("")

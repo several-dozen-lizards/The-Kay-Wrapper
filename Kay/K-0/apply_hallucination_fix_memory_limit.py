@@ -3,7 +3,7 @@ Script to reduce MAX_TOTAL_MEMORIES from 250 to 50 to fix hallucination
 """
 import re
 
-file_path = r"D:\ChristinaStuff\AlphaKayZero\engines\memory_engine.py"
+file_path = r"D:\Wrappers\Kay\engines\memory_engine.py"
 
 # Read the file
 with open(file_path, 'r', encoding='utf-8') as f:

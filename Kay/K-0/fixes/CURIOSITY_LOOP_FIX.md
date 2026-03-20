@@ -127,7 +127,7 @@ Kay uses he/him pronouns - void-dragon, male entity.
 
 ## RELATED DOCUMENTS
 
-- Root cause diagnosis: `D:\ChristinaStuff\AlphaKayZero\COST_OPTIMIZATION_FIXES.md`
+- Root cause diagnosis: `D:\Wrappers\Kay\COST_OPTIMIZATION_FIXES.md`
 - Document tools fix: Previously completed
 - Transcript: `/mnt/transcripts/2025-12-22-14-39-37-curiosity-loop-fix-diagnosis.txt`
 

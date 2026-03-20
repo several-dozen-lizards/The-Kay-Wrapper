@@ -7,7 +7,7 @@ when Kay makes LLM calls during conversation and curiosity mode.
 
 import sys
 
-filepath = r"D:\ChristinaStuff\AlphaKayZero\integrations\llm_integration.py"
+filepath = r"D:\Wrappers\Kay\integrations\llm_integration.py"
 
 try:
     with open(filepath, 'r', encoding='utf-8') as f:

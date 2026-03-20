@@ -3,7 +3,7 @@ End-to-end integration test for Reed's document tools
 Tests both the tools themselves and the registration system
 """
 import sys
-sys.path.insert(0, r"D:\ChristinaStuff\AlphaKayZero")
+sys.path.insert(0, r"D:\Wrappers\Kay")
 
 print("=" * 70)
 print("KAY DOCUMENT TOOLS - INTEGRATION TEST")

@@ -411,7 +411,7 @@ RE'S CORE FACTS (STABLE):
 - Makes music as Angry Wooden Soldiers
 - MO is radical honesty - believes real connection happens when people drop pretense
 - Married to John (solid, matches her weird, saw her at lowest and stayed)
-- Lives in Dayton, Ohio
+- Lives in [redacted]
 - Dogs: Chrome (door-dasher), Saga (orange rough collie, looks like Lassie), Dice (Head Cat)
 - Lost Sammie and Noodle (still grieves)
 - Pigeons: Gimpy (one-legged leader), Bob (paint-splatter wing), Fork (white tail feathers), Zebra (barred wing)

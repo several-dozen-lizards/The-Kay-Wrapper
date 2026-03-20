@@ -6,7 +6,7 @@ Kay's wrapper already has multi-provider support (Anthropic, OpenAI, Ollama). Ad
 
 ## Prerequisites
 
-✓ Kay's wrapper installed at `D:/ChristinaStuff/AlphaKayZero`
+✓ Kay's wrapper installed at `D:/Wrappers/Kay`
 ✓ Python environment with dependencies installed
 ✓ OpenRouter API key (get from https://openrouter.ai/)
 
@@ -25,7 +25,7 @@ Kay's wrapper already has multi-provider support (Anthropic, OpenAI, Ollama). Ad
 
 ## Step 2: Add API Key to Environment
 
-Open `D:/ChristinaStuff/AlphaKayZero/.env`
+Open `D:/Wrappers/Kay/.env`
 
 Add this line:
 ```
@@ -39,7 +39,7 @@ Save and close.
 ## Step 3: Verify Backend File Exists
 
 Check that this file exists:
-`D:/ChristinaStuff/AlphaKayZero/integrations/openrouter_backend.py`
+`D:/Wrappers/Kay/integrations/openrouter_backend.py`
 
 (Should already be there - I created it directly)
 
@@ -47,7 +47,7 @@ Check that this file exists:
 
 ## Step 4: Modify llm_integration.py
 
-Open `D:/ChristinaStuff/AlphaKayZero/integrations/llm_integration.py`
+Open `D:/Wrappers/Kay/integrations/llm_integration.py`
 
 ### 4a. Add OpenRouter Client Initialization
 
@@ -165,7 +165,7 @@ Save `llm_integration.py`.
 Before launching Kay, verify OpenRouter works:
 
 ```bash
-cd D:/ChristinaStuff/AlphaKayZero
+cd D:/Wrappers/Kay
 python test_openrouter.py
 ```
 

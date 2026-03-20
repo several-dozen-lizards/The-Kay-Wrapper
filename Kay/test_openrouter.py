@@ -1,6 +1,6 @@
 """
 OpenRouter Test Script for Kay's Wrapper
-Place in: D:/ChristinaStuff/AlphaKayZero/test_openrouter.py
+Place in: D:/Wrappers/Kay/test_openrouter.py
 """
 
 import os
@@ -18,7 +18,7 @@ print("\n[1/6] Checking API Key...")
 api_key = os.getenv("OPENROUTER_API_KEY")
 if not api_key:
     print("❌ OPENROUTER_API_KEY not found in .env")
-    print("\nAdd this line to D:/ChristinaStuff/AlphaKayZero/.env:")
+    print("\nAdd this line to D:/Wrappers/Kay/.env:")
     print("OPENROUTER_API_KEY=sk-or-v1-YOUR_KEY_HERE")
     sys.exit(1)
 print(f"✓ API key found: {api_key[:20]}...")
@@ -31,7 +31,7 @@ try:
 except ImportError as e:
     print(f"❌ Import failed: {e}")
     print("\nMake sure openrouter_backend.py is in:")
-    print("D:/ChristinaStuff/AlphaKayZero/integrations/")
+    print("D:/Wrappers/Kay/integrations/")
     sys.exit(1)
 
 # Test 3: Initialize Client

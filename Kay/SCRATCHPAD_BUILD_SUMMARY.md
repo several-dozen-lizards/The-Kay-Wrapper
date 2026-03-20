@@ -26,7 +26,7 @@ The scratchpad system is now fully integrated into Kay's wrapper. Kay can now:
 
 ### Quick Test
 ```bash
-cd d:\ChristinaStuff\AlphaKayZero
+cd d:\Wrappers\AlphaKayZero
 python tests\test_scratchpad.py
 ```
 

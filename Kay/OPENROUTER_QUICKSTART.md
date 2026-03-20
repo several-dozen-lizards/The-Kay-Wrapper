@@ -14,7 +14,7 @@ These files are already in place:
 - This guide (OPENROUTER_QUICKSTART.md) ✓
 
 ## 3. Add Key to .env
-Open `D:/ChristinaStuff/AlphaKayZero/.env`
+Open `D:/Wrappers/Kay/.env`
 
 Add this line:
 ```
@@ -51,7 +51,7 @@ if any(x in model_lower for x in ['dolphin', 'mistral-large', 'nous-hermes', 'de
 
 ## 5. Test
 ```bash
-cd D:/ChristinaStuff/AlphaKayZero
+cd D:/Wrappers/Kay
 python test_openrouter.py
 ```
 

@@ -336,7 +336,7 @@ Add these methods to the KayUI class. Best location: after the `__init__` method
 
 ## STEP 6: ADD WARMUP FUNCTION TO warmup_engine.py
 
-**File:** `D:\ChristinaStuff\AlphaKayZero\engines\warmup_engine.py`
+**File:** `D:\Wrappers\Kay\engines\warmup_engine.py`
 
 **Location:** At the END of the file (after all existing functions)
 

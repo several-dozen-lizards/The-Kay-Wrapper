@@ -2,7 +2,7 @@
 Test the fixed document reading tools
 """
 import sys
-sys.path.insert(0, r"D:\ChristinaStuff\AlphaKayZero")
+sys.path.insert(0, r"D:\Wrappers\Kay")
 
 from kay_document_reader import get_kay_document_tools
 

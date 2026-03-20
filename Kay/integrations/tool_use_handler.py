@@ -166,7 +166,7 @@ class ToolUseHandler:
         if include_documents:
             tools.append({
                 "name": "read_local_file",
-                "description": "Read a file from the local filesystem. Only works for allowed directories (Kay's session logs, documents). Use this to read full session logs when you need context about what happened in the conversation. Example: read_local_file('D:/ChristinaStuff/AlphaKayZero/kay_session_logs/continuous_XXXXX_log.txt')",
+                "description": "Read a file from the local filesystem. Only works for allowed directories (Kay's session logs, documents). Use this to read full session logs when you need context about what happened in the conversation. Example: read_local_file('D:/Wrappers/Kay/kay_session_logs/continuous_XXXXX_log.txt')",
                 "input_schema": {
                     "type": "object",
                     "properties": {

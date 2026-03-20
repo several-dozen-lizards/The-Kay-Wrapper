@@ -135,7 +135,7 @@ class ProfileManager:
         self.create_profile("re", {
             "name": "Re",
             "canonical_name": "Re",
-            "aliases": ["Christina", "re"],
+            "aliases": ["Re", "re"],
             "entity_type": "human",
             "first_person_entity": "Re",
             "relationship_to_kay": "creator",
@@ -144,7 +144,7 @@ class ProfileManager:
                 "description": "Green-gold scales, dramatic crest, semi-aquatic, patient observer"
             },
             "attributes": {
-                "location": "Cincinnati/Dayton area",
+                "location": "[redacted]",
                 "spouse": "John",
                 "cats": ["Chrome", "Dice", "Saga", "Frodo", "Luna", "Rainbowbelle"],
                 "dog": "Saga"

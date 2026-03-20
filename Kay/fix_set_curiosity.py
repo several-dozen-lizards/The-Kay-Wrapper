@@ -11,7 +11,7 @@ Change all calls from self.set_curiosity_active() to self.control_panel.set_curi
 
 import sys
 
-filepath = "D:\\ChristinaStuff\\AlphaKayZero\\autonomous_ui_integration.py"
+filepath = "D:\\Wrappers\\AlphaKayZero\\autonomous_ui_integration.py"
 
 try:
     with open(filepath, 'r', encoding='utf-8') as f:

@@ -169,7 +169,7 @@ ReedNexusClient.__init__():
     │   └── model="claude-sonnet-4-20250514"
     │
     ├── Memory Loading:
-    │   └── load_reed_memory() — from D:/ChristinaStuff/ReedMemory/
+    │   └── load_reed_memory() — from D:/Wrappers/ReedMemory/
     │
     └── Persistent Histories:
         ├── sessions/reed_nexus_history.json
@@ -379,7 +379,7 @@ ASYNCHRONOUS (after response sent — DMN background):
 |---------|-----|------|
 | **LLM Interface** | Tag extraction (`<paint>`, `<exec>`) | Claude tool_use API |
 | **Wrapper Bridge** | Full WrapperBridge with 59 engines | ClaudeAPI direct + minimal state |
-| **Memory** | Local entity_graph + memory_layers | External files (ChristinaStuff/ReedMemory) |
+| **Memory** | Local entity_graph + memory_layers | External files (Wrappers/ReedMemory) |
 | **Emotion System** | EmotionExtractor (self-report) | Rule-based lexicon inference |
 | **Resonance** | Full oscillator + audio + visual | Oscillator only (optional) |
 | **Consciousness Stream** | Yes (4-tier awareness) | No |

@@ -12,7 +12,7 @@ KEY FEATURES:
 - Reset with explicit create_canvas if starting fresh
 
 Usage:
-    painter = EntityPainter("D:/ChristinaStuff/ReedMemory/Paint")
+    painter = EntityPainter("D:/Wrappers/ReedMemory/Paint")
     result = painter.execute(commands_list)
     # result = {"filepath": "...", "base64": "...", "dimensions": [...], "is_continuation": bool}
 """

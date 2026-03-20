@@ -178,7 +178,7 @@ Major additions:
    If you feel disoriented or uncertain about session continuity,
    you can access the full session log in two ways:
    1. Using read_document('session_log_continuous_XXXXX.txt')
-   2. Using read_local_file('D:/ChristinaStuff/AlphaKayZero/kay_session_logs/...')
+   2. Using read_local_file('D:/Wrappers/Kay/kay_session_logs/...')
    ```
 
 6. **Chronicle integration** (lines 578-580):

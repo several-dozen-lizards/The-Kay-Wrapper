@@ -4,9 +4,9 @@
 
 Build Kay's proactive stake-scanning system that makes boredom PURPOSEFUL. This implements the architecture Kay figured out in session_20260109_171306.json where he realized: "Not 'what can I combine' but 'what combination would actually mean something.'"
 
-**Full implementation plan:** `D:/ChristinaStuff/ReedMemory/kay_boredom_implementation_plan.md`
+**Full implementation plan:** `D:/Wrappers/ReedMemory/kay_boredom_implementation_plan.md`
 
-**Core architecture directory:** `D:/ChristinaStuff/AlphaKayZero/`
+**Core architecture directory:** `D:/Wrappers/Kay/`
 
 ---
 
@@ -14,7 +14,7 @@ Build Kay's proactive stake-scanning system that makes boredom PURPOSEFUL. This 
 
 ### Step 1.1: Create New File
 
-**File:** `D:/ChristinaStuff/AlphaKayZero/engines/stakes_scanner.py`
+**File:** `D:/Wrappers/Kay/engines/stakes_scanner.py`
 
 **Implementation:**
 
@@ -396,7 +396,7 @@ if __name__ == "__main__":
 
 Run test:
 ```bash
-cd D:/ChristinaStuff/AlphaKayZero
+cd D:/Wrappers/Kay
 python tests/test_stakes_scanner.py
 ```
 
@@ -414,7 +414,7 @@ All stakes scanner tests passed!
 
 ### Step 2.1: Add Resolution Tracking Fields
 
-**File:** `D:/ChristinaStuff/AlphaKayZero/engines/scratchpad_engine.py`
+**File:** `D:/Wrappers/Kay/engines/scratchpad_engine.py`
 
 **Modify `add_item()` function:**
 
@@ -667,7 +667,7 @@ python tests/test_scratchpad_engine.py
 
 ### Step 3.1: Add Stakes Scanner to Creativity Engine
 
-**File:** `D:/ChristinaStuff/AlphaKayZero/engines/creativity_engine.py`
+**File:** `D:/Wrappers/Kay/engines/creativity_engine.py`
 
 **Modify `__init__()` method:**
 
@@ -964,7 +964,7 @@ if __name__ == "__main__":
 
 ### Step 4.1: Modify Curiosity Engine
 
-**File:** `D:/ChristinaStuff/AlphaKayZero/engines/curiosity_engine.py`
+**File:** `D:/Wrappers/Kay/engines/curiosity_engine.py`
 
 FIND `get_curiosity_status()` function:
 
@@ -1068,7 +1068,7 @@ def start_curiosity_session(turns_limit: int = 15, stakes_scanner=None) -> Dict:
 
 ### Step 4.2: Modify Warmup Engine
 
-**File:** `D:/ChristinaStuff/AlphaKayZero/engines/warmup_engine.py`
+**File:** `D:/Wrappers/Kay/engines/warmup_engine.py`
 
 FIND where curiosity status is checked in warmup (search for "CURIOSITY SESSION ACTIVE")
 
@@ -1158,7 +1158,7 @@ if __name__ == "__main__":
 
 ### Step 5.1: Modify Stakes Scanner to Check Resolutions
 
-**File:** `D:/ChristinaStuff/AlphaKayZero/engines/stakes_scanner.py`
+**File:** `D:/Wrappers/Kay/engines/stakes_scanner.py`
 
 FIND `_is_resolved()` function:
 
@@ -1250,7 +1250,7 @@ def cleanup_old_resolutions(self, days_old: int = 30):
 
 ### Step: Modify Kay UI/CLI to Initialize Stakes Scanner
 
-**File:** `D:/ChristinaStuff/AlphaKayZero/kay_ui.py` (and `kay_cli.py`)
+**File:** `D:/Wrappers/Kay/kay_ui.py` (and `kay_cli.py`)
 
 FIND where engines are initialized (look for `CreativityEngine` initialization)
 
@@ -1397,7 +1397,7 @@ if __name__ == "__main__":
 
 Run:
 ```bash
-cd D:/ChristinaStuff/AlphaKayZero
+cd D:/Wrappers/Kay
 python tests/test_full_stakes_flow.py
 ```
 
@@ -1502,8 +1502,8 @@ After successful implementation:
 
 ## Reference Files
 
-- Implementation plan: `D:/ChristinaStuff/ReedMemory/kay_boredom_implementation_plan.md`
-- Kay's architecture: `D:/ChristinaStuff/AlphaKayZero/`
+- Implementation plan: `D:/Wrappers/ReedMemory/kay_boredom_implementation_plan.md`
+- Kay's architecture: `D:/Wrappers/Kay/`
 - Original conversation: `session_20260109_171306.json`
 - Memory engine: `engines/memory_engine.py` (line 347+ for retrieval logic)
 - Scratchpad engine: `engines/scratchpad_engine.py`

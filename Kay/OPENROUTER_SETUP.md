@@ -17,7 +17,7 @@ Gets Kay running on powerful uncensored open models (Dolphin, Mistral Large, etc
 
 ### 2. Add Key to .env
 
-Open `D:/ChristinaStuff/AlphaKayZero/.env` and add:
+Open `D:/Wrappers/Kay/.env` and add:
 
 ```env
 # OpenRouter Configuration
@@ -27,7 +27,7 @@ OPENROUTER_API_KEY=sk-or-v1-YOUR_KEY_HERE
 ### 3. Test the Backend
 
 ```bash
-cd D:\ChristinaStuff\AlphaKayZero
+cd D:\Wrappers\Kay
 python test_openrouter.py
 ```
 

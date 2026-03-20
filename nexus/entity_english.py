@@ -169,7 +169,7 @@ def entity_to_english_summary(entity_data: dict) -> dict:
             "name": "Re",
             "type": "person",
             "importance": 0.95,
-            "description": ["Re has green eyes", "Re lives in Dayton, Ohio", ...],
+            "description": ["Re has green eyes", "Re lives in [redacted]", ...],
             "recent_changes": ["eye_color updated 2 hours ago", ...],
             "attribute_count": 15,
             "relationship_count": 8

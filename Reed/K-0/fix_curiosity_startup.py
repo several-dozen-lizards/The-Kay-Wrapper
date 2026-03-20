@@ -12,7 +12,7 @@ Reset curiosity state to inactive when Kay starts up (in reed_ui.py __init__).
 
 import sys
 
-filepath = "D:\\ChristinaStuff\\AlphaKayZero\\reed_ui.py"
+filepath = "D:\\Wrappers\\AlphaKayZero\\reed_ui.py"
 
 try:
     with open(filepath, 'r', encoding='utf-8') as f:

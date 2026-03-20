@@ -45,7 +45,7 @@ Minor improvements to error messages and consistency
 
 ### 1. Launch Kay
 ```bash
-cd D:\ChristinaStuff\AlphaKayZero
+cd D:\Wrappers\Kay
 python kay_ui.py
 ```
 
@@ -157,7 +157,7 @@ pip install google-generativeai cohere
 
 ## 📚 Reference Files Available
 
-All documentation is in D:\ChristinaStuff\:
+All documentation is in D:\Wrappers\:
 - QUICK_START.md - Simple installation guide
 - COMPLETE_MODEL_CATALOG.md - All 60+ models with pricing
 - BEFORE_AFTER_COMPARISON.md - Visual examples
