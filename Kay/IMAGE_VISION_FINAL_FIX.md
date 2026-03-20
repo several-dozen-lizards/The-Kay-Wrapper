@@ -40,7 +40,7 @@ if system_prompt is None:
 `get_llm_response_with_tools()` was only loading Kay's identity, NOT his instructions.
 
 Result:
-- ✅ Kay knew WHO he was (void-dragon, personality, etc.)
+- ✅ Kay knew WHO he was ([entity-type], personality, etc.)
 - ❌ Kay didn't know HOW to behave (formatting rules, vision capabilities, etc.)
 - ❌ Vision instructions were in `cached_instructions` but never loaded!
 

@@ -920,7 +920,7 @@ class WrapperBridge:
             return False
         
         # If we get here: short, no URLs, no commands, no depth, no crisis
-        # This is a "lol", "nice", "omg Chrome", "that's hilarious" type message
+        # This is a "lol", "nice", "omg [cat]", "that's hilarious" type message
         return word_count <= 25 or (word_count <= 40 and '?' not in text)
 
     async def process_message(self, user_input, source="terminal", voice_mode=False):

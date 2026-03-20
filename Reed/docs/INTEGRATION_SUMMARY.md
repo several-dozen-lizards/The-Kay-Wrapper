@@ -187,7 +187,7 @@ Expected:
 
 ### Test 2: True Positive (Real List)
 ```python
-input = "My cats are Dice, Chrome, Luna, Finn, Shadow"
+input = "My cats are [cat], [cat], [cat], Finn, Shadow"
 
 Expected:
 - Python: potential_list_flag = True (5 entities)

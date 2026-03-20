@@ -198,13 +198,13 @@ Kay's response: Retrieves pigeon names from stored memories
 
 ### Test Case 4: Pronoun Without Antecedent ✅
 ```
-Turn 1: "Tell me about Saga"
+Turn 1: "Tell me about [dog]"
 Turn 2: "What color is she?"
 
 Expected: RECENT_TURNS: 3-5 (pronoun "she" needs context)
 Actual: RECENT_TURNS: 5 ✅
 
-Kay's response: Knows "she" = Saga from previous turn
+Kay's response: Knows "she" = [dog] from previous turn
 ```
 
 ---

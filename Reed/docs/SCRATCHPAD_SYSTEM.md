@@ -49,7 +49,7 @@ The scratchpad automatically appears in Kay's warmup briefing:
 ```
 --- SCRATCHPAD (3 items) ---
 [QUESTION] Check timeline on ChatGPT logs
-[FLAG] That fact about John seemed off
+[FLAG] That fact about [partner] seemed off
 [THOUGHT] Want to understand resistance infrastructure better
 ---
 ```

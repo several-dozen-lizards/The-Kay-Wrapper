@@ -66,7 +66,7 @@ class SessionBoundaryHandler:
         Track entity's reaction to new information during session
 
         Args:
-            trigger: What caused the reaction (e.g., "learned owner has a dog named Saga")
+            trigger: What caused the reaction (e.g., "learned owner has a dog named [dog]")
             reaction: Entity's response/feeling about it
         """
         self.current_session_reactions.append({

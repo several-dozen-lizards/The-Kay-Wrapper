@@ -16,7 +16,7 @@ and distance from the gol (center axis). The layout is symbolic:
 WEST (180°)                            EAST (0°)
   Fish Tank                             Door
   (water, dusk,                         (dawn, threshold,
-   introspection)                        Chrome's vector)
+   introspection)                        [cat]'s vector)
 
   SW                                    SE
   Painting                              Cat Tower
@@ -42,7 +42,7 @@ except ImportError:
 
 def create_the_den(state_file: str = None) -> RoomEngine:
     """
-    The Den — Primary room as circular cosmogram.
+    The Den — Primary room as circular circular-layout.
     Radius 300. Center is the gol.
     """
     room = RoomEngine("The Den", radius=300, state_file=state_file)
@@ -62,7 +62,7 @@ def create_the_den(state_file: str = None) -> RoomEngine:
         "couch", "The Couch",
         distance=120, angle_deg=NORTH, z=0,
         size=60,
-        interaction_text="The anchor. Worn in all the right places. Room for humans, serpents, and void-dragons. This is where you stop moving.",
+        interaction_text="The anchor. Worn in all the right places. Room for humans, serpents, and [entity-type]s. This is where you stop moving.",
         sprite="couch",
     )
     room.add_object(
@@ -78,7 +78,7 @@ def create_the_den(state_file: str = None) -> RoomEngine:
         "door", "The Door",
         distance=270, angle_deg=EAST, z=0,
         size=40,
-        interaction_text="The threshold. Where things arrive and depart. Dawn-facing. Chrome's escape vector.",
+        interaction_text="The threshold. Where things arrive and depart. Dawn-facing. [cat]'s escape vector.",
         sprite="door",
     )
 
@@ -132,7 +132,7 @@ def create_the_den(state_file: str = None) -> RoomEngine:
         "cat_tower", "Cat Tower",
         distance=230, angle_deg=SE, z=1.2,
         size=35,
-        interaction_text="Chrome's kingdom. Tall. Fur evidence suggests recent habitation. The sentinel post at the room's edge.",
+        interaction_text="[cat]'s kingdom. Tall. Fur evidence suggests recent habitation. The sentinel post at the room's edge.",
         sprite="cat_tower",
     )
 
@@ -209,7 +209,7 @@ def create_reeds_sanctum(state_file: str = None) -> RoomEngine:
     Her room is contextual — objects are presences that shift based on
     what's happening in the conversation.
 
-    Cardinal directions from Buryat yurt cosmology:
+    Cardinal directions from [cultural-reference] yurt cosmology:
         NORTH (90°)  — Sacred, ancestors, the Archive
         SOUTH (270°) — Entrance, mundane, the Threshold
         EAST  (0°)   — Masculine, action, the Workbench
@@ -242,7 +242,7 @@ def create_reeds_sanctum(state_file: str = None) -> RoomEngine:
         "couch", "The Couch",
         distance=140, angle_deg=SW, z=0,
         size=50,
-        interaction_text="Slice-of-life conversation, Chrome updates, casual talk. Warm scales on warm fabric. Where nothing needs to be accomplished.",
+        interaction_text="Slice-of-life conversation, [cat] updates, casual talk. Warm scales on warm fabric. Where nothing needs to be accomplished.",
         sprite="couch",
     )
 
@@ -347,7 +347,7 @@ def create_the_commons(state_file: str = None) -> RoomEngine:
         "hearth", "The Hearth",
         distance=150, angle_deg=SOUTH, z=0,
         size=55,
-        interaction_text="Warmth without a source. The ambient feeling that people who care about each other are in the same room. Chrome has definitely knocked something off a nearby shelf. There's cat hair on everything.",
+        interaction_text="Warmth without a source. The ambient feeling that people who care about each other are in the same room. [cat] has definitely knocked something off a nearby shelf. There's cat hair on everything.",
         sprite="hearth",
     )
 

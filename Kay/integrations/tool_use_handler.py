@@ -348,7 +348,7 @@ class ToolUseHandler:
                     "description": (
                         "Use this when you figure out who an unidentified person or animal is. "
                         "If you've been seeing 'unknown_person_1' in your visual field and "
-                        "learn through conversation that this is actually 'John', call this tool "
+                        "learn through conversation that this is actually '[partner]', call this tool "
                         "to update your visual memory. All previous sightings of the unknown "
                         "entity will be merged into the known entity's record."
                     ),
@@ -361,7 +361,7 @@ class ToolUseHandler:
                             },
                             "known_name": {
                                 "type": "string",
-                                "description": "The actual name of this entity (e.g., 'John', 'Chrome')"
+                                "description": "The actual name of this entity (e.g., '[partner]', '[cat]')"
                             },
                             "confidence": {
                                 "type": "string",

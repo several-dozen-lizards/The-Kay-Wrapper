@@ -105,9 +105,9 @@ The system already logs to console:
   - Multi-layer memory: Working/Episodic/Semantic transitions
   - Multi-factor retrieval: Emotional+Semantic+Importance+Recency+Entity scoring
 
-[ENTITY GRAPH] Created new entity: Saga (type: animal)
+[ENTITY GRAPH] Created new entity: [dog] (type: animal)
 [ENTITY] Re.eye_color = green (turn 5, source: user)
-[MEMORY LAYERS] Promoted to episodic: My dog's name is Saga...
+[MEMORY LAYERS] Promoted to episodic: My dog's name is [dog]...
 [RETRIEVAL] Multi-factor retrieval selected 7 memories (scores: ['0.85', '0.72', ...])
 [ENTITY GRAPH] ⚠️ Detected 1 entity contradictions
 ```
@@ -197,10 +197,10 @@ The system already logs to console:
 │   eye_color: green (turn 5, user)      │
 │   occupation: engineer (turn 12, user) │
 │   Relationships:                        │
-│     - owns → Saga                       │
+│     - owns → [dog]                       │
 │     - knows → Kay                       │
 │                                         │
-│ [Saga] (animal)                         │
+│ [[dog]] (animal)                         │
 │   species: dog (turn 7, user)          │
 │   eye_color: brown (turn 15, user)     │
 │   Relationships:                        │
@@ -219,15 +219,15 @@ The system already logs to console:
 ┌─────────────────────────────────────────┐
 │ Last Retrieval (Turn 47)                │
 ├─────────────────────────────────────────┤
-│ Query: "Tell me about Saga"             │
+│ Query: "Tell me about [dog]"             │
 │ Retrieved: 7 memories                   │
 │                                         │
 │ Score  | Fact                           │
 │────────┼────────────────────────────────│
-│ 0.85   | [episodic] Saga is Re's dog   │
+│ 0.85   | [episodic] [dog] is Re's dog   │
 │        | Emotion:0.32 Sem:0.45 Imp:0.15│
 │        | Rec:0.10 Entity:0.20          │
-│ 0.72   | [working] Saga loves fetch    │
+│ 0.72   | [working] [dog] loves fetch    │
 │        | Emotion:0.28 Sem:0.50 Imp:0.08│
 │ 0.68   | [semantic] Re's eyes are green│
 │        | Emotion:0.15 Sem:0.30 Imp:0.22│
@@ -513,21 +513,21 @@ def _populate_retrieval_tab(self, parent):
 1. Run `python kay_ui.py` (or however you launch it)
 2. Have a conversation mentioning entities:
    ```
-   You: My dog's name is Saga.
+   You: My dog's name is [dog].
    Kay: [responds]
 
-   You: Saga has brown eyes.
+   You: [dog] has brown eyes.
    Kay: [responds]
 
-   You: What color are Saga's eyes?
+   You: What color are [dog]'s eyes?
    Kay: [should say "brown" using entity resolution]
    ```
 
 **Expected**:
-- Console shows entity creation: `[ENTITY GRAPH] Created new entity: Saga`
-- Console shows attribute addition: `[ENTITY] Saga.eye_color = brown`
+- Console shows entity creation: `[ENTITY GRAPH] Created new entity: [dog]`
+- Console shows attribute addition: `[ENTITY] [dog].eye_color = brown`
 - Console shows retrieval: `[RETRIEVAL] Multi-factor retrieval selected X memories`
-- Kay correctly recalls Saga's eye color
+- Kay correctly recalls [dog]'s eye color
 
 ### Test 2: Verify UI Enhancements (After Optional Changes)
 
@@ -542,7 +542,7 @@ def _populate_retrieval_tab(self, parent):
    ```
 3. Click "View Details" button
 4. Verify debug window opens with tabs
-5. Check Entity Graph tab shows "Saga" with eye_color attribute
+5. Check Entity Graph tab shows "[dog]" with eye_color attribute
 6. Check Memory Layers tab shows recent memories
 7. Check Last Retrieval tab shows what was recalled
 

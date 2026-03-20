@@ -114,7 +114,7 @@ python cleanup_memory.py --clean --keep-identity
 Preserves:
 - ✅ Re's identity facts (name, pets, family, etc.)
 - ✅ Kay's identity facts (personality, preferences)
-- ✅ Entity facts (Chrome, Saga, John, etc.)
+- ✅ Entity facts ([cat], [dog], [partner], etc.)
 
 Deletes:
 - ❌ All conversation history
@@ -205,14 +205,14 @@ The import system now **prevents duplicates** automatically!
 #### Text Normalization
 
 These are all considered **duplicates**:
-- "Chrome is a dog"
-- "Chrome is a dog."
-- "Chrome is a dog!"
+- "[cat] is a dog"
+- "[cat] is a dog."
+- "[cat] is a dog!"
 - "chrome is a dog"
 - "CHROME IS A DOG"
-- "Chrome is **the** dog" ← filler word removed
-- "Chrome is **an** dog" ← filler word removed
-- "  Chrome is a dog  " ← whitespace trimmed
+- "[cat] is **the** dog" ← filler word removed
+- "[cat] is **an** dog" ← filler word removed
+- "  [cat] is a dog  " ← whitespace trimmed
 
 All normalize to: **"chrome is dog"**
 
@@ -221,23 +221,23 @@ All normalize to: **"chrome is dog"**
 **Step 1:** Check within import batch
 ```
 Import file contains:
-  - "Chrome is a gray husky"
-  - "Chrome is a gray husky."
-  - "Saga is a black labrador"
+  - "[cat] is a gray husky"
+  - "[cat] is a gray husky."
+  - "[dog] is a black labrador"
 
-After dedup: 2 facts (Chrome, Saga)
+After dedup: 2 facts ([cat], [dog])
 Removed: 1 duplicate
 ```
 
 **Step 2:** Check against database
 ```
 Database already has:
-  - "John teaches karate"
+  - "[partner] teaches karate"
 
 Import file contains:
-  - "John teaches karate"
-  - "John teaches karate."
-  - "John is a karate teacher"
+  - "[partner] teaches karate"
+  - "[partner] teaches karate."
+  - "[partner] is a karate teacher"
 
 After dedup: 1 fact (karate teacher variant)
 Removed: 2 already in database
@@ -404,7 +404,7 @@ Keep "who is who" while cleaning conversation history. **Don't lose core facts.*
 
 ### "Deduplication not working"
 **Cause:** Text too different (legitimate variation)
-**Solution:** Facts like "Chrome is a dog" vs "Chrome likes dogs" are correctly treated as different
+**Solution:** Facts like "[cat] is a dog" vs "[cat] likes dogs" are correctly treated as different
 
 ### "Too many duplicates removed"
 **Cause:** Normalization too aggressive

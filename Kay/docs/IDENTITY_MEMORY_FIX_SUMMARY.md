@@ -3,25 +3,25 @@
 ## Problem Summary
 
 Kay couldn't remember specific names even though they were mentioned in the first conversation:
-- User: "my dog's name is Saga" → Kay: "I don't remember your dog's name"
-- User: "my husband named John" → Kay: "I can't recall"
-- Multiple mentions of "Dice" created duplicate entities in the graph
+- User: "my dog's name is [dog]" → Kay: "I don't remember your dog's name"
+- User: "my husband named [partner]" → Kay: "I can't recall"
+- Multiple mentions of "[cat]" created duplicate entities in the graph
 
 ## Root Causes
 
 ### 1. **Missing Relationship Extraction**
 The LLM extraction sometimes missed patterns like:
-- "my dog's name is Saga"
-- "my husband named John"
-- "married to an excellent ginger guy named John"
+- "my dog's name is [dog]"
+- "my husband named [partner]"
+- "married to an excellent ginger guy named [partner]"
 
 ### 2. **Entity Deduplication Failure**
 Entity names weren't normalized, causing duplicates:
-- "Dice", "dice", "Dice's" created 3 separate entities
+- "[cat]", "dice", "[cat]'s" created 3 separate entities
 
 ### 3. **Generic Facts Eclipsing Specific Facts**
 Generic facts had same/higher importance as specific facts:
-- "Re has a dog" (generic) vs "Saga is Re's dog" (specific)
+- "Re has a dog" (generic) vs "[dog] is Re's dog" (specific)
 - Generic facts stored as identity facts, cluttering permanent storage
 
 ### 4. **No Recall Prioritization**
@@ -39,12 +39,12 @@ When user asked "What's my dog's name?", system didn't prioritize dog-related id
    ```python
    def _normalize_name(self, name: str) -> str:
        # Removes apostrophes, hyphens, lowercases
-       # "Dice", "dice", "Dice's" all map to "dice"
+       # "[cat]", "dice", "[cat]'s" all map to "dice"
    ```
 3. Updated `get_or_create_entity()` to check canonical mapping first
 4. Prevents duplicate entities
 
-**Result:** "Dice", "dice", "Dice's" all map to the same entity
+**Result:** "[cat]", "dice", "[cat]'s" all map to the same entity
 
 ### Fix 2: Regex-Based Relationship Extraction
 
@@ -57,9 +57,9 @@ rel_pattern = r"\bmy\s+(husband|wife|spouse|dog|cat)(?:'s)?\s*(?:name\s+is|named
 ```
 
 **Captures:**
-- "my dog's name is Saga" → "Saga is Re's dog"
-- "my husband named John" → "John is Re's husband"
-- "married to ... named John" → "John is Re's husband"
+- "my dog's name is [dog]" → "[dog] is Re's dog"
+- "my husband named [partner]" → "[partner] is Re's husband"
+- "married to ... named [partner]" → "[partner] is Re's husband"
 
 **Result:** Specific relationship facts extracted even if LLM misses them
 
@@ -79,7 +79,7 @@ rel_pattern = r"\bmy\s+(husband|wife|spouse|dog|cat)(?:'s)?\s*(?:name\s+is|named
 2. Check if fact starts with proper name (specific):
    ```python
    if re.match(r"^[A-Z][a-z]+\s+is\s+Re's", fact_text):
-       is_generic_relationship = False  # "Saga is Re's dog" = specific
+       is_generic_relationship = False  # "[dog] is Re's dog" = specific
    ```
 
 3. Set importance based on classification:
@@ -120,35 +120,35 @@ rel_pattern = r"\bmy\s+(husband|wife|spouse|dog|cat)(?:'s)?\s*(?:name\s+is|named
    memories = relationship_identity_facts + memories
    ```
 
-**Result:** When user asks "What's my dog's name?", Saga facts appear first
+**Result:** When user asks "What's my dog's name?", [dog] facts appear first
 
 ## Test Results
 
 ### Test 1: Regex Relationship Extraction ✅ PASS
 ```
-User: "my dog's name is Saga, my husband named John"
-→ Extracted: "Saga is Re's dog", "John is Re's husband"
+User: "my dog's name is [dog], my husband named [partner]"
+→ Extracted: "[dog] is Re's dog", "[partner] is Re's husband"
 → Stored in identity memory
 ```
 
 ### Test 2: Entity Deduplication ✅ PASS
 ```
-User: "Dice is my cat. dice is great. Dice's fur is gray."
-→ Only 1 "Dice" entity created
+User: "[cat] is my cat. dice is great. [cat]'s fur is gray."
+→ Only 1 "[cat]" entity created
 → All mentions map to same canonical entity
 ```
 
 ### Test 3: Recall Prioritization ✅ PASS
 ```
 Query: "What's my dog's name?"
-→ Recalled memories include: "Saga is Re's dog"
+→ Recalled memories include: "[dog] is Re's dog"
 → Relationship facts prioritized
 ```
 
 ### Test 4: Generic vs Specific Importance ✅ PASS
 ```
 Generic: "Re has a dog" → importance: 0.2, NOT in identity
-Specific: "Saga is Re's dog" → importance: 0.9, in identity
+Specific: "[dog] is Re's dog" → importance: 0.9, in identity
 ```
 
 ## Files Modified
@@ -169,19 +169,19 @@ Specific: "Saga is Re's dog" → importance: 0.9, in identity
 
 ### Example 1: User States Relationships
 ```
-User: "Hey Kay - my dog's name is Saga, my husband named John, I have 5 cats"
+User: "Hey Kay - my dog's name is [dog], my husband named [partner], I have 5 cats"
 
 EXTRACTION:
-✓ Regex captures: "Saga is Re's dog", "John is Re's husband"
+✓ Regex captures: "[dog] is Re's dog", "[partner] is Re's husband"
 ✓ LLM captures: cat names
 
 STORAGE:
 ✓ Specific facts → importance: 0.9, stored in identity
 ✓ Generic facts ("Re has a dog") → importance: 0.2, NOT in identity
-✓ Entities deduplicated (no duplicate Dice, Chrome, etc.)
+✓ Entities deduplicated (no duplicate [cat], [cat], etc.)
 
 RESULT:
-- Identity memory contains: Saga, John, all cat names
+- Identity memory contains: [dog], [partner], all cat names
 - Generic facts downweighted
 ```
 
@@ -192,36 +192,36 @@ User: "What's my dog's name?"
 RECALL:
 ✓ Detects "dog" keyword
 ✓ Fetches relationship identity facts
-✓ Prepends "Saga is Re's dog" to recalled memories
+✓ Prepends "[dog] is Re's dog" to recalled memories
 
 LLM RECEIVES:
-- "Saga is Re's dog" (identity fact, always included)
+- "[dog] is Re's dog" (identity fact, always included)
 - Other relevant memories
 
 KAY RESPONDS:
-✓ "Saga. Your dog's name is Saga."
+✓ "[dog]. Your dog's name is [dog]."
 ```
 
 ### Example 3: Entity Deduplication
 ```
-Turn 1: "My cat Dice" → Creates "Dice" entity
-Turn 2: "dice is great" → Maps to existing "Dice" (normalized)
-Turn 3: "Dice's fur is gray" → Updates existing "Dice" entity
+Turn 1: "My cat [cat]" → Creates "[cat]" entity
+Turn 2: "dice is great" → Maps to existing "[cat]" (normalized)
+Turn 3: "[cat]'s fur is gray" → Updates existing "[cat]" entity
 
 RESULT:
-- Only 1 "Dice" entity in graph
+- Only 1 "[cat]" entity in graph
 - All attributes on same entity
 ```
 
 ## Success Criteria (All Met)
 
-✅ Regex extraction captures relationship names (Saga, John)
+✅ Regex extraction captures relationship names ([dog], [partner])
 ✅ Entity deduplication prevents duplicate entities
 ✅ Specific facts have higher importance than generic facts
 ✅ Generic facts NOT stored as identity facts
 ✅ Recall prioritizes relationship facts when keywords detected
-✅ User can ask "What's my dog's name?" and get "Saga"
-✅ User can ask "Who's my husband?" and get "John"
+✅ User can ask "What's my dog's name?" and get "[dog]"
+✅ User can ask "Who's my husband?" and get "[partner]"
 
 ## Backward Compatibility
 
@@ -240,9 +240,9 @@ python test_identity_memory.py
 
 Expected output:
 ```
-[PASS] TEST 1: Regex extraction captured Saga and John
-[PASS] TEST 2: Entity deduplication prevents duplicate Dice entities
-[PASS] TEST 3: Recall prioritized Saga when asked about dog's name
+[PASS] TEST 1: Regex extraction captured [dog] and [partner]
+[PASS] TEST 2: Entity deduplication prevents duplicate [cat] entities
+[PASS] TEST 3: Recall prioritized [dog] when asked about dog's name
 ALL IDENTITY MEMORY TESTS PASSED
 ```
 
@@ -255,4 +255,4 @@ The four-part fix addresses the identity memory issue at multiple levels:
 3. **Storage Level**: Generic facts downweighted, specific facts prioritized
 4. **Recall Level**: Relationship queries prioritize identity facts
 
-Result: Kay can now remember specific names (Saga, John) and retrieve them when asked about relationships.
+Result: Kay can now remember specific names ([dog], [partner]) and retrieve them when asked about relationships.

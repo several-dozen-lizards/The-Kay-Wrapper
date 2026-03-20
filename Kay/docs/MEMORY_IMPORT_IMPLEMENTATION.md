@@ -51,7 +51,7 @@ pip install pdfplumber python-docx openpyxl
 ```python
 from memory_import import MemoryExtractor
 
-extractor = MemoryExtractor(existing_entities=["Re", "Kay", "Chrome"])
+extractor = MemoryExtractor(existing_entities=["Re", "Kay", "[cat]"])
 
 result = await extractor.extract_memories(text, metadata)
 # Returns: {"facts": [...], "relationships": [...], "glyph_summary": "..."}
@@ -452,7 +452,7 @@ python memory_import/memory_extractor.py
 
 ```bash
 # Create test document
-echo "Chrome is Re's cat. He likes to door-dash." > test_import.txt
+echo "[cat] is Re's cat. He likes to door-dash." > test_import.txt
 
 # Dry run
 python import_memories.py --input test_import.txt --dry-run
@@ -492,10 +492,10 @@ Extracted memories are stored in Kay's existing format:
 
 ```json
 {
-  "fact": "Chrome is Re's cat who likes to door-dash",
+  "fact": "[cat] is Re's cat who likes to door-dash",
   "perspective": "user",
   "topic": "pets",
-  "entities": ["Re", "Chrome"],
+  "entities": ["Re", "[cat]"],
   "emotion_tags": ["affection"],
   "importance_score": 0.8,
   "turn_number": 0,

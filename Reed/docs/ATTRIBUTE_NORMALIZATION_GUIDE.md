@@ -62,12 +62,12 @@ entity.add_attribute('favorite_colors', ['purple', 'green'], 2, 'user')
 
 **Applied to all string values:**
 - Strips leading/trailing whitespace
-- `"  John Doe  "` → `"John Doe"`
+- `"  [partner] Doe  "` → `"[partner] Doe"`
 
 **Example:**
 ```python
-entity.add_attribute('name', '  John Doe  ', 1, 'user')
-# Stored as 'John Doe'
+entity.add_attribute('name', '  [partner] Doe  ', 1, 'user')
+# Stored as '[partner] Doe'
 ```
 
 ## Implementation Details
@@ -124,7 +124,7 @@ contradictions = entity.detect_contradictions()
 
 **No impact** - relationships use entity names, not attributes:
 ```python
-graph.add_relationship("Re", "owns", "Saga", turn=1)
+graph.add_relationship("Re", "owns", "[dog]", turn=1)
 # Works exactly the same
 ```
 

@@ -60,10 +60,10 @@ The conversation loop follows this flow:
 **MemoryEngine** (engines/memory_engine.py):
 - **Enhanced Architecture**: Now includes entity resolution, multi-layer memory, and multi-factor retrieval
 - **Entity Resolution** (engines/entity_graph.py): Tracks entities (people, places, things) with full attribute history and provenance
-  - Canonical entity tracking: "my dog" → "Saga" resolution
+  - Canonical entity tracking: "my dog" → "[dog]" resolution
   - Attribute history: Each attribute stores (value, turn, source, timestamp)
   - Contradiction detection: Automatic detection of conflicting attributes with severity classification
-  - Relationship tracking: "Re owns Saga", "Reed likes coffee"
+  - Relationship tracking: "Re owns [dog]", "Reed likes coffee"
   - Persists to `memory/entity_graph.json`
 - **Multi-Layer Memory** (engines/memory_layers.py): Working (10) → Episodic (100) → Semantic (unlimited)
   - Working memory: Immediate context, high retrieval priority (1.5x), 0.5 day half-life

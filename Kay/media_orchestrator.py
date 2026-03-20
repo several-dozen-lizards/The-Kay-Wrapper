@@ -228,7 +228,7 @@ class MediaOrchestrator:
 
         Args:
             topic: Current conversation topic (e.g., "grief", "breakthrough", "casual")
-            entities: Active entities in conversation (e.g., ["Re", "Chrome", "Kay"])
+            entities: Active entities in conversation (e.g., ["Re", "[cat]", "Kay"])
             re_state: Re's emotional state if detectable (e.g., "stressed", "happy")
         """
         if topic is not None:

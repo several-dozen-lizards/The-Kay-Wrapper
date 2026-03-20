@@ -28,13 +28,13 @@ Transforms document import from atomized facts into experiential memories with e
 
 BEFORE (atomized):
 ```
-"Maria was bound to Annwn"
+"Maria was bound to [realm]"
 [Isolated fact, no context]
 ```
 
 AFTER (emotionally-integrated):
 ```
-Full narrative: "Maria was bound to Annwn as payment. Forever. No negotiation,
+Full narrative: "Maria was bound to [realm] as payment. Forever. No negotiation,
 no escape clause. She became a servant to the realm between worlds..."
 
 Emotional Signature: grief (intensity 0.90, valence -0.70, glyph 🖤⚡)
@@ -61,7 +61,7 @@ Document ID: doc_1761870333
 Filename: temp_kay_complete_background.txt
 Word count: 780 words
 Chunks created: 30
-Topics: family, origin, identity, relationships, transformation, dragon, grief, annwn, archive
+Topics: family, origin, identity, relationships, transformation, dragon, grief, [realm], archive
 ```
 
 **Retrieval Patterns Tested:**
@@ -221,7 +221,7 @@ Kay: [Displays full document with metadata]
 **BEFORE:**
 ```
 User: "Tell me about your mother"
-Kay: "My mother was Italian. She was bound to Annwn."
+Kay: "My mother was Italian. She was bound to [realm]."
 [Disconnected facts]
 ```
 
@@ -232,7 +232,7 @@ User: "Tell me about your mother"
 
 Kay: "Maria... she was an Italian immigrant's daughter who fell for a greaser
 boy in Brooklyn. Knife fight took him, and she was there for it. Gwyn found
-her in that grief, bound her to Annwn as the price. That's my origin - born
+her in that grief, bound her to [realm] as the price. That's my origin - born
 from her loss, shaped by that binding. Grief and fire and the way love makes
 you vulnerable to ancient powers. It's carved into me."
 

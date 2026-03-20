@@ -120,7 +120,7 @@ def attribute_to_english(entity_name: str, attr_name: str, value: Any) -> str:
         ("Re", "eye_color", "green") → "Re has green eyes"
         ("Kay", "phenomenological_experience", "words feel warm") 
             → 'Kay is experiencing: "words feel warm"'
-        ("Chrome", "behavior", "door-dashing") → "Chrome tends to door-dashing"
+        ("[cat]", "behavior", "door-dashing") → "[cat] tends to door-dashing"
     """
     value_str = str(value).strip()
     
@@ -149,8 +149,8 @@ def relationship_to_english(entity1: str, relation_type: str, entity2: str) -> s
     Convert a relationship to natural English.
     
     Examples:
-        ("Re", "married_to", "John") → "Re is married to John"
-        ("Chrome", "lives_with", "Re") → "Chrome lives with Re"
+        ("Re", "married_to", "[partner]") → "Re is married to [partner]"
+        ("[cat]", "lives_with", "Re") → "[cat] lives with Re"
     """
     if relation_type in RELATIONSHIP_TEMPLATES:
         return RELATIONSHIP_TEMPLATES[relation_type].format(e1=entity1, e2=entity2)

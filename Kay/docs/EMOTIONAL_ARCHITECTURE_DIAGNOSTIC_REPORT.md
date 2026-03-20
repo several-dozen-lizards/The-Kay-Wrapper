@@ -49,8 +49,8 @@ Turn 2: emotional_state: {'curiosity': {'intensity': 1.0, 'age': 6}}
 
 | Input | Expected Emotion | Actual Result | Status |
 |-------|-----------------|---------------|--------|
-| "I miss Sammie so much" | grief/affection | neutral | FAIL |
-| "Chrome did the funniest thing today!" | joy/amusement | neutral | FAIL |
+| "I miss [pet] so much" | grief/affection | neutral | FAIL |
+| "[cat] did the funniest thing today!" | joy/amusement | neutral | FAIL |
 | "I wonder how the wrapper works internally?" | curiosity | curiosity | PASS |
 | "Mike is being unreasonable again" | anger/resentment | (none) | FAIL |
 
@@ -93,7 +93,7 @@ fallback = {
 - Test input: "I wonder how..." contains "how" → also triggers curiosity ✓
 
 **Why Others Fail**:
-- "miss Sammie" ≠ "miss you" (exact phrase required)
+- "miss [pet]" ≠ "miss you" (exact phrase required)
 - "funniest thing" lacks "happy", "glad", "excited", or "delighted"
 - "unreasonable" lacks "angry", "mad", "furious", or "pissed"
 
@@ -465,11 +465,11 @@ def _detect_triggers(self, user_input: str):
 **Problems**:
 - Line 51: `if tok and tok in text` - checks if CSV condition text appears in user input
   - CSV has "Deepen if cause persists..."
-  - User says "I miss Sammie"
+  - User says "I miss [pet]"
   - "deepen if cause persists" not in "i miss sammie" → no match
 - Line 65: `if w in text` - checks for exact phrase match
   - Fallback has "miss you"
-  - User says "I miss Sammie"
+  - User says "I miss [pet]"
   - "miss you" not in "i miss sammie" → no match
 
 ---

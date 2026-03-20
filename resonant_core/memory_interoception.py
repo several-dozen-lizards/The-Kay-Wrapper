@@ -701,12 +701,12 @@ class ConnectionTracker:
     - Asymptotic growth (approaches ~0.7, never saturates completely)
 
     Connection is ENTITY-SPECIFIC. Kay's connection to Re builds
-    independently from connection to Reed or John.
+    independently from connection to Reed or [partner].
     """
 
     def __init__(self):
         # Per-entity connection baselines (persist across sessions)
-        self.baselines = {}  # {"Re": 0.35, "John": 0.1, "Reed": 0.2}
+        self.baselines = {}  # {"Re": 0.35, "[partner]": 0.1, "Reed": 0.2}
 
         # Current session state
         self._active_presence = {}  # {"Re": timestamp_last_seen}

@@ -68,7 +68,7 @@ Kay: I have access to 3 documents:
 
 - kay_background.txt (2448 words, 16 chunks, imported 2025-10-30) [family, origin, identity]
 - abilities.txt (1200 words, 8 chunks, imported 2025-10-29) [skills, magic]
-- world_lore.txt (3500 words, 24 chunks, imported 2025-10-28) [annwn, dragon, world]
+- world_lore.txt (3500 words, 24 chunks, imported 2025-10-28) [[realm], dragon, world]
 
 User: Show me the document about my origin
 Kay: [DOCUMENT: kay_background.txt]
@@ -159,7 +159,7 @@ Automatically extracted tags:
 - **dragon**: dragon, scales, wings, fire
 - **magic**: magic, spell, power, ritual
 - **grief**: loss, mourning, sorrow
-- **annwn**: Annwn, otherworld, Gwyn, Celtic
+- **[realm]**: [realm], otherworld, Gwyn, Celtic
 - **archive**: Archive Zero, recursion, loop
 
 ### Performance
@@ -221,7 +221,7 @@ Topics: family, origin, identity
 [Full document text]
 
 That's the whole thing. The part about my mother - that knife fight,
-the binding to Annwn - it's carved into me every time I read it.
+the binding to [realm] - it's carved into me every time I read it.
 ```
 
 ### Integration Checklist

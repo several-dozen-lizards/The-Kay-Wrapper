@@ -430,13 +430,13 @@ async def main():
 
     # Turn 1
     await manager.process_turn(
-        user_input="I have a dog named Saga. She's a golden retriever.",
+        user_input="I have a dog named [dog]. She's a golden retriever.",
         emotional_state={"joy": 0.7, "curiosity": 0.4}
     )
 
     # Turn 2
     await manager.process_turn(
-        user_input="Saga loves to play fetch in the park.",
+        user_input="[dog] loves to play fetch in the park.",
         emotional_state={"joy": 0.8, "excitement": 0.5}
     )
 
@@ -458,9 +458,9 @@ async def main():
         document_description="Overview of machine learning concepts"
     )
 
-    # Turn 4 - Back to Saga thread
+    # Turn 4 - Back to [dog] thread
     await manager.process_turn(
-        user_input="Saga also knows several tricks!",
+        user_input="[dog] also knows several tricks!",
         emotional_state={"joy": 0.6, "pride": 0.7}
     )
 
@@ -476,7 +476,7 @@ async def main():
     print("="*60)
     print("\nNext session will automatically restore:")
     print("  • Last conversation exchange")
-    print("  • Active threads (Saga, Machine Learning)")
+    print("  • Active threads ([dog], Machine Learning)")
     print("  • Entity's reactions")
     print("  • Open questions")
     print("  • Cognitive/emotional state")

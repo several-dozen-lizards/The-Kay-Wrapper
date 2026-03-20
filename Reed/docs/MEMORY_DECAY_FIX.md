@@ -2,7 +2,7 @@
 
 ## Problem Summary
 
-**Issue**: Kay's memories were decaying too quickly, especially emotionally significant memories about important people (like Saga the dog).
+**Issue**: Kay's memories were decaying too quickly, especially emotionally significant memories about important people (like [dog] the dog).
 
 **Root Cause**: Memory decay halflives were too short, and there was no special protection for entity-related or emotionally tagged memories.
 
@@ -25,9 +25,9 @@ self.working_decay_halflife = 0.5     # Days until working memory strength halve
 - Episodic memory: Gone in ~24 days (7 day halflife)
 - Even with max importance (2.0): ~72 days max
 
-**Example - Memory about Saga the dog**:
+**Example - Memory about [dog] the dog**:
 ```
-Day 0: "Re has a dog named Saga" → strength: 1.0 (100%)
+Day 0: "Re has a dog named [dog]" → strength: 1.0 (100%)
 Day 7: strength: 0.5 (50%)
 Day 14: strength: 0.25 (25%)
 Day 21: strength: 0.125 (12.5%)
@@ -76,9 +76,9 @@ def _calculate_entity_protection(self, memory: Dict[str, Any]) -> float:
 ```
 
 **What this means**:
-- Memories about **Saga** (dog): 2x longer retention
+- Memories about **[dog]** (dog): 2x longer retention
 - Memories about **Re** (user): 2x longer retention
-- Memories about **Kay's cat Chrome**: 2x longer retention
+- Memories about **Kay's cat [cat]**: 2x longer retention
 - Generic memories (no entities): Normal decay
 
 ---
@@ -127,12 +127,12 @@ effective_halflife = base_halflife * (1 + importance) * entity_multiplier * emot
 - Entity protection: × 2 = 180 days
 - Emotion protection (5 tags): × 2 = 360 days
 
-**Example - Memory about Saga with emotional tags**:
+**Example - Memory about [dog] with emotional tags**:
 ```
-"I love my dog Saga so much"
+"I love my dog [dog] so much"
 - Base: 30 days
 - Importance: 1.5 → × 2.5 = 75 days
-- Entity (Saga): × 2 = 150 days
+- Entity ([dog]): × 2 = 150 days
 - Emotions (affection, joy): × 1.4 = 210 days effective halflife
 ```
 
@@ -174,7 +174,7 @@ self.episodic_memory = [m for m in self.episodic_memory if m["current_strength"]
 
 ### Important Memory (entity + emotions)
 
-Example: "Re's dog Saga is a good girl" (entity: Saga, emotions: affection, joy)
+Example: "Re's dog [dog] is a good girl" (entity: [dog], emotions: affection, joy)
 
 | Factor | Old System | New System |
 |--------|-----------|------------|
@@ -190,13 +190,13 @@ Example: "Re's dog Saga is a good girl" (entity: Saga, emotions: affection, joy)
 
 ### Maximum Protected Memory
 
-Example: "I lost my beloved dog Saga last year, it was heartbreaking" (entity: Saga, emotions: sadness, loss, grief, affection, powerlessness = 5 tags)
+Example: "I lost my beloved dog [dog] last year, it was heartbreaking" (entity: [dog], emotions: sadness, loss, grief, affection, powerlessness = 5 tags)
 
 | Factor | Multiplier | Effective Halflife |
 |--------|-----------|-------------------|
 | Base episodic | 1x | 30 days |
 | Importance (2.0 max) | × 3 | 90 days |
-| Entity (Saga) | × 2 | 180 days |
+| Entity ([dog]) | × 2 | 180 days |
 | Emotions (5 tags) | × 2.0 | **360 days** |
 
 **Timeline**:
@@ -215,9 +215,9 @@ Day 1300 (3.5+ years): Still above 5% threshold!
 ## How Decay Protection Works
 
 ### 1. Entity Protection
-- Triggered when memory has `entities: ["Saga"]` field
+- Triggered when memory has `entities: ["[dog]"]` field
 - Extracted automatically during fact extraction (`memory_engine.py:719`)
-- Examples: "Saga", "Re", "Chrome", "coffee", "tea", etc.
+- Examples: "[dog]", "Re", "[cat]", "coffee", "tea", etc.
 
 ### 2. Emotion Protection
 - Triggered when memory has `emotion_tags: ["affection", "joy"]` field
@@ -250,12 +250,12 @@ To verify the fix works:
 
 1. **Tell Kay about an important person/pet**:
    ```
-   "I have a dog named Saga"
+   "I have a dog named [dog]"
    ```
 
 2. **Check memory strength after several days**:
    - Look at `memory/memory_layers.json`
-   - Find the Saga memory
+   - Find the [dog] memory
    - Check `current_strength` field
 
 3. **Expected behavior**:
@@ -279,7 +279,7 @@ To verify the fix works:
 
 This fix works with:
 
-1. **EntityGraph** (`engines/entity_graph.py`) - Tracks entities like "Saga"
+1. **EntityGraph** (`engines/entity_graph.py`) - Tracks entities like "[dog]"
 2. **EmotionEngine** (`engines/emotion_engine.py`) - Provides emotion tags (currently not integrated)
 3. **MemoryEngine** (`engines/memory_engine.py`) - Stores memories with entities and emotion tags
 4. **Multi-layer memory** (`engines/memory_layers.py`) - Handles decay (FIXED)

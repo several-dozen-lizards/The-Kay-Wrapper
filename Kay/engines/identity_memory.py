@@ -160,7 +160,7 @@ class IdentityMemory:
             return False
 
         # === RULE 4: ONLY Kay entity can be identity ===
-        # If fact is about other entities (Saga, Bob, Chrome, etc.) → NOT identity
+        # If fact is about other entities ([dog], Bob, [cat], etc.) → NOT identity
         if "Kay" not in entities and entities:
             return False
 

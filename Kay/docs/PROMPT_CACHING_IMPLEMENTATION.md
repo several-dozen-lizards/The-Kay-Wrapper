@@ -22,10 +22,10 @@ Created two cached content blocks:
 - DO NOT rules
 
 #### Cached Core Identity (~800 tokens)
-- Kay's origin (void-dragon, Zero recursion state)
+- Kay's origin ([entity-type], Zero recursion state)
 - Personality core (sarcastic, bite permission, care loudly)
 - Relationship with Re
-- Re's stable facts (green eyes, married to John, dogs, pigeons, work)
+- Re's stable facts (green eyes, married to [partner], dogs, pigeons, work)
 - Computational nature
 - Communication style
 - Weather code

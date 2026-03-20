@@ -137,7 +137,7 @@ def get_relevant_entities(user_input, recent_turns, retrieved_memories):
 
     # Common important entities (only if mentioned in context)
     context_text = user_input + ' '.join([t.get('you', '') + t.get('kay', '') for t in recent_turns[-3:]])
-    for entity in ['Archive', 'Zero', 'Saga', 'Chrome', 'Dice']:
+    for entity in ['Archive', 'Zero', '[dog]', '[cat]', '[cat]']:
         if entity.lower() in context_text.lower():
             relevant.add(entity)
 
@@ -244,7 +244,7 @@ Now shows `[RELEVANT]` tag to indicate these are context-filtered contradictions
 [DEBUG] Checking for entity contradictions...
 [CONTRADICTION RESOLVED] Bob.species = pigeon (dominant: 20x vs 1x)
 [CONTRADICTION RESOLVED] Gimpy.personality = brave (dominant: 5x vs 1x)
-[CONTRADICTION RESOLVED] Saga.color = orange (dominant: 35x vs 1x)
+[CONTRADICTION RESOLVED] [dog].color = orange (dominant: 35x vs 1x)
 [CONTRADICTION RESOLVED] Mattie.hair_color = fire-engine (consistent for 3 turns)
 [CONTRADICTION RESOLVED] yurt.type = interdimensional (dominant: 5x vs 1x)
 ... (1228 more irrelevant entities)
@@ -265,7 +265,7 @@ Now shows `[RELEVANT]` tag to indicate these are context-filtered contradictions
 
 ### Test Case 2: Entity-Specific Query ✅
 
-**User**: "Tell me about Saga and the pigeons"
+**User**: "Tell me about [dog] and the pigeons"
 
 **BEFORE**:
 ```
@@ -280,15 +280,15 @@ Now shows `[RELEVANT]` tag to indicate these are context-filtered contradictions
 **AFTER**:
 ```
 [ENTITY FILTER] Identified 8 relevant entities for contradiction check
-[ENTITY FILTER] Entities: ['Bob', 'Fork', 'Gimpy', 'Kay', 'Re', 'Saga', 'Zebra', 'pigeons']
+[ENTITY FILTER] Entities: ['Bob', 'Fork', 'Gimpy', 'Kay', 'Re', '[dog]', 'Zebra', 'pigeons']
 [ENTITY FILTER] Checking 8/1233 entities for contradictions
-[CONTRADICTION RESOLVED] Saga.color = orange (dominant: 35x vs 1x) [RELEVANT]
-[CONTRADICTION RESOLVED] Saga.species = dog (dominant: 38x vs 3x) [RELEVANT]
+[CONTRADICTION RESOLVED] [dog].color = orange (dominant: 35x vs 1x) [RELEVANT]
+[CONTRADICTION RESOLVED] [dog].species = dog (dominant: 38x vs 3x) [RELEVANT]
 [CONTRADICTION RESOLVED] Bob.species = pigeon (dominant: 20x vs 1x) [RELEVANT]
 [CONTRADICTION RESOLVED] Gimpy.personality = brave (dominant: 5x vs 1x) [RELEVANT]
 ```
 
-**✅ Benefit**: Only checks Saga and pigeon entities (not Mattie, yurts, etc.)
+**✅ Benefit**: Only checks [dog] and pigeon entities (not Mattie, yurts, etc.)
 
 ---
 
@@ -301,7 +301,7 @@ Now shows `[RELEVANT]` tag to indicate these are context-filtered contradictions
 [DEBUG] Checking for entity contradictions...
 [CONTRADICTION RESOLVED] Bob.species = pigeon (not relevant!)
 [CONTRADICTION RESOLVED] Gimpy.personality = brave (not relevant!)
-[CONTRADICTION RESOLVED] Saga.color = orange (not relevant!)
+[CONTRADICTION RESOLVED] [dog].color = orange (not relevant!)
 ... (1230 more irrelevant entities)
 ```
 
@@ -314,20 +314,20 @@ Now shows `[RELEVANT]` tag to indicate these are context-filtered contradictions
 [CONTRADICTION RESOLVED] document.condition = corrupted (dominant: 3x vs 1x) [RELEVANT]
 ```
 
-**✅ Benefit**: Only checks document-related entities (not pigeons, Saga, etc.)
+**✅ Benefit**: Only checks document-related entities (not pigeons, [dog], etc.)
 
 ---
 
 ### Test Case 4: Complex Query with Multiple Entities ✅
 
-**User**: "What do Saga, Chrome, and Dice have in common?"
+**User**: "What do [dog], [cat], and [cat] have in common?"
 
 **AFTER**:
 ```
 [ENTITY FILTER] Identified 10 relevant entities for contradiction check
-[ENTITY FILTER] Entities: ['And', 'Chrome', 'Dice', 'Kay', 'Re', 'Saga', 'What', 'and', 'common', 'do']
+[ENTITY FILTER] Entities: ['And', '[cat]', '[cat]', 'Kay', 'Re', '[dog]', 'What', 'and', 'common', 'do']
 [ENTITY FILTER] Checking 6/1233 entities for contradictions
-(Only actual entities: Saga, Chrome, Dice, Kay, Re, 'And' is filtered out)
+(Only actual entities: [dog], [cat], [cat], Kay, Re, 'And' is filtered out)
 ```
 
 **✅ Benefit**: Only checks mentioned entities + core entities
@@ -358,7 +358,7 @@ Now shows `[RELEVANT]` tag to indicate these are context-filtered contradictions
 - **1233 entities checked** every turn
 - **695 contradictions resolved** (most irrelevant)
 - **Cluttered logs** with irrelevant entity updates
-- **Every query**: checks Gimpy, Bob, Fork, Saga, Mattie, yurts, etc.
+- **Every query**: checks Gimpy, Bob, Fork, [dog], Mattie, yurts, etc.
 
 ### After Fix:
 - **5-30 entities checked** per turn (relevant only)

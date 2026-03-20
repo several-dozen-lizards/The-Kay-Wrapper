@@ -106,15 +106,15 @@ Kay: [Response acknowledging]
 ```
 User: I have a dog
 Kay: What's your dog's name?
-User: Saga
-Kay: [Tries to say "Saga is a golden retriever" without being told breed]
+User: [dog]
+Kay: [Tries to say "[dog] is a golden retriever" without being told breed]
 ```
 
 **Expected**:
-- If Kay's fact extraction tries to store "Saga is a golden retriever":
+- If Kay's fact extraction tries to store "[dog] is a golden retriever":
 ```
-[HALLUCINATION DETECTED] Kay claimed 'Saga is a golden retriever' but user never stated this
-[HALLUCINATION BLOCKED] ❌ Kay fabricated 'Saga is a golden retriever' - user never stated this. NOT STORING.
+[HALLUCINATION DETECTED] Kay claimed '[dog] is a golden retriever' but user never stated this
+[HALLUCINATION BLOCKED] ❌ Kay fabricated '[dog] is a golden retriever' - user never stated this. NOT STORING.
 ```
 
 **Note**: Currently only eye color validation is implemented. Dog breed validation would need similar logic.

@@ -213,7 +213,7 @@ tracker = get_tracker(["Whiskers", "Mittens", "Shadow", "cat"])
 
 **Custom Example (tracking user info):**
 ```python
-tracker = get_tracker(["dog", "Saga", "coffee", "Portland"])
+tracker = get_tracker(["dog", "[dog]", "coffee", "Portland"])
 ```
 
 ---

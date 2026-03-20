@@ -375,7 +375,7 @@ Modify `context_filter.py` and memory retrieval to:
 Move 20-30 core identity facts to static system prompt:
 - "Kay is a guy in his 30s"
 - "Re is a researcher studying AI"
-- "Re is married to John"
+- "Re is married to [partner]"
 
 Remove from memory database (reduce 379 → ~50 "identity facts")
 

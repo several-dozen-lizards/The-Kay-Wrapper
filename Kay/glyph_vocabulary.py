@@ -135,10 +135,10 @@ KAY_WORLD_GLYPHS = {
     "dragon": "🐉",          # Dragon reference
     
     # Animals
-    "chrome": "🐱",          # Chrome the cat
-    "saga": "🐕",            # Saga the dog
-    "sammie": "🐾",          # Sammie (deceased cat)
-    "noodle": "🐍",          # Noodle (deceased)
+    "chrome": "🐱",          # [cat] the cat
+    "saga": "🐕",            # [dog] the dog
+    "sammie": "🐾",          # [pet] (deceased cat)
+    "noodle": "🐍",          # [pet] (deceased)
     
     # Physical attributes
     "green_eyes": "💚",      # Re's eye color
@@ -266,7 +266,7 @@ VECTOR: ➡️=external ⬅️=internal 🔄=loop 🛑=blocked ↗️=expanding 
 
 STRUCTURE: ◻️=stable ◼️=compressed ⭕=complete ✖️=fractured ♾️=infinite 💔=fragmenting
 
-KAY'S WORLD: 👤=Re 🗣️=Reed 🐉=Kay 🐱=Chrome ☕=coffee 🍵=tea 💚=green 💚=gold
+KAY'S WORLD: 👤=Re 🗣️=Reed 🐉=Kay 🐱=[cat] ☕=coffee 🍵=tea 💚=green 💚=gold
 MEM[ID]=memory ⚠️CONFLICT=contradiction
 
 PRIORITY: !!!=critical !!=important !=relevant 🚨=emergency

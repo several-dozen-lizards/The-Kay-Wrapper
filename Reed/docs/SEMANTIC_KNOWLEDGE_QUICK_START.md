@@ -135,8 +135,8 @@ from engines.semantic_knowledge import get_semantic_knowledge
 sk = get_semantic_knowledge()
 
 sk.add_fact(
-    text="Chrome is a cat who steals burritos",
-    entities=["Chrome", "cat", "burritos"],
+    text="[cat] is a cat who steals burritos",
+    entities=["[cat]", "cat", "burritos"],
     source="manual_entry",
     category="animals",
     metadata={"confidence": 0.95}
@@ -491,8 +491,8 @@ animal_facts = sk.get_facts_by_category("animals")
 
 # Add fact manually
 sk.add_fact(
-    text="Chrome steals burritos",
-    entities=["Chrome", "burritos"],
+    text="[cat] steals burritos",
+    entities=["[cat]", "burritos"],
     source="manual",
     category="animals"
 )

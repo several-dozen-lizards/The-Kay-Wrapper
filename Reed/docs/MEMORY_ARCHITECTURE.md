@@ -13,7 +13,7 @@ The entity resolution system tracks discrete entities (people, places, concepts)
 #### Entity Class
 
 Represents a single entity with:
-- **Canonical name**: Primary identifier (e.g., "Saga", "Re", "Kay")
+- **Canonical name**: Primary identifier (e.g., "[dog]", "Re", "Kay")
 - **Aliases**: Alternative names this entity is known by
 - **Attributes**: History of all attribute values with full provenance
   - Each attribute stores: `(value, turn_index, source, timestamp)`
@@ -29,8 +29,8 @@ Represents a single entity with:
 #### EntityGraph Class
 
 Manages all entities and relationships:
-- **Entity resolution**: Matches mentions ("my dog", "Saga") to canonical entities
-- **Relationship tracking**: "Re owns Saga", "Kay lives_in Portland"
+- **Entity resolution**: Matches mentions ("my dog", "[dog]") to canonical entities
+- **Relationship tracking**: "Re owns [dog]", "Kay lives_in Portland"
 - **Graph traversal**: Find related entities within N hops
 - **Importance ranking**: Sort entities by ULTRAMAP-derived importance scores
 - **Persistence**: Saves to `memory/entity_graph.json`
@@ -117,15 +117,15 @@ The LLM-based fact extraction now extracts:
 
 ```json
 {
-  "fact": "Saga is Re's dog",
+  "fact": "[dog] is Re's dog",
   "perspective": "user",
   "topic": "relationships",
-  "entities": ["Saga", "Re"],
+  "entities": ["[dog]", "Re"],
   "attributes": [
-    {"entity": "Saga", "attribute": "species", "value": "dog"}
+    {"entity": "[dog]", "attribute": "species", "value": "dog"}
   ],
   "relationships": [
-    {"entity1": "Re", "relation": "owns", "entity2": "Saga"}
+    {"entity1": "Re", "relation": "owns", "entity2": "[dog]"}
   ]
 }
 ```
@@ -172,7 +172,7 @@ The enhanced system is **fully backward compatible**:
 ```python
 # Get or create entity
 entity = memory.entity_graph.get_or_create_entity(
-    "Saga",
+    "[dog]",
     entity_type="animal",
     turn=current_turn
 )
@@ -213,7 +213,7 @@ memory.recall(state, user_input, use_multi_factor=True)
 # Manual retrieval
 memories = memory.retrieve_multi_factor(
     bias_cocktail=state.emotional_cocktail,
-    user_input="Tell me about Saga",
+    user_input="Tell me about [dog]",
     num_memories=10
 )
 ```
@@ -222,10 +222,10 @@ memories = memory.retrieve_multi_factor(
 
 ### From memU (Entity Resolution)
 
-✅ **Canonical entity tracking**: "my dog" → "Saga" resolution
+✅ **Canonical entity tracking**: "my dog" → "[dog]" resolution
 ✅ **Attribute provenance**: Full history with timestamps and sources
 ✅ **Contradiction detection**: Automatic conflict identification
-✅ **Relationship graphs**: "Re owns Saga", "Kay likes coffee"
+✅ **Relationship graphs**: "Re owns [dog]", "Kay likes coffee"
 
 ### From Silvie (Multi-Layer Memory)
 
@@ -295,10 +295,10 @@ The autosaved `memory/state_snapshot.json` now includes:
 Look for these log markers:
 
 ```
-[ENTITY GRAPH] Created new entity: Saga (type: animal)
+[ENTITY GRAPH] Created new entity: [dog] (type: animal)
 [ENTITY] Re.eye_color = green (turn 5, source: user)
 [ENTITY GRAPH] ⚠️ Detected 1 entity contradictions
-[MEMORY LAYERS] Promoted to episodic: My dog's name is Saga...
+[MEMORY LAYERS] Promoted to episodic: My dog's name is [dog]...
 [RETRIEVAL] Multi-factor retrieval selected 7 memories (scores: ['0.85', '0.72', ...])
 [MEMORY] Applied temporal decay at turn 20
 ```

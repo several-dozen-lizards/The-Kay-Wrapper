@@ -197,7 +197,7 @@ Turn 3: curiosity intensity=1.00, age=6  ❌ Still frozen
 [MEMORY RETRIEVAL] Top 10 most relevant memories:
 [MEMORY RETRIEVAL]   #1: score=0.892, emotions=['curiosity'], preview='I wonder how the memory system works internally...'
 [MEMORY RETRIEVAL]   #2: score=0.745, emotions=['curiosity'], preview='How does the wrapper handle exceptions?...'
-[MEMORY RETRIEVAL]   #3: score=0.623, emotions=['affection'], preview='I miss Sammie so much today...'
+[MEMORY RETRIEVAL]   #3: score=0.623, emotions=['affection'], preview='I miss [pet] so much today...'
 ...
 
 [EMOTION ENGINE] Memory reinforcement: using top 150/310 most relevant memories
@@ -356,10 +356,10 @@ boost_amount = 0.05 * (relevance ** 1.5)
 - [ ] Verify unrelated memories have low scores (<0.2)
 
 ### Test 5: Low Relevance Ignored ✅
-- [ ] Send message about specific topic (e.g., "Tell me about Sammie")
+- [ ] Send message about specific topic (e.g., "Tell me about [pet]")
 - [ ] Check logs for memories used
 - [ ] Verify unrelated memories (relevance <0.15) not used
-- [ ] Verify only Sammie-related memories contributed boost
+- [ ] Verify only [pet]-related memories contributed boost
 
 ---
 

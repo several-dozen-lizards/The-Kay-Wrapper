@@ -37,12 +37,12 @@ except ImportError:
 """
 VERSIONED FACT STRUCTURE:
 
-Instead of storing duplicate facts (e.g., "Saga is orange" 38 times),
+Instead of storing duplicate facts (e.g., "[dog] is orange" 38 times),
 we store each fact ONCE with version history:
 
 {
-    'fact': 'Saga has color = orange',
-    'entity': 'Saga',
+    'fact': '[dog] has color = orange',
+    'entity': '[dog]',
     'attribute': 'color',
     'current_value': 'orange',
     'created_at': '2025-11-17T12:00:00Z',
@@ -408,7 +408,7 @@ class MemoryEngine:
                     return None
                 else:
                     # Recent but low overlap: boost to minimum threshold instead of killing
-                    # This ensures "What else?" after "Tell me about Saga" still surfaces Saga facts
+                    # This ensures "What else?" after "Tell me about [dog]" still surfaces [dog] facts
                     keyword_overlap = max(keyword_overlap, 0.3)
 
             # Add motif scoring if motif engine is available
@@ -556,56 +556,56 @@ When conversation involves documents, files, or imported content:
 OUTPUT FORMAT (JSON array):
 
 EXAMPLE 1 - User states ownership:
-User: "My dog is Saga"
+User: "My dog is [dog]"
 Reed: "That's a great name!"
 → Extract:
 [
   {{
-    "fact": "Saga is Re's dog",
+    "fact": "[dog] is Re's dog",
     "perspective": "user",
     "topic": "pets",
-    "entities": ["Saga", "Re"],
-    "attributes": [{{"entity": "Saga", "attribute": "species", "value": "dog"}}],
-    "relationships": [{{"entity1": "Re", "relation": "owns", "entity2": "Saga"}}]
+    "entities": ["[dog]", "Re"],
+    "attributes": [{{"entity": "[dog]", "attribute": "species", "value": "dog"}}],
+    "relationships": [{{"entity1": "Re", "relation": "owns", "entity2": "[dog]"}}]
   }}
 ]
 Note: Reed's response "That's a great name!" contains NO factual claims, so nothing extracted from it.
 
 EXAMPLE 2 - Reed makes conversational reference to Re's pets:
-User: "My cats are Dice, Chrome, Luna"
-Reed: "Your cats - Dice, Chrome, Luna - sound wonderful!"
+User: "My cats are [cat], [cat], [cat]"
+Reed: "Your cats - [cat], [cat], [cat] - sound wonderful!"
 → Extract:
 [
   {{
-    "fact": "Re has 3 cats: Dice, Chrome, Luna",
+    "fact": "Re has 3 cats: [cat], [cat], [cat]",
     "perspective": "user",
     "topic": "pets",
-    "entities": ["Re", "Dice", "Chrome", "Luna"],
+    "entities": ["Re", "[cat]", "[cat]", "[cat]"],
     "relationships": [{{"entity1": "Re", "relation": "owns", "entity2": "cats"}}]
   }},
   {{
-    "fact": "Dice is Re's cat",
+    "fact": "[cat] is Re's cat",
     "perspective": "user",
     "topic": "pets",
-    "entities": ["Dice", "Re"],
-    "attributes": [{{"entity": "Dice", "attribute": "species", "value": "cat"}}],
-    "relationships": [{{"entity1": "Re", "relation": "owns", "entity2": "Dice"}}]
+    "entities": ["[cat]", "Re"],
+    "attributes": [{{"entity": "[cat]", "attribute": "species", "value": "cat"}}],
+    "relationships": [{{"entity1": "Re", "relation": "owns", "entity2": "[cat]"}}]
   }},
   {{
-    "fact": "Chrome is Re's cat",
+    "fact": "[cat] is Re's cat",
     "perspective": "user",
     "topic": "pets",
-    "entities": ["Chrome", "Re"],
-    "attributes": [{{"entity": "Chrome", "attribute": "species", "value": "cat"}}],
-    "relationships": [{{"entity1": "Re", "relation": "owns", "entity2": "Chrome"}}]
+    "entities": ["[cat]", "Re"],
+    "attributes": [{{"entity": "[cat]", "attribute": "species", "value": "cat"}}],
+    "relationships": [{{"entity1": "Re", "relation": "owns", "entity2": "[cat]"}}]
   }},
   {{
-    "fact": "Luna is Re's cat",
+    "fact": "[cat] is Re's cat",
     "perspective": "user",
     "topic": "pets",
-    "entities": ["Luna", "Re"],
-    "attributes": [{{"entity": "Luna", "attribute": "species", "value": "cat"}}],
-    "relationships": [{{"entity1": "Re", "relation": "owns", "entity2": "Luna"}}]
+    "entities": ["[cat]", "Re"],
+    "attributes": [{{"entity": "[cat]", "attribute": "species", "value": "cat"}}],
+    "relationships": [{{"entity1": "Re", "relation": "owns", "entity2": "[cat]"}}]
   }}
 ]
 Note: Reed says "Your cats" - this is about Re's cats, NOT Reed's. Do NOT create "Reed owns X".
@@ -626,29 +626,29 @@ Reed: "My eyes are gold."
 Note: This IS a direct self-assertion about Reed, so extract as reed perspective.
 
 EXAMPLE 4 - Reed confused but describing Re's entities (DO NOT EXTRACT):
-User: "My cats are Dice and Chrome"
-Reed: "Yeah, my cats - Dice and Chrome - are great!"
+User: "My cats are [cat] and [cat]"
+Reed: "Yeah, my cats - [cat] and [cat] - are great!"
 → Extract:
 [
   {{
-    "fact": "Dice is Re's cat",
+    "fact": "[cat] is Re's cat",
     "perspective": "user",
     "topic": "pets",
-    "entities": ["Dice", "Re"],
-    "attributes": [{{"entity": "Dice", "attribute": "species", "value": "cat"}}],
-    "relationships": [{{"entity1": "Re", "relation": "owns", "entity2": "Dice"}}]
+    "entities": ["[cat]", "Re"],
+    "attributes": [{{"entity": "[cat]", "attribute": "species", "value": "cat"}}],
+    "relationships": [{{"entity1": "Re", "relation": "owns", "entity2": "[cat]"}}]
   }},
   {{
-    "fact": "Chrome is Re's cat",
+    "fact": "[cat] is Re's cat",
     "perspective": "user",
     "topic": "pets",
-    "entities": ["Chrome", "Re"],
-    "attributes": [{{"entity": "Chrome", "attribute": "species", "value": "cat"}}],
-    "relationships": [{{"entity1": "Re", "relation": "owns", "entity2": "Chrome"}}]
+    "entities": ["[cat]", "Re"],
+    "attributes": [{{"entity": "[cat]", "attribute": "species", "value": "cat"}}],
+    "relationships": [{{"entity1": "Re", "relation": "owns", "entity2": "[cat]"}}]
   }}
 ]
 Note: Even though Reed says "my cats", the context shows these are Re's cats (user just stated it).
-Do NOT create "Reed owns Dice/Chrome". Reed is confused/echoing. Only extract from user input.
+Do NOT create "Reed owns [cat]/[cat]". Reed is confused/echoing. Only extract from user input.
 
 EXAMPLE 5 - User expresses desire/goal:
 User: "I want to fix this wrapper persistence issue"
@@ -679,16 +679,16 @@ Reed: "That's frustrating."
 ]
 
 EXAMPLE 7 - User expresses fear:
-User: "I'm worried Chrome might get out through the broken window"
+User: "I'm worried [cat] might get out through the broken window"
 Reed: "That's a valid concern."
 → Extract:
 [
   {{
-    "fact": "Re fears Chrome escaping through broken window",
+    "fact": "Re fears [cat] escaping through broken window",
     "perspective": "user",
     "topic": "goals",
-    "entities": ["Re", "Chrome", "window"],
-    "attributes": [{{"entity": "Re", "attribute": "fear", "value": "Chrome escaping"}}, {{"entity": "window", "attribute": "condition", "value": "broken"}}]
+    "entities": ["Re", "[cat]", "window"],
+    "attributes": [{{"entity": "Re", "attribute": "fear", "value": "[cat] escaping"}}, {{"entity": "window", "attribute": "condition", "value": "broken"}}]
   }}
 ]
 
@@ -715,19 +715,19 @@ Reed: "Oh, you're right - I had the dates wrong."
 Note: When user says "not X" or "X is wrong", this is a CORRECTION. Mark is_correction=true and include the corrects block.
 
 EXAMPLE 9 - User corrects Reed's mistake:
-User: "Actually, Saga is 3 years old, not 5"
+User: "Actually, [dog] is 3 years old, not 5"
 Reed: "Got it, my mistake."
 → Extract:
 [
   {{
-    "fact": "Saga is 3 years old",
+    "fact": "[dog] is 3 years old",
     "perspective": "user",
     "topic": "pets",
-    "entities": ["Saga"],
-    "attributes": [{{"entity": "Saga", "attribute": "age", "value": "3"}}],
+    "entities": ["[dog]"],
+    "attributes": [{{"entity": "[dog]", "attribute": "age", "value": "3"}}],
     "is_correction": true,
     "corrects": {{
-      "entity": "Saga",
+      "entity": "[dog]",
       "wrong_value": "5",
       "correct_value": "3",
       "attribute_pattern": "age"
@@ -1674,10 +1674,10 @@ Extract facts now:"""
                 value = None
                 fact_lower = fact_text.lower()
                 if " is " in fact_lower:
-                    # "Saga is orange" → value = "orange"
+                    # "[dog] is orange" → value = "orange"
                     value = fact_text.split(" is ")[-1].strip()
                 elif " has " in fact_lower:
-                    # "Saga has color orange" → value = "orange"
+                    # "[dog] has color orange" → value = "orange"
                     value = fact_text.split(" has ")[-1].strip()
 
                 if value:
@@ -3029,7 +3029,7 @@ Extract facts now:"""
         extracted_facts = self._extract_facts(user_input, "")  # No response yet
 
         # ADDITIONAL: Regex-based relationship extraction for names
-        # Catches patterns like "my dog's name is Saga", "my husband named John"
+        # Catches patterns like "my dog's name is [dog]", "my husband named [partner]"
         user_text_lower = user_input.lower()
 
         # Pattern 1: "my [relation]'s name is [Name]" or "my [relation] named [Name]"
@@ -3119,7 +3119,7 @@ Extract facts now:"""
 
             # DOWNWEIGHT GENERIC RELATIONSHIP SUMMARIES
             # Generic: "Re has a husband", "Re has a dog" (no specific name)
-            # Specific: "John is Re's husband", "Saga is Re's dog" (has specific name)
+            # Specific: "[partner] is Re's husband", "[dog] is Re's dog" (has specific name)
             is_generic_relationship = False
             fact_text_lower = fact_text.lower()
 
@@ -3695,7 +3695,7 @@ Generate interpretation now:"""
         Detect ongoing conversation threads (Flamekeeper integration).
 
         Threads are clusters of memories sharing entities and topics.
-        Useful for identifying ongoing sagas like "wrapper debugging" or "Chrome stories".
+        Useful for identifying ongoing sagas like "wrapper debugging" or "[cat] stories".
 
         Args:
             recent_turns: How many recent turns to analyze

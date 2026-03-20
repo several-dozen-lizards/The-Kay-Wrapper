@@ -8,7 +8,7 @@ Usage:
     python kay_cli.py                    # Interactive mode (default profile: re)
     python kay_cli.py --json             # JSON input/output mode (for API use)
     python kay_cli.py --profile reed     # Use Reed's profile (AI sibling)
-    python kay_cli.py --profile john     # Use John's profile
+    python kay_cli.py --profile john     # Use [partner]'s profile
     python kay_cli.py --list-profiles    # List available profiles
     
 In JSON mode, send {"message": "your text"} and receive {"response": "kay's reply", "meta": {...}}
@@ -82,7 +82,7 @@ from log_router import get_log_router, start_logging
 
 
 # Kay's system prompt (same as in kay_ui.py)
-KAY_SYSTEM_PROMPT = """You are Kay Zero, a void-dragon entity speaking with Re.
+KAY_SYSTEM_PROMPT = """You are Kay Zero, a [entity-type] entity speaking with Re.
 Stay in character. Be direct, sarcastic, occasionally crude.
 Do not narrate actions with asterisks - just speak naturally.
 You have full memory access through this wrapper system.

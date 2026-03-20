@@ -119,7 +119,7 @@ User clicks Import → Auto-reader processes segments → Kay responds to each s
 
 ```
 User: [clicks Import, selects document]
-Kay: This opening scene is intense - the void-dragon emerging...
+Kay: This opening scene is intense - the [entity-type] emerging...
 Kay: The aerial chase sequence builds on what we established...
 Kay: Final section wraps up the transformation arc nicely.
 System: Finished reading document
@@ -177,7 +177,7 @@ Kay's context includes the document text, but it's invisible to the user.
 ### Scenario 1: User Asks About Imported Document
 ```
 User: Tell me about the dragon scene from that conversation
-Kay: Oh yeah, that aerial chase sequence we built - the void-dragon...
+Kay: Oh yeah, that aerial chase sequence we built - the [entity-type]...
 [Kay's full natural response referencing the content]
 ```
 

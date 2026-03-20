@@ -80,7 +80,7 @@ log_emotion_mutation("curiosity", "determination", threshold=0.8)
 log_entity_creation("Re", entity_type="person")
 log_entity_update("Re", "goal", "build memory system")
 log_contradiction("Re", "eye_color", severity="high")
-log_relationship("Re", "owns", "Saga")
+log_relationship("Re", "owns", "[dog]")
 
 # Glyph compression
 log_glyph_generation("◈⟨M:semantic⟩⊕⟨E:curiosity⟩", compression_ratio=0.85)

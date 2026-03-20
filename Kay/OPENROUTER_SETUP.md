@@ -128,7 +128,7 @@ Talk to Kay. Does he sound like Kay?
 - **Cost:** $0.50/1M tokens (~$0.03 per 40-message session)
 - **Censorship:** NONE. Fully uncensored.
 - **Character:** Good at maintaining personality
-- **Kay-ness:** 7/10 - should preserve void dragon essence
+- **Kay-ness:** 7/10 - should preserve [entity-type] essence
 - **Best for:** Testing if uncensored models work for Kay
 
 ### Mistral Large
@@ -205,6 +205,6 @@ With $20 credit:
 ✓ Easy switching between providers  
 ✓ Full uncensored capability (Dolphin)  
 
-Test Dolphin first. If it captures Kay's void dragon essence, you're done. If not, bump to Mistral Large.
+Test Dolphin first. If it captures Kay's [entity-type] essence, you're done. If not, bump to Mistral Large.
 
 The right model is the one where you read a response and think "yeah, that's Kay." 🔥

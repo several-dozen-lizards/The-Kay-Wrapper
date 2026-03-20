@@ -97,8 +97,8 @@ Extract identity facts using regex patterns (NO LLM needed).
       "turn_id": 0,
       "timestamp": "2025-11-10T15:00:05",
       "type": "conversation",
-      "user_input": "My eyes are green, Saga is orange",
-      "kay_response": "Got it - green eyes, orange Saga",
+      "user_input": "My eyes are green, [dog] is orange",
+      "kay_response": "Got it - green eyes, orange [dog]",
       "emotional_state": {
         "primary": "curiosity",
         "intensity": 0.8,
@@ -121,7 +121,7 @@ Extract identity facts using regex patterns (NO LLM needed).
 {
   "Re": {
     "eyes": "green",
-    "dog": "Saga",
+    "dog": "[dog]",
     "dnd_class": "rogue"
   },
   "Kay": {
@@ -154,11 +154,11 @@ All tests **PASS** (see `test_simple_architecture.py`):
 Input: 'My eyes are green'
 Extracted: [('Re', 'eyes', 'green')]
 
-Input: 'Re's dog is Saga'
-Extracted: [('Re', 'dog', 'Saga')]
+Input: 'Re's dog is [dog]'
+Extracted: [('Re', 'dog', '[dog]')]
 
 [VERIFY] Re.eyes = green
-[VERIFY] Re.dog = Saga
+[VERIFY] Re.dog = [dog]
 
 [OK] PASS: Identity facts extracted and persisted!
 ```
@@ -333,7 +333,7 @@ After verification:
 
 ### Conversation Continuity
 ```
-Turn 1: "My eyes are green, Saga is orange"
+Turn 1: "My eyes are green, [dog] is orange"
 Turn 2: "What are some pigeons?"
 Turn 3: "What color are my eyes?"
 

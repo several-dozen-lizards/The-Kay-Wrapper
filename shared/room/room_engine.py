@@ -18,7 +18,7 @@ Coordinate system:
   - Internal storage uses (x, y) centered at (0,0) for rendering
   - Godot receives screen-space coords via get_full_state()
 
-Design principle (Buryat yurt cosmology):
+Design principle ([cultural-reference] yurt cosmology):
   The gol is the central singularity from which all reality emanates.
   Connect to the center and you're connected to everything.
   The room is a microcosm. As above, so below.

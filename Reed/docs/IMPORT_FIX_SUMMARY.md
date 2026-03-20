@@ -176,7 +176,7 @@ python main.py
 
 # Ask about imported content
 > What are my dogs' names?
-# Kay should recall: "Chrome and Saga" (from import)
+# Kay should recall: "[cat] and [dog]" (from import)
 # NOT hallucinate random names
 ```
 

@@ -211,7 +211,7 @@ relevance = 2 / 3 = 0.67  # 67% match
 → Boosted! (0.67 > 0.3 threshold)
 → Boost: 1.0 + (0.67 * 1.5) = 2.0x
 
-# Irrelevant import: "Pigeon names: Astrid, Birdie, Chrome"
+# Irrelevant import: "Pigeon names: Astrid, Birdie, [cat]"
 mem_words = {'pigeon', 'names', 'astrid', 'birdie', 'chrome'}
 overlap = {}  # 0 words
 relevance = 0 / 3 = 0.0  # 0% match

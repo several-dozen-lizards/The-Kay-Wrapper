@@ -254,14 +254,14 @@ Total: 3/3 tests passed
 ### 4. Entity Filtering
 **YES (Concrete):**
 - ✅ People: "Re", "Kay", "Sarah"
-- ✅ Pets with names: "Chrome", "Saga"
+- ✅ Pets with names: "[cat]", "[dog]"
 - ✅ Places: "Seattle", "Archive Zero"
 - ✅ Named objects: "Kay_UI", "ULTRAMAP"
 
 **NO (Abstract):**
 - ❌ Concepts: "desire", "contradiction", "rumor"
 - ❌ Emotions: "fear", "hope", "worry"
-- ❌ Generic nouns: "cat" (unless named like "Chrome")
+- ❌ Generic nouns: "cat" (unless named like "[cat]")
 
 ---
 

@@ -244,9 +244,9 @@ python main.py
 ### Best Format: Plain Text Conversations
 ```
 User: What are my cats' names?
-Kay: Your cats are Chrome and Saga.
-User: Tell me about Chrome.
-Kay: Chrome is a gray tabby with green eyes...
+Kay: Your cats are [cat] and [dog].
+User: Tell me about [cat].
+Kay: [cat] is a gray tabby with green eyes...
 ```
 
 ### Good Format: Structured JSON
@@ -259,7 +259,7 @@ Kay: Chrome is a gray tabby with green eyes...
   },
   {
     "speaker": "assistant",
-    "text": "Your cats are Chrome and Saga.",
+    "text": "Your cats are [cat] and [dog].",
     "timestamp": "2024-10-27T10:30:05"
   }
 ]
@@ -269,7 +269,7 @@ Kay: Chrome is a gray tabby with green eyes...
 ```
 Journal Entry - October 27, 2024
 
-Today I took Chrome and Saga to the vet. Chrome was nervous but Saga
+Today I took [cat] and [dog] to the vet. [cat] was nervous but [dog]
 was very brave. The vet said they're both healthy...
 ```
 

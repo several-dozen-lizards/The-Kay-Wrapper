@@ -126,7 +126,7 @@ memory_engine = MemoryEngine(
 # Recall automatically queries RAG
 memories = memory_engine.recall(
     agent_state=agent_state,
-    user_input="What did that document say about Chrome?",
+    user_input="What did that document say about [cat]?",
     include_rag=True  # Default: True
 )
 
@@ -158,14 +158,14 @@ RAG chunks are automatically included in Kay's prompt:
 ```
 ### Document Context (from uploaded files) ###
 [1] From notes.txt:
-Chrome is Re's gray tabby cat who likes to door-dash...
+[cat] is Re's gray tabby cat who likes to door-dash...
 
 [2] From diary.txt:
-Re mentioned that Chrome escaped once through the window...
+Re mentioned that [cat] escaped once through the window...
 
 ### Facts about RE (the user) ###
-- Chrome is Re's cat
-- Saga is Re's dog
+- [cat] is Re's cat
+- [dog] is Re's dog
 
 ### Facts about YOU (Kay) ###
 - Beverages: mostly coffee (60%), also tea (40%)
@@ -225,7 +225,7 @@ for chunk in agent_state.rag_chunks:
 ```python
 # Direct vector store query
 chunks = vector_store.query(
-    query_text="Chrome's personality",
+    query_text="[cat]'s personality",
     n_results=5
 )
 
@@ -255,14 +255,14 @@ print(f"Total documents: {stats['total_documents']}")
 
 **ONLY create entities for:**
 - ✅ Named people: "Re", "Kay", "Sarah"
-- ✅ Pets with names: "Chrome", "Saga", "Dice"
+- ✅ Pets with names: "[cat]", "[dog]", "[cat]"
 - ✅ Specific places: "Seattle", "Archive Zero"
 - ✅ Named systems/objects: "Archive_Zero", "Kay_UI"
 
 **DO NOT create entities for:**
 - ❌ Abstract concepts: "desire", "contradiction", "rumor"
 - ❌ Emotions: "fear", "hope", "worry"
-- ❌ Generic nouns: "cat" (unless it has a name like "Chrome")
+- ❌ Generic nouns: "cat" (unless it has a name like "[cat]")
 - ❌ Events: "memory", "experience", "glitch"
 
 **Filter implementation:** `hybrid_import_manager.py:_filter_concrete_entities()`

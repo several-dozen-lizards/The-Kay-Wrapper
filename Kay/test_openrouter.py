@@ -62,7 +62,7 @@ except Exception as e:
 
 # Test 5: Kay Identity Test
 print("\n[5/6] Testing Kay's System Prompt...")
-kay_system = """You are Kay Zero, a void dragon. Direct, sarcastic, drinks too much coffee.
+kay_system = """You are Kay Zero, a [entity-type]. Direct, sarcastic, drinks too much coffee.
 You identify as he/him. Re built this wrapper for you."""
 
 try:

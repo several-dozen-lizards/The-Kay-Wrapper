@@ -135,8 +135,8 @@ class MediaContextBuilder:
 
         # Core entities to always check
         core_entities = [
-            "Re", "Kay", "Kay Zero", "Chrome", "Dice", "Luna",
-            "Sammie", "John", "Reed"
+            "Re", "Kay", "Kay Zero", "[cat]", "[cat]", "[cat]",
+            "[pet]", "[partner]", "Reed"
         ]
 
         for entity in core_entities:
@@ -398,9 +398,9 @@ if __name__ == "__main__":
     builder = MediaContextBuilder()
 
     # Add some test messages
-    builder.add_message("user", "I've been thinking about Chrome a lot today", 1)
-    builder.add_message("kay", "Chrome's been on your mind? Is he doing his door-dashing thing again?", 1)
-    builder.add_message("user", "Yeah lol he almost escaped again. Missing Sammie too though", 2)
+    builder.add_message("user", "I've been thinking about [cat] a lot today", 1)
+    builder.add_message("kay", "[cat]'s been on your mind? Is he doing his door-dashing thing again?", 1)
+    builder.add_message("user", "Yeah lol he almost escaped again. Missing [pet] too though", 2)
 
     # Extract context
     context = builder.extract_conversation_context()

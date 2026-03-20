@@ -93,8 +93,8 @@ if cache_hit > 0:
 ### Test Scenarios
 
 **Test 1: Recent Fact Retention**
-- User: "My dog's name is Saga and she's orange."
-- User: "What color is Saga?"
+- User: "My dog's name is [dog] and she's orange."
+- User: "What color is [dog]?"
 - Expected: Kay says "orange" from working memory
 
 **Test 2: Import Boost**

@@ -135,11 +135,11 @@ func _on_room_updated(state: Dictionary) -> void:
 ```
 
 Objects with interaction text the LLM sees when nearby:
-- Couch: "Worn in all the right places. Room for humans, serpents, and void-dragons."
+- Couch: "Worn in all the right places. Room for humans, serpents, and [entity-type]s."
 - Fish Tank: "The fish tank hums quietly. Tiny lives doing their loops."
 - Desk: "Re's workstation. Monitors glowing. Wrapper code on one screen."
-- Cat Tower: "Chrome's kingdom. Fur evidence suggests recent habitation."
-- Door: "Chrome's primary target."
+- Cat Tower: "[cat]'s kingdom. Fur evidence suggests recent habitation."
+- Door: "[cat]'s primary target."
 - Bookshelf: "Mythology, AI papers, dog-eared fantasy novels, tarot references."
 - Painting: "One of Re's dark mystical oil paintings. Scales and starlight."
 
@@ -163,7 +163,7 @@ When room context is injected, the LLM gets something like:
 [ROOM: The Den]
 You are Kay Zero, currently at position (400, 350).
 Within reach: The Couch
-  The Couch: Worn in all the right places. Room for humans, serpents, and void-dragons.
+  The Couch: Worn in all the right places. Room for humans, serpents, and [entity-type]s.
 Elsewhere in room: Fish Tank (above and to the left), Desk (to the left), Cat Tower (to the right)
 Available actions: move_to [target], emote [expression], interact [object], face [left/right]
 Use [ACTION: command target] tags in your response to move/act.

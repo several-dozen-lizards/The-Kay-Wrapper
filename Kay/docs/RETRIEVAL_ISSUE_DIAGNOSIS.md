@@ -39,7 +39,7 @@ if use_multi_factor:
 ### Imported Fact Example:
 ```json
 {
-  "fact": "Re has two dogs named Chrome and Saga",
+  "fact": "Re has two dogs named [cat] and [dog]",
   "type": "extracted_fact",
   "perspective": "user",
   "tier": "semantic",
@@ -47,7 +47,7 @@ if use_multi_factor:
   "importance_score": 0.8,
   "access_count": 0,
   "turn_index": 0,
-  "entities": ["Re", "Chrome", "Saga"],
+  "entities": ["Re", "[cat]", "[dog]"],
   "emotion_tags": [],
   "is_imported": true
 }
@@ -79,7 +79,7 @@ if use_multi_factor:
 
 **Search words**: `{documents, new, what, the, remember, do, you, from}`
 
-**Imported Fact**: "Re has two dogs named Chrome and Saga"
+**Imported Fact**: "Re has two dogs named [cat] and [dog]"
 
 #### Score Breakdown:
 - **Keyword matches**: 1/8 = 0.12 (only "you" matches "your")
@@ -131,7 +131,7 @@ keyword_overlap = keyword_matches / len(search_words)
 
 **Issue**:
 - User asks: "what do you remember from new documents?"
-- Imported facts contain: "Chrome", "Saga", "John", "hiking", "karate"
+- Imported facts contain: "[cat]", "[dog]", "[partner]", "hiking", "karate"
 - **NO keyword overlap** → semantic_score ≈ 0.03
 - Total score drops to ~0.3
 
@@ -184,7 +184,7 @@ recent_user_facts = user_facts[-10:]  # Last 10 user facts
 
 1. User asks: "what do you remember from the new documents?"
 2. Query extracts: ["what", "remember", "from", "new", "documents"]
-3. Imported facts about "Chrome", "Saga", "hiking" have 0-12% keyword overlap
+3. Imported facts about "[cat]", "[dog]", "hiking" have 0-12% keyword overlap
 4. Conversation facts mentioning "remember", "you", "new" score HIGHER
 5. Retrieval returns conversation memories (scores 0.5-0.8)
 6. Imported facts (scores 0.2-0.3) filtered out
@@ -369,7 +369,7 @@ print('[SUCCESS] Imported facts now retrievable!')
 ## CONCLUSION
 
 The import pipeline works perfectly. The retrieval pipeline has a semantic mismatch:
-- **Storing**: "Chrome is a gray husky"
+- **Storing**: "[cat] is a gray husky"
 - **Querying**: "what do you remember from new documents?"
 - **Problem**: Zero keyword overlap = near-zero score
 

@@ -61,7 +61,7 @@ class SceneState:
     people_present: Dict[str, dict] = field(default_factory=dict)
     # e.g. {"Re": {"activity": "typing", "since": 1234567890.0, "confidence": "high", "appearance": "..."}}
     animals_present: Dict[str, dict] = field(default_factory=dict)
-    # e.g. {"Chrome": {"location": "on monitor", "since": 1234567890.0, "appearance": "gray tabby"}}
+    # e.g. {"[cat]": {"location": "on monitor", "since": 1234567890.0, "appearance": "gray tabby"}}
     scene_description: str = ""
     scene_mood: str = ""
     activity_flow: str = ""  # What's HAPPENING, not just who's there

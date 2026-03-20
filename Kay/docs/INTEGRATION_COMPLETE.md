@@ -615,8 +615,8 @@ memory.recall(state, user_input)
 
 ```python
 # From conversation
-"Re mentioned Saga" → entity_graph: "Saga" (mentioned by Re)
-"Re said Saga is a dog" → entity_graph: Saga.species = "dog"
+"Re mentioned [dog]" → entity_graph: "[dog]" (mentioned by Re)
+"Re said [dog] is a dog" → entity_graph: [dog].species = "dog"
 
 # NOT from documents
 "Document says Gimpy is a pigeon" → DON'T extract to entity_graph

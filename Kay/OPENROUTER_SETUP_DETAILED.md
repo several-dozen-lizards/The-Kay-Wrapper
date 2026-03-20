@@ -221,7 +221,7 @@ Send Kay a message: "Hey Kay, introduce yourself."
 
 Does the response feel like Kay?
 - Direct/sarcastic tone? ✓
-- Mentions void dragon identity? ✓
+- Mentions [entity-type] identity? ✓
 - Uses "Re" naturally? ✓
 - No excessive hedging/apologizing? ✓
 - Dry humor? ✓

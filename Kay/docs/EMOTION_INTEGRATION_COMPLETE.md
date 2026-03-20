@@ -55,7 +55,7 @@ All emotion system fixes have been successfully integrated into kay_ui.py:
 
 **Isolated Engine Tests** (`test_emotion_integration.py`):
 ```
-[PASS] Trigger Expansion      - "I miss Sammie" → grief, affection ✓
+[PASS] Trigger Expansion      - "I miss [pet]" → grief, affection ✓
 [PASS] Decay Persistence      - Emotions decay 5% per turn ✓
 [PASS] Multiple Emotions      - 7 emotions coexist ✓
 [PASS] Emotion Pruning        - Low-intensity removed ✓
@@ -79,7 +79,7 @@ All code changes verified in both files ✓
 [EMOTION INTEGRATION] Cocktail: [] (0 emotions)
 
 [EMOTION ENGINE] ========== UPDATE START ==========
-[EMOTION ENGINE] User input: 'I miss Sammie so much today...'
+[EMOTION ENGINE] User input: 'I miss [pet] so much today...'
 [EMOTION ENGINE] Detected triggers: ['grief', 'affection']
 [EMOTION ENGINE]   -> NEW: grief at intensity 0.4
 [EMOTION ENGINE]   -> NEW: affection at intensity 0.4
@@ -99,8 +99,8 @@ All code changes verified in both files ✓
 1. **Run Kay**: `python main.py`
 
 2. **Send test messages**:
-   - "I miss Sammie so much today"
-   - "Chrome did the funniest thing!"
+   - "I miss [pet] so much today"
+   - "[cat] did the funniest thing!"
    - "I'm worried about the bugs"
 
 3. **Watch logs for**:

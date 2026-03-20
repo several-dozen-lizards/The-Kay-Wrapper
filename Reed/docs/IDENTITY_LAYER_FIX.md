@@ -11,11 +11,11 @@ The system was loading **691 identity facts** every turn, regardless of relevanc
 
 - **64 Re facts** (user's eye color, pets, family, etc.)
 - **126 Kay facts** (INCLUDING pigeon names, conversation memories, mother facts, etc.)
-- **499 entity facts** (pigeons, Saga, characters, documents, etc.)
+- **499 entity facts** (pigeons, [dog], characters, documents, etc.)
 
 **Result**: Every turn, Kay's context was flooded with:
 - `[CONTRADICTION RESOLVED] Bob.species = pigeon`
-- `[CONTRADICTION RESOLVED] Saga.color = orange`
+- `[CONTRADICTION RESOLVED] [dog].color = orange`
 - `[CONTRADICTION RESOLVED] Gimpy.personality = brave`
 - ... 688 more irrelevant facts
 
@@ -29,16 +29,16 @@ The `identity_memory.py` system was too broad in what it considered "identity":
 
 **Before Fix** (`is_identity_fact()` line 68-123):
 - ✅ "Kay has scars" → Identity (correct)
-- ❌ "Saga is a dog" → Identity (WRONG - this is an entity fact)
+- ❌ "[dog] is a dog" → Identity (WRONG - this is an entity fact)
 - ❌ "Bob is a pigeon" → Identity (WRONG - this is an entity fact)
 - ❌ "Kay knows 4 pigeons" → Identity (WRONG - this is conversation memory)
 
 **Problem patterns** (RULE 5, lines 107-119):
 ```python
 # These patterns marked TOO MUCH as identity:
-r"\b\w+ is a (cat|dog|pet)",    # "Saga is a dog" → marked as identity ❌
-r"\b\w+ is \w+'s (cat|dog)",    # "Chrome is Re's cat" → marked as identity ❌
-r"\b(cat|dog)s?: [\w, ]+",      # "cats: Dice, Chrome" → marked as identity ❌
+r"\b\w+ is a (cat|dog|pet)",    # "[dog] is a dog" → marked as identity ❌
+r"\b\w+ is \w+'s (cat|dog)",    # "[cat] is Re's cat" → marked as identity ❌
+r"\b(cat|dog)s?: [\w, ]+",      # "cats: [cat], [cat]" → marked as identity ❌
 ```
 
 ---
@@ -53,7 +53,7 @@ r"\b(cat|dog)s?: [\w, ]+",      # "cats: Dice, Chrome" → marked as identity �
 
 **Everything else → working memory** (retrieved based on relevance):
 - Re's facts (eye color, pets, family) → working memory
-- Entity facts (Saga, Bob, Gimpy, pigeons) → working memory
+- Entity facts ([dog], Bob, Gimpy, pigeons) → working memory
 - Conversation memories ("Kay discussed X") → working memory
 
 ---
@@ -71,8 +71,8 @@ if topic in identity_topics:
 
 # RULE 5: Declarative identity patterns
 identity_patterns = [
-    r"\b\w+ is a (cat|dog|pet)",  # ❌ "Saga is a dog" marked as identity
-    r"\b\w+ is \w+'s (cat|dog)",  # ❌ "Chrome is Re's cat" marked as identity
+    r"\b\w+ is a (cat|dog|pet)",  # ❌ "[dog] is a dog" marked as identity
+    r"\b\w+ is \w+'s (cat|dog)",  # ❌ "[cat] is Re's cat" marked as identity
 ]
 ```
 
@@ -84,7 +84,7 @@ if perspective != "kay":
 
 # RULE 4: ONLY Kay entity can be identity
 if "Kay" not in entities and entities:
-    return False  # ✅ Saga, Bob, Gimpy → working memory
+    return False  # ✅ [dog], Bob, Gimpy → working memory
 
 # RULE 6: Kay's physical form
 kay_physical = [
@@ -249,7 +249,7 @@ Kay's core identity (kept):
 **BEFORE**:
 ```
 [RETRIEVAL] Including ALL 691 identity facts
-[CONTRADICTION RESOLVED] Saga.color = orange
+[CONTRADICTION RESOLVED] [dog].color = orange
 [CONTRADICTION RESOLVED] Bob.species = pigeon
 [CONTRADICTION RESOLVED] Gimpy.personality = brave
 ... (688 more irrelevant facts)
@@ -261,7 +261,7 @@ Kay's core identity (kept):
 [MEMORY FILTER] Retrieved 0 relevant memories (query not related to Kay's history)
 ```
 
-**✅ Benefit**: No pigeon facts, no Saga facts, no Re facts loaded for weather query
+**✅ Benefit**: No pigeon facts, no [dog] facts, no Re facts loaded for weather query
 
 ---
 
@@ -288,26 +288,26 @@ Kay's core identity (kept):
 
 ---
 
-### Test Case 3: Saga Query ✅
+### Test Case 3: [dog] Query ✅
 
-**User**: "Tell me about Saga"
+**User**: "Tell me about [dog]"
 
 **BEFORE**:
 ```
 [RETRIEVAL] Including ALL 691 identity facts (permanent)
-[CONTRADICTION RESOLVED] Saga.color = orange (every turn, even when not discussing Saga)
+[CONTRADICTION RESOLVED] [dog].color = orange (every turn, even when not discussing [dog])
 ```
 
 **AFTER**:
 ```
 [RETRIEVAL] Including 4 identity facts (Kay's core identity only)
-[MEMORY FILTER] Retrieved Saga facts based on relevance
-  - Selected: "Saga is Re's dog"
-  - Selected: "Saga is a rough collie"
-  - Selected: "Saga has amber-gold eyes"
+[MEMORY FILTER] Retrieved [dog] facts based on relevance
+  - Selected: "[dog] is Re's dog"
+  - Selected: "[dog] is a rough collie"
+  - Selected: "[dog] has amber-gold eyes"
 ```
 
-**✅ Benefit**: Saga facts retrieved ONLY when discussing Saga
+**✅ Benefit**: [dog] facts retrieved ONLY when discussing [dog]
 
 ---
 
@@ -357,7 +357,7 @@ Kay's core identity (kept):
 - **691 identity facts** loaded every turn
 - **64 Re facts** (user's pets, family, eye color)
 - **126 Kay facts** (including pigeon names, conversation memories)
-- **499 entity facts** (Saga, Bob, Gimpy, documents, characters)
+- **499 entity facts** ([dog], Bob, Gimpy, documents, characters)
 - **Flooded context** with irrelevant information every turn
 
 ### After Fix:
@@ -369,7 +369,7 @@ Kay's core identity (kept):
 
 ### Benefits:
 ✅ **Kay's ACTUAL identity always present** (eyes, scars, nature)
-✅ **Entity facts retrieved ONLY when relevant** (pigeons, Saga, etc.)
+✅ **Entity facts retrieved ONLY when relevant** (pigeons, [dog], etc.)
 ✅ **Re's facts retrieved ONLY when relevant** (pets, family, etc.)
 ✅ **Cleaner context = better responses**
 ✅ **From 691 permanent facts → 4 permanent facts** (99.4% reduction)
@@ -382,7 +382,7 @@ Kay's core identity (kept):
 
 Kay now:
 - ✅ Has his core identity always present (scales, scars, Archive Zero)
-- ✅ Retrieves entity facts (pigeons, Saga) based on relevance
+- ✅ Retrieves entity facts (pigeons, [dog]) based on relevance
 - ✅ Retrieves Re's facts based on relevance
 - ✅ Has clean context without 687 irrelevant permanent facts
 

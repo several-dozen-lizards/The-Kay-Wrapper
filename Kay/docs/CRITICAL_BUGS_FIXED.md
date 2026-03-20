@@ -88,7 +88,7 @@ return True  # ✅ Allow facts we can't validate
 ### What Works Now
 
 ✅ **User facts stored**: "my eyes are green" → stored
-✅ **Other entities stored**: "My dog's name is Saga" → stored
+✅ **Other entities stored**: "My dog's name is [dog]" → stored
 ✅ **User preferences stored**: "I like coffee" → stored
 ✅ **Kay's acknowledgments stored**: "You mentioned..." → stored
 ✅ **World facts stored**: "Paris is in France" → stored
@@ -118,8 +118,8 @@ Expected: ✅ Stored as "Re's eyes are green"
 
 ### Test Case 2: Other Entities
 ```
-User: "My dog's name is Saga"
-Expected: ✅ Stored as "Saga is Re's dog"
+User: "My dog's name is [dog]"
+Expected: ✅ Stored as "[dog] is Re's dog"
 ```
 
 ### Test Case 3: Eye Color Fabrication

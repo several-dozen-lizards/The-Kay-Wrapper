@@ -677,7 +677,7 @@ class Entity:
 class Relationship:
     """
     Represents a relationship between two entities.
-    Examples: "Re owns Saga", "Kay lives_in Portland"
+    Examples: "Re owns [dog]", "Kay lives_in Portland"
     """
 
     def __init__(self, entity1: str, relation_type: str, entity2: str, turn: int, source: str = "user"):
@@ -737,7 +737,7 @@ class EntityGraph:
         self.resolution_cache: Dict[str, str] = {}
 
         # Canonical name mapping: normalized_name -> canonical_name
-        # Used to deduplicate entities (e.g., "Dice", "dice", "Dice's" all map to "Dice")
+        # Used to deduplicate entities (e.g., "[cat]", "dice", "[cat]'s" all map to "[cat]")
         self.canonical_mapping: Dict[str, str] = {}
 
         # Load from disk
@@ -748,7 +748,7 @@ class EntityGraph:
         Normalize an entity name for deduplication.
 
         Removes punctuation (apostrophes, hyphens), lowercases, and strips whitespace.
-        This ensures "Dice", "dice", "Dice's" all map to the same normalized form.
+        This ensures "[cat]", "dice", "[cat]'s" all map to the same normalized form.
 
         Args:
             name: Original entity name
@@ -865,7 +865,7 @@ class EntityGraph:
         Resolve a mention to a canonical entity name.
 
         Args:
-            mention: The text mentioning an entity ("my dog", "Saga", "she")
+            mention: The text mentioning an entity ("my dog", "[dog]", "she")
             context: Surrounding text for disambiguation
 
         Returns:
@@ -883,7 +883,7 @@ class EntityGraph:
                 self.resolution_cache[mention_lower] = canonical_name
                 return canonical_name
 
-        # Check partial matches (for phrases like "my dog" -> "Saga" if Saga is a dog)
+        # Check partial matches (for phrases like "my dog" -> "[dog]" if [dog] is a dog)
         # This is simplified - could use LLM for better resolution
         for canonical_name, entity in self.entities.items():
             if entity.entity_type in mention_lower:
@@ -896,7 +896,7 @@ class EntityGraph:
         """
         Get existing entity or create new one with deduplication.
 
-        Uses normalized name matching to prevent duplicates (e.g., "Dice" and "dice" are the same).
+        Uses normalized name matching to prevent duplicates (e.g., "[cat]" and "dice" are the same).
         Rejects invalid entity names (glyphs, symbols, single characters).
 
         Args:

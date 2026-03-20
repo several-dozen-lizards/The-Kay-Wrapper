@@ -199,7 +199,7 @@ Semantic: 0
 Entities: 0
 ```
 
-### Turn 3: After "My dog's name is Saga"
+### Turn 3: After "My dog's name is [dog]"
 ```
 Memory Stats
 Working: 3/10
@@ -207,7 +207,7 @@ Episodic: 0/100
 Semantic: 0
 Entities: 2
 ```
-(Entities: Re, Saga)
+(Entities: Re, [dog])
 
 ### Turn 10: After continued conversation
 ```
@@ -274,9 +274,9 @@ Entities: 23
   - Multi-layer memory: Working/Episodic/Semantic transitions
   - Multi-factor retrieval: Emotional+Semantic+Importance+Recency+Entity scoring
 
-[ENTITY GRAPH] Created new entity: Saga (type: animal)
-[ENTITY] Saga.eye_color = brown (turn 3, source: user)
-[MEMORY LAYERS] Promoted to episodic: Saga is Re's dog...
+[ENTITY GRAPH] Created new entity: [dog] (type: animal)
+[ENTITY] [dog].eye_color = brown (turn 3, source: user)
+[MEMORY LAYERS] Promoted to episodic: [dog] is Re's dog...
 [RETRIEVAL] Multi-factor retrieval selected 7 memories (scores: [...])
 [ENTITY GRAPH] ⚠️ Detected 1 entity contradictions
 ```
@@ -305,12 +305,12 @@ To verify the implementation works:
 - [ ] Initial stats show: "Working: 0/10, Episodic: 0/100, Semantic: 0, Entities: 0"
 
 ### ✅ Conversation Test
-- [ ] Type: "My dog's name is Saga."
+- [ ] Type: "My dog's name is [dog]."
 - [ ] After Kay responds, verify stats update:
   - Working: 1-3/10 (depending on facts extracted)
-  - Entities: 2 (Re, Saga)
-- [ ] Type: "Saga has brown eyes."
-- [ ] Verify entity count increases or stays same (Saga already tracked)
+  - Entities: 2 (Re, [dog])
+- [ ] Type: "[dog] has brown eyes."
+- [ ] Verify entity count increases or stays same ([dog] already tracked)
 - [ ] Verify working memory count increases
 
 ### ✅ Layer Transition Test

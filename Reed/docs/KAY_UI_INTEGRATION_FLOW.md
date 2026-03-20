@@ -8,17 +8,17 @@
 ├─────────────┬───────────────────────────────────────────────────────┤
 │  SIDEBAR    │              CHAT AREA                                │
 │             │                                                       │
-│ KayZero     │  User: My dog's name is Saga.                        │
+│ KayZero     │  User: My dog's name is [dog].                        │
 │             │                                                       │
 │ Sessions    │  Kay: That's a great name! What kind of dog is...   │
 │ [Load]      │                                                       │
 │ [Resume]    │  User: She's a golden retriever with brown eyes.     │
 │             │                                                       │
-│ Emotions    │  Kay: Brown eyes - beautiful! Does Saga like...      │
+│ Emotions    │  Kay: Brown eyes - beautiful! Does [dog] like...      │
 │ curiosity:  │                                                       │
-│ 0.8 ████    │  User: What color are Saga's eyes?                   │
+│ 0.8 ████    │  User: What color are [dog]'s eyes?                   │
 │             │                                                       │
-│ Memory Stats│  Kay: Saga has brown eyes, as you mentioned earlier. │
+│ Memory Stats│  Kay: [dog] has brown eyes, as you mentioned earlier. │
 │ Working:8/10│                                                       │
 │ Episodic:42 │                                                       │
 │ Semantic:15 │                                                       │
@@ -33,7 +33,7 @@
 ## User Input Processing Flow
 
 ```
-USER TYPES: "My dog's name is Saga."
+USER TYPES: "My dog's name is [dog]."
      ↓
 ┌────────────────────────────────────────────┐
 │ Line 352: self.add_message("user", input) │ Add to chat display
@@ -59,31 +59,31 @@ USER TYPES: "My dog's name is Saga."
 │                                                             │
 │   Extracted:                                                │
 │   {                                                         │
-│     "fact": "Saga is Re's dog",                            │
+│     "fact": "[dog] is Re's dog",                            │
 │     "perspective": "user",                                  │
 │     "topic": "relationships",                               │
-│     "entities": ["Saga", "Re"],                            │
+│     "entities": ["[dog]", "Re"],                            │
 │     "attributes": [                                         │
-│       {"entity": "Saga", "attribute": "species",           │
+│       {"entity": "[dog]", "attribute": "species",           │
 │        "value": "dog"}                                      │
 │     ],                                                      │
 │     "relationships": [                                      │
 │       {"entity1": "Re", "relation": "owns",                │
-│        "entity2": "Saga"}                                   │
+│        "entity2": "[dog]"}                                   │
 │     ]                                                       │
 │   }                                                         │
 │                                                             │
 │   ENTITY GRAPH UPDATE:                                     │
-│   ├─→ Create entity: Saga (type: animal)                  │
+│   ├─→ Create entity: [dog] (type: animal)                  │
 │   ├─→ Create entity: Re (type: person)                    │
-│   ├─→ Add attribute: Saga.species = "dog"                 │
-│   └─→ Add relationship: Re owns Saga                      │
+│   ├─→ Add attribute: [dog].species = "dog"                 │
+│   └─→ Add relationship: Re owns [dog]                      │
 │                                                             │
 │   MEMORY STORAGE:                                          │
 │   └─→ Add to working memory (layer 1)                     │
 │                                                             │
-│   Console: [ENTITY GRAPH] Created new entity: Saga         │
-│   Console: [ENTITY] Saga.species = dog (turn 2, user)     │
+│   Console: [ENTITY GRAPH] Created new entity: [dog]         │
+│   Console: [ENTITY] [dog].species = dog (turn 2, user)     │
 │   Console: [MEMORY PRE-RESPONSE] Stored: [user/...]       │
 └─────────────────────────────────────────────────────────────┘
      ↓
@@ -96,8 +96,8 @@ USER TYPES: "My dog's name is Saga."
 │   └─→ Apply decay to working/episodic memories             │
 │                                                             │
 │   MULTI-FACTOR RETRIEVAL:                                  │
-│   ├─→ Search query: "My dog's name is Saga"               │
-│   ├─→ Extract query entities: ["Saga", "dog"]             │
+│   ├─→ Search query: "My dog's name is [dog]"               │
+│   ├─→ Extract query entities: ["[dog]", "dog"]             │
 │   │                                                         │
 │   ├─→ Score all memories (5 factors):                     │
 │   │   1. Emotional resonance (40%)                         │
@@ -156,10 +156,10 @@ USER TYPES: "My dog's name is Saga."
 │                                                             │
 │   Context contains:                                        │
 │   "RELEVANT MEMORIES:                                      │
-│    [0] (user) Saga is Re's dog                            │
-│    [1] (user) Saga.species = dog                          │
+│    [0] (user) [dog] is Re's dog                            │
+│    [1] (user) [dog].species = dog                          │
 │                                                             │
-│   USER SAYS: "My dog's name is Saga."                     │
+│   USER SAYS: "My dog's name is [dog]."                     │
 │                                                             │
 │   INSTRUCTIONS:                                            │
 │   - Respond to current message only                        │
@@ -167,7 +167,7 @@ USER TYPES: "My dog's name is Saga."
 │   "                                                         │
 │                                                             │
 │   Kay Response:                                            │
-│   "That's a great name! What kind of dog is Saga?"        │
+│   "That's a great name! What kind of dog is [dog]?"        │
 └─────────────────────────────────────────────────────────────┘
      ↓
 ┌────────────────────────────────────────────┐
@@ -180,15 +180,15 @@ USER TYPES: "My dog's name is Saga."
 │   LLM CALL 4: Extract facts from Kay's response           │
 │                                                             │
 │   Input:                                                   │
-│   - user_input: "My dog's name is Saga."                  │
+│   - user_input: "My dog's name is [dog]."                  │
 │   - reply: "That's a great name! What kind of dog is..."  │
 │                                                             │
 │   Extracted:                                               │
 │   {                                                         │
-│     "fact": "Kay asked what kind of dog Saga is",         │
+│     "fact": "Kay asked what kind of dog [dog] is",         │
 │     "perspective": "kay",                                  │
 │     "topic": "conversation",                               │
-│     "entities": ["Kay", "Saga"],                          │
+│     "entities": ["Kay", "[dog]"],                          │
 │     "attributes": [],                                      │
 │     "relationships": []                                    │
 │   }                                                         │
@@ -225,8 +225,8 @@ USER TYPES: "My dog's name is Saga."
 └────────────────────────────────────────────┘
      ↓
 CHAT DISPLAY SHOWS:
-  User: My dog's name is Saga.
-  Kay: That's a great name! What kind of dog is Saga?
+  User: My dog's name is [dog].
+  Kay: That's a great name! What kind of dog is [dog]?
 ```
 
 ## Next User Input: "She's a golden retriever with brown eyes."
@@ -242,95 +242,95 @@ Line 364: extract_and_store_user_facts()
 │ Input text: "She's a golden retriever with brown eyes."   │
 │                                                             │
 │ Entity resolution:                                         │
-│ ├─→ "She" → Resolve to "Saga" (last mentioned entity)     │
-│ └─→ Context: Previous mention of Saga in conversation     │
+│ ├─→ "She" → Resolve to "[dog]" (last mentioned entity)     │
+│ └─→ Context: Previous mention of [dog] in conversation     │
 │                                                             │
 │ Extracted facts:                                           │
 │ 1. {                                                       │
-│      "fact": "Saga is a golden retriever",                │
-│      "entities": ["Saga"],                                 │
+│      "fact": "[dog] is a golden retriever",                │
+│      "entities": ["[dog]"],                                 │
 │      "attributes": [                                       │
-│        {"entity": "Saga", "attribute": "breed",           │
+│        {"entity": "[dog]", "attribute": "breed",           │
 │         "value": "golden retriever"}                       │
 │      ]                                                      │
 │    }                                                        │
 │                                                             │
 │ 2. {                                                       │
-│      "fact": "Saga has brown eyes",                       │
-│      "entities": ["Saga"],                                 │
+│      "fact": "[dog] has brown eyes",                       │
+│      "entities": ["[dog]"],                                 │
 │      "attributes": [                                       │
-│        {"entity": "Saga", "attribute": "eye_color",       │
+│        {"entity": "[dog]", "attribute": "eye_color",       │
 │         "value": "brown"}                                  │
 │      ]                                                      │
 │    }                                                        │
 │                                                             │
 │ ENTITY GRAPH UPDATE:                                      │
-│ ├─→ Update entity: Saga                                   │
-│ ├─→ Add attribute: Saga.breed = "golden retriever"       │
+│ ├─→ Update entity: [dog]                                   │
+│ ├─→ Add attribute: [dog].breed = "golden retriever"       │
 │ │   (turn 3, source: user, timestamp: 2025-10-19...)     │
-│ └─→ Add attribute: Saga.eye_color = "brown"              │
+│ └─→ Add attribute: [dog].eye_color = "brown"              │
 │     (turn 3, source: user, timestamp: 2025-10-19...)     │
 │                                                             │
 │ MEMORY STORAGE:                                            │
 │ └─→ Both facts added to working memory                    │
 │                                                             │
-│ Console: [ENTITY] Saga.breed = golden retriever...        │
-│ Console: [ENTITY] Saga.eye_color = brown...               │
+│ Console: [ENTITY] [dog].breed = golden retriever...        │
+│ Console: [ENTITY] [dog].eye_color = brown...               │
 └─────────────────────────────────────────────────────────────┘
      ↓
 Line 367: recall() - Multi-factor retrieval
      ↓
      Retrieves:
-     - [working] Saga is Re's dog (score: 0.92)
-     - [working] Saga.species = dog (score: 0.88)
-     - [working] Saga.breed = golden retriever (score: 0.85)
-     - [working] Saga.eye_color = brown (score: 0.82)
+     - [working] [dog] is Re's dog (score: 0.92)
+     - [working] [dog].species = dog (score: 0.88)
+     - [working] [dog].breed = golden retriever (score: 0.85)
+     - [working] [dog].eye_color = brown (score: 0.82)
      - [working] Kay asked what kind of dog... (score: 0.75)
      ↓
 Line 455: Kay generates response using retrieved context
      ↓
-     Kay: "Brown eyes - beautiful! Does Saga like to play fetch?"
+     Kay: "Brown eyes - beautiful! Does [dog] like to play fetch?"
 ```
 
 ## Later: Testing Contradiction Detection
 
 ```
-USER TYPES: "What color are Saga's eyes?"
+USER TYPES: "What color are [dog]'s eyes?"
      ↓
 Line 367: recall() retrieves:
-     ├─→ [working] Saga.eye_color = brown (user, turn 3) ✓
-     ├─→ [working] Saga is a golden retriever
-     └─→ [working] Saga is Re's dog
+     ├─→ [working] [dog].eye_color = brown (user, turn 3) ✓
+     ├─→ [working] [dog] is a golden retriever
+     └─→ [working] [dog] is Re's dog
      ↓
 Line 455: Kay responds:
-     "Saga has brown eyes, as you mentioned earlier."
+     "[dog] has brown eyes, as you mentioned earlier."
      ↓
 Line 481: encode() - Extract facts from Kay's response
      ↓
 ┌─────────────────────────────────────────────────────────────┐
 │ Extracted from Kay's response:                              │
 │ {                                                            │
-│   "fact": "Saga has brown eyes",                           │
+│   "fact": "[dog] has brown eyes",                           │
 │   "perspective": "kay",                                     │
-│   "entities": ["Saga"],                                     │
+│   "entities": ["[dog]"],                                     │
 │   "attributes": [                                           │
-│     {"entity": "Saga", "attribute": "eye_color",           │
+│     {"entity": "[dog]", "attribute": "eye_color",           │
 │      "value": "brown"}                                      │
 │   ]                                                          │
 │ }                                                            │
 │                                                              │
 │ CONTRADICTION CHECK:                                        │
-│ ├─→ Kay claimed: Saga.eye_color = brown                    │
-│ ├─→ Retrieved memories contain: Saga.eye_color = brown     │
+│ ├─→ Kay claimed: [dog].eye_color = brown                    │
+│ ├─→ Retrieved memories contain: [dog].eye_color = brown     │
 │ └─→ ✓ NO CONTRADICTION - values match                      │
 │                                                              │
 │ ENTITY GRAPH UPDATE:                                        │
-│ └─→ Add attribute: Saga.eye_color = brown                  │
+│ └─→ Add attribute: [dog].eye_color = brown                  │
 │     (turn 5, source: kay, timestamp: ...)                  │
 │     [Second mention - strengthens confidence]               │
 │                                                              │
 │ Now entity graph shows:                                     │
-│ Saga:                                                        │
+│ [dog]:                                                        │
 │   - species: dog (turn 2, user)                            │
 │   - breed: golden retriever (turn 3, user)                 │
 │   - eye_color: brown (turn 3, user), (turn 5, kay)        │
@@ -344,31 +344,31 @@ Line 481: encode() - Extract facts from Kay's response
 ```
 HYPOTHETICAL SCENARIO (Kay tries to hallucinate):
 
-Kay internally generates: "Saga has blue eyes"
+Kay internally generates: "[dog] has blue eyes"
      ↓
 Line 481: encode() - Extract facts
      ↓
 ┌─────────────────────────────────────────────────────────────┐
 │ Extracted:                                                  │
 │ {                                                            │
-│   "fact": "Saga has blue eyes",                            │
+│   "fact": "[dog] has blue eyes",                            │
 │   "perspective": "kay",                                     │
-│   "entities": ["Saga"],                                     │
+│   "entities": ["[dog]"],                                     │
 │   "attributes": [                                           │
-│     {"entity": "Saga", "attribute": "eye_color",           │
+│     {"entity": "[dog]", "attribute": "eye_color",           │
 │      "value": "blue"}                                       │
 │   ]                                                          │
 │ }                                                            │
 │                                                              │
 │ CONTRADICTION CHECK:                                        │
-│ ├─→ Kay claimed: Saga.eye_color = blue                     │
-│ ├─→ Retrieved memories contain: Saga.eye_color = brown     │
+│ ├─→ Kay claimed: [dog].eye_color = blue                     │
+│ ├─→ Retrieved memories contain: [dog].eye_color = brown     │
 │ └─→ ❌ CONTRADICTION DETECTED!                             │
 │                                                              │
 │ HALLUCINATION PREVENTION:                                   │
 │ └─→ ❌ BLOCK STORAGE - Do not store this fact              │
 │                                                              │
-│ Console: [MEMORY WARNING] ❌ Kay stated 'Saga has blue...' │
+│ Console: [MEMORY WARNING] ❌ Kay stated '[dog] has blue...' │
 │          but this contradicts retrieved memories.           │
 │          NOT STORING.                                       │
 │                                                              │
@@ -384,58 +384,58 @@ RESULT: Kay's hallucination is detected and NOT stored.
 ## Memory Layer Transitions Over Time
 
 ```
-TURN 1-2: New entity "Saga" created
+TURN 1-2: New entity "[dog]" created
      ↓
 WORKING MEMORY (capacity: 10)
-  [0] Saga is Re's dog (strength: 1.0, accesses: 0)
-  [1] Saga.species = dog (strength: 1.0, accesses: 0)
+  [0] [dog] is Re's dog (strength: 1.0, accesses: 0)
+  [1] [dog].species = dog (strength: 1.0, accesses: 0)
      ↓
-TURN 3-5: User asks about Saga multiple times
+TURN 3-5: User asks about [dog] multiple times
      ↓
 WORKING MEMORY
-  [0] Saga is Re's dog (strength: 0.95, accesses: 3) ← Accessed 3x
-  [1] Saga.species = dog (strength: 0.92, accesses: 2)
-  [2] Saga.breed = golden retriever (strength: 1.0, accesses: 1)
-  [3] Saga.eye_color = brown (strength: 1.0, accesses: 2)
+  [0] [dog] is Re's dog (strength: 0.95, accesses: 3) ← Accessed 3x
+  [1] [dog].species = dog (strength: 0.92, accesses: 2)
+  [2] [dog].breed = golden retriever (strength: 1.0, accesses: 1)
+  [3] [dog].eye_color = brown (strength: 1.0, accesses: 2)
      ↓
 TURN 6: Promotion threshold reached (accesses >= 2)
      ↓
 EPISODIC MEMORY (capacity: 100)
-  [0] Saga is Re's dog ← PROMOTED (accesses: 3)
+  [0] [dog] is Re's dog ← PROMOTED (accesses: 3)
      ↓
 WORKING MEMORY (9/10)
-  [1] Saga.species = dog (accesses: 2) ← Will promote soon
-  [2] Saga.breed = golden retriever (accesses: 1)
-  [3] Saga.eye_color = brown (accesses: 2) ← Will promote soon
+  [1] [dog].species = dog (accesses: 2) ← Will promote soon
+  [2] [dog].breed = golden retriever (accesses: 1)
+  [3] [dog].eye_color = brown (accesses: 2) ← Will promote soon
      ↓
 TURN 10: Temporal decay applied
      ↓
 EPISODIC MEMORY
-  [0] Saga is Re's dog
+  [0] [dog] is Re's dog
       - Age: 8 turns (~0.2 days)
       - Importance: 0.65 (emotional context)
       - Halflife: 7 × (1 + 0.65) = 11.55 days
       - Strength: 0.5^(0.2/11.55) = 0.988 (minimal decay)
      ↓
-TURN 15-20: User frequently mentions Saga
+TURN 15-20: User frequently mentions [dog]
      ↓
 EPISODIC MEMORY
-  [0] Saga is Re's dog (accesses: 7) ← Getting close to semantic
-  [1] Saga.species = dog (accesses: 5) ← Threshold reached!
+  [0] [dog] is Re's dog (accesses: 7) ← Getting close to semantic
+  [1] [dog].species = dog (accesses: 5) ← Threshold reached!
      ↓
 TURN 21: Promotion to semantic
      ↓
 SEMANTIC MEMORY (unlimited, no decay)
-  [0] Saga.species = dog ← PROMOTED (permanent fact)
+  [0] [dog].species = dog ← PROMOTED (permanent fact)
      ↓
 EPISODIC MEMORY (99/100)
-  [0] Saga is Re's dog (accesses: 7) ← Still growing
+  [0] [dog] is Re's dog (accesses: 7) ← Still growing
      ↓
 TURN 50: Long-term memory established
      ↓
 SEMANTIC MEMORY (permanent facts)
-  [0] Saga.species = dog
-  [1] Saga is Re's dog (promoted after many accesses)
+  [0] [dog].species = dog
+  [1] [dog] is Re's dog (promoted after many accesses)
   [2] Re.eye_color = green (core identity fact)
   [3] Kay.entity_type = AI (core identity fact)
      ↓

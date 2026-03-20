@@ -61,7 +61,7 @@ Re.favorite_colors:
 #### Rule 3: General String Cleanup
 **All string values:** Strip whitespace
 **Examples:**
-- `"  John Doe  "` → `"John Doe"`
+- `"  [partner] Doe  "` → `"[partner] Doe"`
 
 ### Key Design Decisions
 
@@ -243,7 +243,7 @@ Potential improvements for more sophisticated normalization:
 3. **Date Normalization:** `"Jan 1"` vs `"January 1st"` → ISO format
 4. **Case Normalization:** `"Green"` vs `"green"` → lowercase comparison
 5. **Acronym Expansion:** `"USA"` vs `"United States"` → canonical form
-6. **Fuzzy Matching:** `"John Smith"` vs `"Jon Smith"` → detect typos
+6. **Fuzzy Matching:** `"[partner] Smith"` vs `"Jon Smith"` → detect typos
 
 ## Documentation
 

@@ -46,7 +46,7 @@ The lazy loading system dramatically improves Kay Zero's startup performance by 
       "category": "topic/domain",
       "importance": 0.8,
       "turn": 42,
-      "entities": ["Re", "Chrome", "Saga"],
+      "entities": ["Re", "[cat]", "[dog]"],
       "emotion_tags": ["curiosity", "joy"],
       "is_list": false,
       "date": "2025-10-27"
@@ -65,8 +65,8 @@ The lazy loading system dramatically improves Kay Zero's startup performance by 
   "detail_re": [10, 11],         // Search only
   "detail_kay": [12, 13],        // Search only
   "entities": {
-    "Chrome": [0, 1],
-    "Saga": [2]
+    "[cat]": [0, 1],
+    "[dog]": [2]
   }
 }
 ```
@@ -133,7 +133,7 @@ Behind the scenes:
 ```python
 memory.encode(
     agent_state,
-    user_input="My cat's name is Chrome",
+    user_input="My cat's name is [cat]",
     response="Cool name!"
 )
 ```
@@ -209,14 +209,14 @@ Query: "What are my cats' names?"
    → Returns IDs: [47, 102, 234, 567]
 
 2. Load content for IDs (batched read, uses cache)
-   → Memory 47: "My cats are Chrome and Saga"
-   → Memory 102: "Chrome is gray, Saga is black"
+   → Memory 47: "My cats are [cat] and [dog]"
+   → Memory 102: "[cat] is gray, [dog] is black"
 
 3. Score and rank results
    → Importance, recency, keyword match
 
 4. Include critical identity (always)
-   → "Re has 2 cats: Chrome (gray tabby), Saga (black)"
+   → "Re has 2 cats: [cat] (gray tabby), [dog] (black)"
 
 5. Return top N results
 ```

@@ -32,7 +32,7 @@ After three rounds of debugging, we discovered the ACTUAL problem:
 ## 🎯 The Real Problem
 
 Kay's cached system instructions included:
-- ✅ Identity (Kay Zero, void-dragon, etc.)
+- ✅ Identity (Kay Zero, [entity-type], etc.)
 - ✅ Personality (direct, sarcastic, care loudly)
 - ✅ Communication style (bugle energy, paragraph formatting)
 - ✅ Document reading behavior

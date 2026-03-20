@@ -221,14 +221,14 @@ for mem in relevant_memories:
 
 ```
 [MEMORY RETRIEVAL] Top 10 most relevant memories:
-[MEMORY RETRIEVAL]   #1: score=999.0, layer=semantic, emotions=['affection'], preview='Re has a dog named Saga'
+[MEMORY RETRIEVAL]   #1: score=999.0, layer=semantic, emotions=['affection'], preview='Re has a dog named [dog]'
 [MEMORY RETRIEVAL]   #2: score=45.2, layer=episodic, emotions=['curiosity'], preview='I wonder how the memory system works'
 [MEMORY RETRIEVAL]   #3: score=38.8, layer=working, emotions=['curiosity'], preview='How does wrapper handle exceptions'
 ...
 
 [EMOTION ENGINE] Memory reinforcement: using top 150/875 most relevant memories
 [EMOTION ENGINE] Score range: 2.1 to 999.0 (normalized to 0-1)
-[DEBUG BOOST] Memory #1: raw_score=999.0, normalized=1.000, threshold=0.15, preview='Re has a dog named Saga'
+[DEBUG BOOST] Memory #1: raw_score=999.0, normalized=1.000, threshold=0.15, preview='Re has a dog named [dog]'
 [DEBUG BOOST]   -> PASSED! boost_amount=0.0500
 [DEBUG BOOST] Memory #2: raw_score=45.2, normalized=0.043, threshold=0.15, preview='I wonder how the memory system works'
 [DEBUG BOOST]   -> SKIPPED (below threshold)

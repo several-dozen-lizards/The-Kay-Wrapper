@@ -101,12 +101,12 @@ RULES:
 OUTPUT FORMAT (JSON array):
 [
   {
-    "fact": "Saga is Re's dog",
+    "fact": "[dog] is Re's dog",
     "perspective": "user",
     "topic": "pets",
-    "entities": ["Saga", "Re"],
-    "attributes": [{"entity": "Saga", "attribute": "species", "value": "dog"}],
-    "relationships": [{"entity1": "Re", "relation": "owns", "entity2": "Saga"}]
+    "entities": ["[dog]", "Re"],
+    "attributes": [{"entity": "[dog]", "attribute": "species", "value": "dog"}],
+    "relationships": [{"entity1": "Re", "relation": "owns", "entity2": "[dog]"}]
   }
 ]
 ```

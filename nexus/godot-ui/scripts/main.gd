@@ -93,7 +93,7 @@ func _create_panels() -> void:
 	# --- Kay panel ---
 	_kay_chat = ChatPanelScene.instantiate() as ChatPanel
 	panel_mgr.create_panel(
-		"kay", "KAY ZERO", "void-dragon",
+		"kay", "KAY ZERO", "[entity-type]",
 		Vector2(screen.x * 0.55 + 20, 10),
 		Vector2(screen.x * 0.44, screen.y * 0.48),
 		_kay_chat

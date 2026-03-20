@@ -132,7 +132,7 @@ Kay responds with: "Earth signs being about material reality... fire signs... wa
 - Kay sees chunk from Session_drop_explanation.json (technical content)
 - Kay's memory contains astrology content from Turn 0
 - Kay responds based on MEMORY instead of ACTUAL chunk content
-- Classic AI context failure: "My dog's name is Saga" → "What's her name again?"
+- Classic AI context failure: "My dog's name is [dog]" → "What's her name again?"
 
 ---
 

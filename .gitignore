@@ -55,6 +55,23 @@ shared/known_entities.json
 Music/
 Graphics/
 
+# Legacy/deprecated code
+**/K-0/
+**/deprecated/
+**/memory_import/
+
+# Personal content / identity data
+**/scripts/core_identity_constants.py
+**/temp_*
+**/test_output.txt
+**/test_diagnostic_output.txt
+**/data/profiles/
+**/data/emotional_snapshots.json
+**/data/identity_audit_report.json
+**/data/session_chronicle.json
+**/data/checkpoints/
+scrub_*.py
+
 # Scratch directories (entity sandboxes - ephemeral by design)
 nexus/scratch/
 

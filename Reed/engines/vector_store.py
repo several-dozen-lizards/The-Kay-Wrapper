@@ -436,8 +436,8 @@ if __name__ == "__main__":
         # Add test document
         test_doc = """
         Kay is a dragon with gold eyes and a dry sense of humor. He prefers coffee over tea.
-        Re is Reed's conversation partner who has several cats: Chrome, Dice, and Luna.
-        Chrome is a gray tabby who likes to door-dash. Dice is a tuxedo cat.
+        Re is Reed's conversation partner who has several cats: [cat], [cat], and [cat].
+        [cat] is a gray tabby who likes to door-dash. [cat] is a tuxedo cat.
         """
 
         result = store.add_document(

@@ -145,9 +145,9 @@ class ProfileManager:
             },
             "attributes": {
                 "location": "[redacted]",
-                "spouse": "John",
-                "cats": ["Chrome", "Dice", "Saga", "Frodo", "Luna", "Rainbowbelle"],
-                "dog": "Saga"
+                "spouse": "[partner]",
+                "cats": ["[cat]", "[cat]", "[dog]", "[cat]", "[cat]", "[cat]"],
+                "dog": "[dog]"
             }
         })
         
@@ -170,13 +170,13 @@ class ProfileManager:
             }
         })
         
-        # John - Re's husband
+        # [partner] - Re's husband
         self.create_profile("john", {
-            "name": "John",
-            "canonical_name": "John",
+            "name": "[partner]",
+            "canonical_name": "[partner]",
             "aliases": ["john"],
             "entity_type": "human",
-            "first_person_entity": "John",
+            "first_person_entity": "[partner]",
             "relationship_to_kay": "family",
             "mythological_form": {
                 "type": "human_werewolf",

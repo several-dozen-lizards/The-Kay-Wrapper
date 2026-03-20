@@ -6,7 +6,7 @@
 
 ### Bug 1: False Ownership Relationships (FIXED)
 When Kay made confused statements, the system created false ownership relationships.
-- Kay: "my dog Saga" (when Saga is Re's) → Created `Kay owns Saga` ❌
+- Kay: "my dog [dog]" (when [dog] is Re's) → Created `Kay owns [dog]` ❌
 
 ### Bug 2: Extraction Treats All Mentions as Claims (FIXED)
 The extraction system treated ALL entities mentioned in Kay's responses as Kay-facts, even conversational references.
@@ -23,7 +23,7 @@ The extraction system treated ALL entities mentioned in Kay's responses as Kay-f
 - Did NOT distinguish between:
   - Direct self-assertions: "My eyes are gold" → Valid Kay fact ✓
   - Conversational references: "Your cats..." → About Re, not Kay ✗
-  - Confused echoing: "my cats - Dice" when Dice is Re's → Should not create Kay ownership ✗
+  - Confused echoing: "my cats - [cat]" when [cat] is Re's → Should not create Kay ownership ✗
 
 ## Complete Solution (2-Layer Fix)
 
@@ -73,12 +73,12 @@ if relation_type == "owns":
 
 ### Example 1: Kay Makes Conversational Reference
 ```
-User: "My cats are Dice, Chrome, Luna"
-Kay: "Your cats - Dice, Chrome, Luna - sound wonderful!"
+User: "My cats are [cat], [cat], [cat]"
+Kay: "Your cats - [cat], [cat], [cat] - sound wonderful!"
 
 EXTRACTION LAYER:
 ✓ Recognizes "your cats" in Kay's response = about Re
-✓ Extracts: Re owns Dice/Chrome/Luna (from user input)
+✓ Extracts: Re owns [cat]/[cat]/[cat] (from user input)
 ✓ Does NOT extract: Kay owns anything
 
 VERIFICATION LAYER:
@@ -102,13 +102,13 @@ VERIFICATION LAYER:
 
 ### Example 3: Kay Confused About Ownership
 ```
-User: "My cats are Dice and Chrome"  [Ground truth established]
-Kay: "Yeah, my cats - Dice and Chrome - are great!"
+User: "My cats are [cat] and [cat]"  [Ground truth established]
+Kay: "Yeah, my cats - [cat] and [cat] - are great!"
 
 EXTRACTION LAYER:
 ✓ Recognizes context: cats were just stated as Re's
-✓ Does NOT extract: Kay owns Dice/Chrome
-✓ Only extracts from user input: Re owns Dice/Chrome
+✓ Does NOT extract: Kay owns [cat]/[cat]
+✓ Only extracts from user input: Re owns [cat]/[cat]
 
 VERIFICATION LAYER:
 ✓ Even if somehow extracted, would be blocked

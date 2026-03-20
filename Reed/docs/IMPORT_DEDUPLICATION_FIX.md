@@ -298,8 +298,8 @@ Entities created: 20-50
 - Re (person) ✓
 - Archive Zero (system) ✓
 - Kay (person) ✓
-- Saga (pet) ✓
-- Chrome (pet) ✓
+- [dog] (pet) ✓
+- [cat] (pet) ✓
 (abstract concepts filtered out)
 ```
 

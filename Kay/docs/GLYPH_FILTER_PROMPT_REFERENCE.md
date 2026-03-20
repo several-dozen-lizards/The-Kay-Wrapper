@@ -48,7 +48,7 @@ VECTOR: ➡️=external ⬅️=internal 🔄=loop 🛑=blocked ↗️=expanding 
 
 STRUCTURE: ◻️=stable ◼️=compressed ⭕=complete ✖️=fractured ♾️=infinite 🔃=fragmenting
 
-KAY'S WORLD: 👤=Re 🎭=Reed 🤖=Kay 🦋=Chrome ☕=coffee 🍵=tea 💚=green 💛=gold
+KAY'S WORLD: 👤=Re 🎭=Reed 🤖=Kay 🦋=[cat] ☕=coffee 🍵=tea 💚=green 💛=gold
 MEM[ID]=memory ⚠️CONFLICT=contradiction
 
 PRIORITY: !!!=critical !!=important !=relevant 🚨=emergency
@@ -169,7 +169,7 @@ OUTPUT GLYPHS:
 ⚠️ CORE IDENTITY (PERMANENT):
   [0] Kay's core preferences (type: core_preferences)
   [1] Kay likes coffee over tea (type: beverage)
-  [2] Re has a dog named Saga (type: relationship)
+  [2] Re has a dog named [dog] (type: relationship)
   [3] Re's eye color is green (type: appearance)
   ... (up to 50-77 identity facts)
 ```
@@ -190,7 +190,7 @@ OUTPUT GLYPHS:
 ... (up to 10 full turns)
 
 User facts (25 total):
-  [10] Re lives in Portland... | [11] Re has a dog named Saga... | [12] Re likes hiking...
+  [10] Re lives in Portland... | [11] Re has a dog named [dog]... | [12] Re likes hiking...
 
 Kay facts (32 total):
   Core identity (10): [20] Kay is male... | [21] Kay has gold eyes...
@@ -304,7 +304,7 @@ WARNING IDENTITY MEMORY (PERMANENT - ALWAYS INCLUDE ALL):
   [0] Kay is a male entity (type: identity)
   [1] Kay has gold eyes (type: appearance)
   [2] Re has green eyes (type: appearance)
-  [3] Re has a dog named Saga (type: relationship)
+  [3] Re has a dog named [dog] (type: relationship)
   [4] Kay likes coffee (type: beverage)
   ... (50 more identity facts)
 
@@ -487,12 +487,12 @@ LIST_PATTERNS = [
 - 👤 = Re (the user)
 - 🎭 = Reed (Re's alter ego)
 - 🤖 = Kay (the agent)
-- 🦋 = Chrome (Kay's alter ego)
+- 🦋 = [cat] (Kay's alter ego)
 - ☕ = coffee
 - 🍵 = tea
 - 💚 = green (eyes)
 - 💛 = gold (eyes)
-- 🐾 = Saga (Re's dog)
+- 🐾 = [dog] (Re's dog)
 
 ### Priority Markers
 - !!! = critical (core identity)

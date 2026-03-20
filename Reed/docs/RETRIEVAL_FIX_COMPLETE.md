@@ -19,7 +19,7 @@ Kay: Fabricates details (Mochi the cat, blue mugs, etc.) - HALLUCINATION
 
 **Root Cause:**
 - Query words: ["what", "remember", "from", "new", "documents"]
-- Imported content: ["Chrome", "Saga", "dogs", "John", "hiking"]
+- Imported content: ["[cat]", "[dog]", "dogs", "[partner]", "hiking"]
 - Keyword overlap: 0-12% → Score: 0.2-0.3
 - Conversation memories score 0.5-0.8 → Win retrieval
 - **Imported facts never reach Kay's context**
@@ -113,8 +113,8 @@ Query: "what do you remember from the new documents?"
 |-------------|---------|-------|--------|
 | Conversation | "do you remember..." | 0.6 | ✓ Retrieved |
 | Conversation | "what documents?" | 0.5 | ✓ Retrieved |
-| **Imported** | **"Chrome is a dog"** | **0.3** | **✗ Filtered out** |
-| **Imported** | **"John teaches karate"** | **0.2** | **✗ Filtered out** |
+| **Imported** | **"[cat] is a dog"** | **0.3** | **✗ Filtered out** |
+| **Imported** | **"[partner] teaches karate"** | **0.2** | **✗ Filtered out** |
 
 **Kay's Context:** Only conversation memories → Fabricates details
 
@@ -124,9 +124,9 @@ Query: "what do you remember from the new documents?"
 
 | Memory Type | Content | Boost | Score | Result |
 |-------------|---------|-------|-------|--------|
-| **Imported** | **"Chrome is a dog"** | **14.8x** | **999** | **✓ Retrieved #1** |
-| **Imported** | **"John teaches karate"** | **14.8x** | **999** | **✓ Retrieved #2** |
-| **Imported** | **"Saga is a labrador"** | **14.8x** | **999** | **✓ Retrieved #3** |
+| **Imported** | **"[cat] is a dog"** | **14.8x** | **999** | **✓ Retrieved #1** |
+| **Imported** | **"[partner] teaches karate"** | **14.8x** | **999** | **✓ Retrieved #2** |
+| **Imported** | **"[dog] is a labrador"** | **14.8x** | **999** | **✓ Retrieved #3** |
 | Conversation | "do you remember..." | 1.0x | 0.6 | ✗ Filtered out |
 | Conversation | "what documents?" | 1.0x | 0.5 | ✗ Filtered out |
 
@@ -140,16 +140,16 @@ Query: "what do you remember from the new documents?"
 ```
 User: "what do you remember from the new documents?"
 System: Detects import query → applies 5.0x boost
-Kay: "From the documents you shared, I remember you have two dogs named Chrome
-     and Saga. Chrome is a gray husky who's shy, while Saga is a social black
-     labrador. Your spouse John is a karate teacher who got you into hiking..."
+Kay: "From the documents you shared, I remember you have two dogs named [cat]
+     and [dog]. [cat] is a gray husky who's shy, while [dog] is a social black
+     labrador. Your spouse [partner] is a karate teacher who got you into hiking..."
 ```
 
 ### Scenario 2: Specific Query
 ```
-User: "Tell me about Chrome"
+User: "Tell me about [cat]"
 System: Normal retrieval + 3.0x import recency boost
-Kay: "Chrome is your gray husky. He's shy in personality and prefers quiet
+Kay: "[cat] is your gray husky. He's shy in personality and prefers quiet
      walks in the forest. You sometimes take him hiking on the Continental
      Divide Trail..."
 ```
@@ -312,7 +312,7 @@ To remove the fix, delete these sections from `memory_engine.py`:
 
 ## Conclusion
 
-The retrieval issue is **SOLVED**. The root cause was semantic mismatch between meta-queries ("what do you remember from new documents?") and content-specific imported facts ("Chrome is a dog").
+The retrieval issue is **SOLVED**. The root cause was semantic mismatch between meta-queries ("what do you remember from new documents?") and content-specific imported facts ("[cat] is a dog").
 
 The fix adds temporal awareness to the scoring system: recently imported facts receive automatic boost, and import-related queries trigger massive boost. This ensures Kay can access imported content regardless of keyword overlap.
 

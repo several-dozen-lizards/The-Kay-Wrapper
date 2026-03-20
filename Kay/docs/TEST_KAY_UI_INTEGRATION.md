@@ -32,15 +32,15 @@ python kay_ui.py
 
 **Type in chat**:
 ```
-You: My dog's name is Saga.
+You: My dog's name is [dog].
 ```
 
 **Expected Console Output**:
 ```
 [MEMORY PRE-RESPONSE] Extracted 1 facts from user input
-[ENTITY GRAPH] Created new entity: Saga (type: unknown)
+[ENTITY GRAPH] Created new entity: [dog] (type: unknown)
 [ENTITY GRAPH] Created new entity: Re (type: person)
-[ENTITY] Saga.species = dog (turn 1, source: user)
+[ENTITY] [dog].species = dog (turn 1, source: user)
 [MEMORY PRE-RESPONSE] Stored: [user/relationships] ...
 [RETRIEVAL] Multi-factor retrieval selected X memories...
 ```
@@ -54,7 +54,7 @@ Semantic: 0
 Entities: 2
 ```
 
-**Kay's Response**: Should acknowledge Saga appropriately
+**Kay's Response**: Should acknowledge [dog] appropriately
 
 ---
 
@@ -62,12 +62,12 @@ Entities: 2
 
 **Type in chat**:
 ```
-You: Saga has brown eyes.
+You: [dog] has brown eyes.
 ```
 
 **Expected Console Output**:
 ```
-[ENTITY] Saga.eye_color = brown (turn 2, source: user)
+[ENTITY] [dog].eye_color = brown (turn 2, source: user)
 ```
 
 **Expected UI Update**:
@@ -78,7 +78,7 @@ Episodic: 0/100
 Semantic: 0
 Entities: 2
 ```
-(Entities stay at 2 - Saga already exists)
+(Entities stay at 2 - [dog] already exists)
 
 ---
 
@@ -86,7 +86,7 @@ Entities: 2
 
 **Type in chat**:
 ```
-You: What color are Saga's eyes?
+You: What color are [dog]'s eyes?
 ```
 
 **Expected Console Output**:
@@ -139,48 +139,48 @@ Have this conversation to test all features:
 
 ```
 Turn 1
-You: My name is Alex and I have a golden retriever named Saga.
+You: My name is Alex and I have a golden retriever named [dog].
 
 Expected:
-- Console: Entity creation for Alex, Saga
+- Console: Entity creation for Alex, [dog]
 - UI: Entities: 2, Working: 2-4/10
 
 Turn 2
-You: Saga is 3 years old and loves to swim.
+You: [dog] is 3 years old and loves to swim.
 
 Expected:
-- Console: Attributes added to Saga (age, activity)
+- Console: Attributes added to [dog] (age, activity)
 - UI: Working increases
 
 Turn 3
-You: I also have a cat named Luna.
+You: I also have a cat named [cat].
 
 Expected:
-- Console: Entity creation for Luna
+- Console: Entity creation for [cat]
 - UI: Entities: 3, Working increases
 
 Turn 4
-You: Luna has green eyes.
+You: [cat] has green eyes.
 
 Expected:
-- Console: Luna.eye_color = green
+- Console: [cat].eye_color = green
 - UI: Working increases
 
 Turn 5
 You: What pets do I have?
 
 Expected:
-- Kay recalls: Saga (dog) and Luna (cat)
+- Kay recalls: [dog] (dog) and [cat] (cat)
 - Console: Multi-factor retrieval shows high scores for pet memories
 - UI: Working continues to fill
 
-Turn 6-10: Continue conversation mentioning Saga and Luna
+Turn 6-10: Continue conversation mentioning [dog] and [cat]
 
 Expected:
 - Working memory fills up (→10/10)
 - Some memories promoted to episodic
 - UI shows: Episodic: 1-3/100
-- Entities stay at 3 (Alex, Saga, Luna)
+- Entities stay at 3 (Alex, [dog], [cat])
 
 Turn 11-20: Extended conversation
 
@@ -189,14 +189,14 @@ Expected:
 - Frequently accessed memories might promote to semantic
 - UI shows layer distribution evolving
 
-Turn 21: Ask about Luna's eyes
+Turn 21: Ask about [cat]'s eyes
 
-You: What color are Luna's eyes?
+You: What color are [cat]'s eyes?
 
 Expected:
 - Kay correctly recalls: "green"
-- Console shows Luna.eye_color retrieved
-- Memory about Luna's eyes might promote if accessed frequently
+- Console shows [cat].eye_color retrieved
+- Memory about [cat]'s eyes might promote if accessed frequently
 ```
 
 ---
@@ -250,9 +250,9 @@ Expected:
 [DEBUG] Memory count before filter: 0
 
 [MEMORY PRE-RESPONSE] Extracted 2 facts from user input
-[ENTITY GRAPH] Created new entity: Saga (type: animal)
-[ENTITY] Saga.species = dog (turn 1, source: user)
-[MEMORY PRE-RESPONSE] Stored: [user/relationships] My dog's name is Saga...
+[ENTITY GRAPH] Created new entity: [dog] (type: animal)
+[ENTITY] [dog].species = dog (turn 1, source: user)
+[MEMORY PRE-RESPONSE] Stored: [user/relationships] My dog's name is [dog]...
 
 [RETRIEVAL] Multi-factor retrieval selected 1 memories (scores: ['0.85'])
 [DEBUG] ✓ Filter succeeded
@@ -261,7 +261,7 @@ Expected:
 [DEBUG] ✓ LLM response received
 
 [MEMORY] Extracted 1 facts from conversation turn
-[MEMORY] ✓ Stored: [kay/conversation] Kay acknowledged Saga... (importance: 0.45)
+[MEMORY] ✓ Stored: [kay/conversation] Kay acknowledged [dog]... (importance: 0.45)
 ```
 
 ### With Contradiction
@@ -276,7 +276,7 @@ Expected:
 ### With Promotion
 
 ```
-[MEMORY LAYERS] Promoted to episodic: Saga is Re's dog (accesses: 3)
+[MEMORY LAYERS] Promoted to episodic: [dog] is Re's dog (accesses: 3)
 ```
 
 ### With Temporal Decay
@@ -364,15 +364,15 @@ After running and having a conversation:
    ```json
    {
      "entities": {
-       "Saga": {
-         "canonical_name": "Saga",
+       "[dog]": {
+         "canonical_name": "[dog]",
          "entity_type": "animal",
          "aliases": ["saga"],
          "attributes": {
            "species": [["dog", 1, "user", "2025-10-19T..."]],
            "eye_color": [["brown", 2, "user", "2025-10-19T..."]]
          },
-         "relationships": ["Re::owns::Saga"],
+         "relationships": ["Re::owns::[dog]"],
          "first_mentioned": 1,
          "last_accessed": 5,
          "access_count": 4,
@@ -380,10 +380,10 @@ After running and having a conversation:
        }
      },
      "relationships": {
-       "Re::owns::Saga": {
+       "Re::owns::[dog]": {
          "entity1": "Re",
          "relation_type": "owns",
-         "entity2": "Saga",
+         "entity2": "[dog]",
          "turn": 1,
          "source": "user",
          "strength": 1.0
@@ -397,9 +397,9 @@ After running and having a conversation:
    {
      "working": [
        {
-         "fact": "Saga has brown eyes",
+         "fact": "[dog] has brown eyes",
          "perspective": "user",
-         "entities": ["Saga"],
+         "entities": ["[dog]"],
          "current_layer": "working",
          "current_strength": 1.0,
          "access_count": 2,
@@ -408,7 +408,7 @@ After running and having a conversation:
      ],
      "episodic": [
        {
-         "fact": "Saga is Re's dog",
+         "fact": "[dog] is Re's dog",
          "perspective": "user",
          "current_layer": "episodic",
          "current_strength": 0.95,

@@ -8,7 +8,7 @@ Successfully implemented focused single-document reading mode that prevents mult
 
 ### Before (Multi-Document Chaos)
 ```
-User: Read through Yurt Wizards part 2
+User: Read through [redacted]s part 2
 [DOC READER] Loaded YW giant messy file.docx: 30 chunks
 [DOC READER] Loaded YW-part1.txt: 10 chunks
 [DOC READER] Loaded yw-part2-needsending.txt: 25 chunks
@@ -23,7 +23,7 @@ User: continue reading
 
 ### After (Single-Document Focus)
 ```
-User: Read through Yurt Wizards part 2
+User: Read through [redacted]s part 2
 [READING SESSION] Started: yw-part2-needsending.txt (25 sections)
 [DOC READER] Reading session chunk: 23701 chars (section 1/25)
 Kay receives ONLY section 1 of yw-part2
@@ -222,7 +222,7 @@ if self.reading_session.at_end():
 ### User Flow: Starting a Reading Session
 
 ```
-User: Read through the Yurt Wizards part 2 document
+User: Read through the [redacted]s part 2 document
 
 ↓ [detect_read_request detects "start"]
 
@@ -389,7 +389,7 @@ reading_session.active = False
 ### Scenario 1: User Asks to Read Specific Document
 
 ```
-User: Read through the Yurt Wizards part 2
+User: Read through the [redacted]s part 2
 
 [READING SESSION] Started: yw-part2-needsending.txt (25 sections)
 [DOC READER] Reading session chunk: 23701 chars (section 1/25)
@@ -513,7 +513,7 @@ Kay: [Analysis of sweetness section 1]
 
 ### Test 1: Start Reading Session
 ```
-User: Read through the Yurt Wizards part 2
+User: Read through the [redacted]s part 2
 
 Expected:
 - [READING SESSION] Started: yw-part2-needsending.txt
@@ -567,7 +567,7 @@ Expected:
 User: What are Re's dogs' names?
 
 Expected:
-- Kay answers: "Saga and Freya"
+- Kay answers: "[dog] and Freya"
 - reading_session.active still True
 - Button still shows "Section 5/25..."
 - User can say "continue reading" to resume at section 6

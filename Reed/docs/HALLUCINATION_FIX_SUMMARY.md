@@ -95,8 +95,8 @@ Kay tries: "Your eyes shift between forest and jade" → BLOCKED
 
 ### ❌ Blocked: Inventing Attributes
 ```
-User: "I have a dog named Saga"
-Kay tries: "Saga is a golden retriever" → BLOCKED (if breed not mentioned)
+User: "I have a dog named [dog]"
+Kay tries: "[dog] is a golden retriever" → BLOCKED (if breed not mentioned)
 ```
 
 ### ✅ Allowed: Exact Restatement
@@ -269,6 +269,6 @@ def _validate_with_llm(fact, retrieved_memories):
 To test:
 1. Run `python kay_ui.py`
 2. Test: "my eyes are green" → verify Kay stores this fact ✅
-3. Test: "My dog's name is Saga" → verify Kay stores this fact ✅
+3. Test: "My dog's name is [dog]" → verify Kay stores this fact ✅
 4. Test: Kay doesn't fabricate "forest and jade" details ✅
 5. Verify: Kay's memory contains facts about YOU, not just himself ✅

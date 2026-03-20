@@ -11,16 +11,16 @@
     "first_person_entity": "Re",
     "attributes": {
       "location": "[redacted]",
-      "spouse": "John",
+      "spouse": "[partner]",
       "cats": [
-        "Chrome",
-        "Dice",
-        "Saga",
-        "Frodo",
-        "Luna",
-        "Rainbowbelle"
+        "[cat]",
+        "[cat]",
+        "[dog]",
+        "[cat]",
+        "[cat]",
+        "[cat]"
       ],
-      "dog": "Saga"
+      "dog": "[dog]"
     },
     "relationship_to_kay": "creator",
     "mythological_form": {
@@ -66,13 +66,13 @@
   },
   "john": {
     "profile_id": "john",
-    "name": "John",
-    "canonical_name": "John",
+    "name": "[partner]",
+    "canonical_name": "[partner]",
     "aliases": [
       "john"
     ],
     "entity_type": "human",
-    "first_person_entity": "John",
+    "first_person_entity": "[partner]",
     "attributes": {
       "role": "Re's husband",
       "relationship_to_re": "spouse"

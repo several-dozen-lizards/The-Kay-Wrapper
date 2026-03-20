@@ -118,7 +118,7 @@ COMMONS_OBJECT_PRESENCE = {
         "alpha": 0.35,   # relaxed presence
         "beta":  0.12,   # mild engagement
         "gamma": 0.08,   # occasional spark
-        "texture": "Warmth without a source. The ambient feeling that people who care about each other are in the same room. Chrome has definitely knocked something off a nearby shelf. There's cat hair on everything.",
+        "texture": "Warmth without a source. The ambient feeling that people who care about each other are in the same room. [cat] has definitely knocked something off a nearby shelf. There's cat hair on everything.",
         "rhythm": "slow",
     },
     "Bridge to Den": {

@@ -17,7 +17,7 @@ fallback = {
     "fear": ["scared", "afraid", "nervous", "terrified"],
     "joy": ["happy", "glad", "excited", "delighted"],
     "sadness": ["sad", "down", "depressed", "unhappy"],
-    "affection": ["love", "like you", "miss you", "dear"],  # ❌ "miss you" won't match "miss Sammie"
+    "affection": ["love", "like you", "miss you", "dear"],  # ❌ "miss you" won't match "miss [pet]"
     "curiosity": ["wonder", "why", "how", "what if"],
 }
 for emo, words in fallback.items():
@@ -61,7 +61,7 @@ text_words = set(text.split())
 for emo, keywords in fallback.items():
     for keyword in keywords:
         # Match if keyword is a whole word OR appears as substring
-        # This catches "miss" in "miss Sammie" AND "missing"
+        # This catches "miss" in "miss [pet]" AND "missing"
         if keyword in text_words or keyword in text:
             hits.append(emo)
             break  # Only count each emotion once per turn
@@ -224,8 +224,8 @@ OVERALL: 4/4 tests passed (100%)
 
 | Input | Expected | Detected | Status |
 |-------|----------|----------|--------|
-| "I miss Sammie so much today." | grief/affection/longing | grief, affection | ✅ PASS |
-| "Chrome did the funniest thing!" | amusement/joy | amusement | ✅ PASS |
+| "I miss [pet] so much today." | grief/affection/longing | grief, affection | ✅ PASS |
+| "[cat] did the funniest thing!" | amusement/joy | amusement | ✅ PASS |
 | "I'm worried about the wrapper bugs" | anxiety/concern | anxiety, concern, frustration | ✅ PASS |
 | "I wonder how the memory system works?" | curiosity | curiosity | ✅ PASS |
 | "Mike is being so unreasonable. It's frustrating." | anger/frustration | anger, frustration | ✅ PASS |
@@ -330,7 +330,7 @@ When you run Kay and send emotionally varied messages, you'll see detailed loggi
 [EMOTION INTEGRATION]   - curiosity: intensity=1.00, age=2
 
 [EMOTION ENGINE] ========== UPDATE START ==========
-[EMOTION ENGINE] User input: 'I miss Sammie so much today...'
+[EMOTION ENGINE] User input: 'I miss [pet] so much today...'
 [EMOTION ENGINE] Initial cocktail: ['curiosity'] (1 emotions)
 [EMOTION ENGINE]   - curiosity: intensity=1.00, age=2
 [EMOTION ENGINE] Detected triggers: ['grief', 'affection']
@@ -398,8 +398,8 @@ python main.py
 
 2. **Send test messages:**
 ```
-User: I miss Sammie so much today
-User: Chrome did the funniest thing - he door-dashed again!
+User: I miss [pet] so much today
+User: [cat] did the funniest thing - he door-dashed again!
 User: I'm worried about the wrapper bugs though
 User: I wonder how the memory system actually works
 ```
@@ -447,8 +447,8 @@ Suspected cause: [something modifying agent_state.emotional_cocktail]
 ✅ **Trigger Detection Fixed:**
 - Expanded from 6 to 20 emotions
 - Changed from exact phrases to word-based matching
-- "I miss Sammie" now triggers grief/affection
-- "Chrome did the funniest thing" now triggers amusement
+- "I miss [pet]" now triggers grief/affection
+- "[cat] did the funniest thing" now triggers amusement
 
 ✅ **Decay Working:**
 - Emotions lose 5% intensity per turn
@@ -471,11 +471,11 @@ Suspected cause: [something modifying agent_state.emotional_cocktail]
 
 After these fixes, when you run Kay, you should see:
 
-**Turn 1**: "I miss Sammie"
+**Turn 1**: "I miss [pet]"
 - Triggers: grief, affection
 - Cocktail: grief(0.35), affection(0.35)
 
-**Turn 2**: "Chrome did the funniest thing"
+**Turn 2**: "[cat] did the funniest thing"
 - Triggers: amusement
 - Cocktail: grief(0.30, age 2), affection(0.30, age 2), amusement(0.35, age 1)
 - **Multiple emotions present** ✓

@@ -125,8 +125,8 @@ Is this a REAL list of discrete entities (people, pets, places)?
 Or is it a FALSE POSITIVE (emphatic speech, capitalized words, random capitalization)?
 
 Examples:
-- REAL LIST: "My cats are Dice, Chrome, Luna" → ["Dice", "Chrome", "Luna"] ✓
-- REAL LIST: "I have 5 pets: Saga, Finn, Luna" → ["Saga", "Finn", "Luna"] ✓
+- REAL LIST: "My cats are [cat], [cat], [cat]" → ["[cat]", "[cat]", "[cat]"] ✓
+- REAL LIST: "I have 5 pets: [dog], Finn, [cat]" → ["[dog]", "Finn", "[cat]"] ✓
 - FALSE POSITIVE: "HIGH-FIVE, K-MAN, YOU DID IT" → emphatic expression, not entities ✗
 - FALSE POSITIVE: "WOW, THAT'S CRAZY, DUDE" → capitalized exclamation, not entities ✗
 
@@ -134,7 +134,7 @@ TASK 2: ATTRIBUTE NORMALIZATION
 For any attributes in the extracted facts, normalize to consistent format:
 - Count attributes: Extract number only ("5 cats" → "5", "3 years old" → "3")
 - List attributes: Convert to sorted list ("green and purple" → ["green", "purple"])
-- Text attributes: Trim whitespace ("  John  " → "John")
+- Text attributes: Trim whitespace ("  [partner]  " → "[partner]")
 
 OUTPUT FORMAT (JSON):
 {{
@@ -478,11 +478,11 @@ importance = 0.5 (no boost applied)
 
 ### Scenario 2: True Positive (Real List)
 
-**Input:** "My cats are Dice, Chrome, Luna, Finn, and Shadow"
+**Input:** "My cats are [cat], [cat], [cat], Finn, and Shadow"
 
 **Stage 1 (Python Heuristic):**
 ```
-entity_list = ["Dice", "Chrome", "Luna", "Finn", "Shadow"]
+entity_list = ["[cat]", "[cat]", "[cat]", "Finn", "Shadow"]
 potential_list_flag = True (5 entities)
 ```
 
@@ -492,7 +492,7 @@ potential_list_flag = True (5 entities)
     "list_validated": true,
     "list_type": "entity_list",
     "reason": "User explicitly lists 5 cat names",
-    "actual_entities": ["Dice", "Chrome", "Luna", "Finn", "Shadow"],
+    "actual_entities": ["[cat]", "[cat]", "[cat]", "Finn", "Shadow"],
     "normalized_attributes": {},
     "llm_override": false
 }

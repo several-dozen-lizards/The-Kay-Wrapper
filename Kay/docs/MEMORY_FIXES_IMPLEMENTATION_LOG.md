@@ -23,7 +23,7 @@ All critical and important memory bug fixes from the comprehensive audit have be
 **Lines Modified:** 206-219
 
 **Problem:**
-Recent memories (from last 1-2 turns) were being killed by the keyword overlap threshold even when highly relevant. Queries like "What else?" after "Tell me about Saga" would fail because "what else" has zero keyword overlap with "Saga".
+Recent memories (from last 1-2 turns) were being killed by the keyword overlap threshold even when highly relevant. Queries like "What else?" after "Tell me about [dog]" would fail because "what else" has zero keyword overlap with "[dog]".
 
 **Solution Implemented:**
 ```python
@@ -39,7 +39,7 @@ if keyword_overlap < relevance_floor:
         return None
     else:
         # Recent but low overlap: boost to minimum threshold instead of killing
-        # This ensures "What else?" after "Tell me about Saga" still surfaces Saga facts
+        # This ensures "What else?" after "Tell me about [dog]" still surfaces [dog] facts
         keyword_overlap = max(keyword_overlap, 0.3)
 ```
 
@@ -284,9 +284,9 @@ Fix Applied: #1 (recency exemption)
 
 ### Test Scenario 2: Pronoun Resolution ✅
 ```
-Turn 1: "Tell me about Saga"
+Turn 1: "Tell me about [dog]"
 Turn 2: "What color is she?"
-Expected: Kay continues talking about Saga
+Expected: Kay continues talking about [dog]
 Fixes Applied: #1 (recency) + #2 (RECENT_TURNS)
 ```
 

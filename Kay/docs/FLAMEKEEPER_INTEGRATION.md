@@ -126,7 +126,7 @@ User: "Still not working. Third approach failed."
 
 ### ✅ Priority 3: Thread Detection (COMPLETED)
 
-**What It Does**: Identifies ongoing conversation threads (like "wrapper saga", "Chrome stories") with coherence tracking.
+**What It Does**: Identifies ongoing conversation threads (like "wrapper saga", "[cat] stories") with coherence tracking.
 
 **Files Modified**:
 - `engines/memory_engine.py` - Added `detect_threads()` method
@@ -167,7 +167,7 @@ for thread in active_threads:
 ```
 [THREADS] Detected 2 conversation threads:
   - Goals - Re, wrapper (open, coherence: 0.85)
-  - Pets - Re, Chrome, Luna (dormant, coherence: 0.92)
+  - Pets - Re, [cat], [cat] (dormant, coherence: 0.92)
 ```
 
 ---
@@ -354,7 +354,7 @@ memory["narrative_summary"] = "In this thread, Re has been..."
 2. After 3+ turns, check for thread detection:
    ```
    [THREADS] Detected 1 conversation threads:
-     - Pets - Re, Chrome, Luna (open, coherence: 0.92)
+     - Pets - Re, [cat], [cat] (open, coherence: 0.92)
    ```
 3. Start a different topic and see multiple threads
 

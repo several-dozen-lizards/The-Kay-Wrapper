@@ -82,7 +82,7 @@ This implementation adds **entity resolution** and **multi-layer memory** to Alp
 ### Entity Resolution (memU-inspired)
 
 ✅ **Canonical Entity Tracking**
-- Resolves mentions ("my dog", "Saga") to canonical entities
+- Resolves mentions ("my dog", "[dog]") to canonical entities
 - Maintains alias lists for each entity
 
 ✅ **Attribute Provenance**
@@ -95,7 +95,7 @@ This implementation adds **entity resolution** and **multi-layer memory** to Alp
 - Full provenance for resolution
 
 ✅ **Relationship Tracking**
-- "Re owns Saga", "Kay likes coffee"
+- "Re owns [dog]", "Kay likes coffee"
 - Relationship strength scores
 - Graph traversal (find related entities within N hops)
 
@@ -143,12 +143,12 @@ This implementation adds **entity resolution** and **multi-layer memory** to Alp
 - Example output:
   ```json
   {
-    "fact": "Saga is Re's dog",
+    "fact": "[dog] is Re's dog",
     "perspective": "user",
     "topic": "relationships",
-    "entities": ["Saga", "Re"],
-    "attributes": [{"entity": "Saga", "attribute": "species", "value": "dog"}],
-    "relationships": [{"entity1": "Re", "relation": "owns", "entity2": "Saga"}]
+    "entities": ["[dog]", "Re"],
+    "attributes": [{"entity": "[dog]", "attribute": "species", "value": "dog"}],
+    "relationships": [{"entity1": "Re", "relation": "owns", "entity2": "[dog]"}]
   }
   ```
 

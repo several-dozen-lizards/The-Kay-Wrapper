@@ -1,11 +1,11 @@
 # Ownership Relationship Bug Fix - Summary
 
 ## Problem
-When Kay (the AI) responded with confused statements like "my cats" or "my dog Saga", the entity extraction system was creating false ownership relationships based on Kay's incorrect statements rather than verifying against ground truth from the user.
+When Kay (the AI) responded with confused statements like "my cats" or "my dog [dog]", the entity extraction system was creating false ownership relationships based on Kay's incorrect statements rather than verifying against ground truth from the user.
 
 **Buggy Flow:**
-1. User: "My dog is Saga" → Creates "Re owns Saga" (correct)
-2. Kay: "Yeah, my dog Saga..." → Creates "Kay owns Saga" (WRONG!)
+1. User: "My dog is [dog]" → Creates "Re owns [dog]" (correct)
+2. Kay: "Yeah, my dog [dog]..." → Creates "Kay owns [dog]" (WRONG!)
 3. System now has conflicting relationships
 4. Kay's confusion reinforces itself in future turns
 
@@ -63,29 +63,29 @@ This enables meta-awareness system to detect and alert Kay about confusion.
 
 ### Test Case 1: User States Ownership
 ```
-User: "My dog is Saga"
-→ Identity layer: Re owns Saga (ground_truth)
-→ Entity graph: Re owns Saga
+User: "My dog is [dog]"
+→ Identity layer: Re owns [dog] (ground_truth)
+→ Entity graph: Re owns [dog]
 ✓ PASS
 ```
 
 ### Test Case 2: Kay Confused About Ownership
 ```
-User: "My dog is Saga" (already established)
-Kay: "Yeah, my dog Saga..."
+User: "My dog is [dog]" (already established)
+Kay: "Yeah, my dog [dog]..."
 → Ownership check detects conflict
-→ [OWNERSHIP BLOCKED] Kay claims to own Saga, but ground truth says Re owns Saga
+→ [OWNERSHIP BLOCKED] Kay claims to own [dog], but ground truth says Re owns [dog]
 → Relationship creation BLOCKED
-→ Entity graph: Re owns Saga (unchanged)
+→ Entity graph: Re owns [dog] (unchanged)
 ✓ PASS - No false relationship created
 ```
 
 ### Test Case 3: Kay Correctly References User's Property
 ```
-Kay: "Your dog Saga sounds wonderful"
-→ Ownership check: Re owns Saga (confirmed)
+Kay: "Your dog [dog] sounds wonderful"
+→ Ownership check: Re owns [dog] (confirmed)
 → Reinforces existing relationship
-→ Entity graph: Re owns Saga
+→ Entity graph: Re owns [dog]
 ✓ PASS
 ```
 
@@ -108,10 +108,10 @@ Kay: "Your dog Saga sounds wonderful"
 
 All tests passing:
 ```
-[PASS] TEST 1: Ground truth established (Re owns Saga)
+[PASS] TEST 1: Ground truth established (Re owns [dog])
 [PASS] TEST 2: Kay's confused ownership claim was blocked from entity graph
 [PASS] TEST 3: Kay's correct reference reinforced existing ownership
-[PASS] VERIFIED: Only Re owns Saga (not Kay)
+[PASS] VERIFIED: Only Re owns [dog] (not Kay)
 ```
 
 Run tests with:

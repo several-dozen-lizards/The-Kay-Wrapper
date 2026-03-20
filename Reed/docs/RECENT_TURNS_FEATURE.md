@@ -256,11 +256,11 @@ Verify: No recent turns added, only relevant memories
 
 ### Test Case 2: Pronoun Reference
 ```bash
-Re: "Tell me about Saga"
-Kay: "Saga is your Czechoslovakian Wolfdog..."
+Re: "Tell me about [dog]"
+Kay: "[dog] is your Czechoslovakian Wolfdog..."
 Re: "Can you describe it?"
 Expected: RECENT_TURNS: 3-5
-Verify: Last 3-5 turns included, "it" resolves to "Saga"
+Verify: Last 3-5 turns included, "it" resolves to "[dog]"
 ```
 
 ### Test Case 3: Temporal Reference

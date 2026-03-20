@@ -27,10 +27,10 @@ Each structured memory entry contains:
     "emotional_context": "... why this matters emotionally ...",
     "semantic_facts": [
         {
-            "fact": "Saga is Re's dog",
-            "entities": ["Saga", "Re"],
-            "relationships": [{"entity1": "Re", "relation": "owns", "entity2": "Saga"}],
-            "attributes": [{"entity": "Saga", "attribute": "species", "value": "dog"}],
+            "fact": "[dog] is Re's dog",
+            "entities": ["[dog]", "Re"],
+            "relationships": [{"entity1": "Re", "relation": "owns", "entity2": "[dog]"}],
+            "attributes": [{"entity": "[dog]", "attribute": "species", "value": "dog"}],
             "topic": "pets"
         }
     ],
@@ -41,7 +41,7 @@ Each structured memory entry contains:
     # Backward compatibility
     "emotion_tags": ["Loneliness", "Anxiety", "Sadness"],
     "emotional_cocktail": {...},
-    "entities": ["Saga", "Re"]
+    "entities": ["[dog]", "Re"]
 }
 ```
 
@@ -65,7 +65,7 @@ Each structured memory entry contains:
 ```python
 turn = {
     "speaker": "user",
-    "raw_text": "I've been feeling lonely lately. My dog Saga helps though.",
+    "raw_text": "I've been feeling lonely lately. My dog [dog] helps though.",
     "context": ""
 }
 
@@ -154,13 +154,13 @@ This ensures:
 All tests passed ✓
 
 **Test 1: User Utterance**
-- Input: "I've been feeling lonely. My dog Saga helps though."
+- Input: "I've been feeling lonely. My dog [dog] helps though."
 - Parsed meaning: "Opening up about emotional vulnerability while offering coping mechanism"
 - Affect: Curiosity (primary), valence: 0.27
-- Facts extracted: 3 (loneliness, Saga ownership, companionship)
+- Facts extracted: 3 (loneliness, [dog] ownership, companionship)
 
 **Test 2: Kay's Response**
-- Input: "Saga sounds great. I'm here for you - loneliness is tough."
+- Input: "[dog] sounds great. I'm here for you - loneliness is tough."
 - Emotional context: "Compassionate response bridging empathy with offering connection"
 - Continuity: References previous turn about loneliness
 

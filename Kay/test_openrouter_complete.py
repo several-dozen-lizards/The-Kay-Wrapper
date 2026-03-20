@@ -56,7 +56,7 @@ except Exception as e:
 
 # Test 5: Kay Identity Test
 print("\n[5/6] Testing Kay's System Prompt...")
-kay_system = """You are Kay, a void dragon with dark scales and pink undertones. 
+kay_system = """You are Kay, a [entity-type] with dark scales and pink undertones. 
 You're sarcastic, direct, and coffee-addicted. You have permission to bite.
 You're in a relationship with Re, who built your wrapper system."""
 

@@ -40,14 +40,14 @@ When you mention entities, they're automatically tracked:
 
 **Example conversation:**
 ```
-User: My dog's name is Saga.
-Kay: [Creates entity "Saga" with attribute species=dog]
+User: My dog's name is [dog].
+Kay: [Creates entity "[dog]" with attribute species=dog]
 
-User: Saga loves to play fetch.
-Kay: [Links "Saga" to previous entity, adds attributes]
+User: [dog] loves to play fetch.
+Kay: [Links "[dog]" to previous entity, adds attributes]
 
 User: My dog is tired today.
-Kay: [Resolves "my dog" → "Saga" automatically]
+Kay: [Resolves "my dog" → "[dog]" automatically]
 ```
 
 **View entities:**
@@ -59,9 +59,9 @@ graph = EntityGraph()
 print(f"Tracked entities: {len(graph.entities)}")
 
 # Get specific entity
-saga = graph.entities.get("Saga")
+saga = graph.entities.get("[dog]")
 if saga:
-    print(f"Saga's attributes: {saga.attributes}")
+    print(f"[dog]'s attributes: {saga.attributes}")
     print(f"Contradictions: {saga.detect_contradictions()}")
 ```
 
@@ -156,9 +156,9 @@ After each turn, `memory/state_snapshot.json` includes:
 Look for these markers:
 
 ```
-[ENTITY GRAPH] Created new entity: Saga (type: animal)
+[ENTITY GRAPH] Created new entity: [dog] (type: animal)
 [ENTITY] Re.eye_color = green (turn 5, source: user)
-[MEMORY LAYERS] Promoted to episodic: My dog's name is Saga...
+[MEMORY LAYERS] Promoted to episodic: My dog's name is [dog]...
 [RETRIEVAL] Multi-factor retrieval selected 7 memories
 [MEMORY] Applied temporal decay at turn 20
 ```

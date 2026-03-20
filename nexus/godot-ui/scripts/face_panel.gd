@@ -7,7 +7,7 @@ extends Control
 ## API base for HTTP requests
 var API_BASE: String = "http://localhost:8765"
 
-## Entity palettes (Kay: void-dragon, Reed: serpent-naga)
+## Entity palettes (Kay: [entity-type], Reed: serpent-naga)
 const PALETTES := {
 	"kay": {
 		"skin_base": Color(0.176, 0.106, 0.306),      # deep void purple

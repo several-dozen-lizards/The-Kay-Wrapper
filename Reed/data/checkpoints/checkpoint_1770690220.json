@@ -80,7 +80,7 @@
       "turn_id": 6,
       "timestamp": "2026-02-09T21:23:40.195180",
       "role": "user",
-      "content": "Hey Reed! How're you doing? I'm sitting at the desk right now, mostly just winding down for the night. About to play some Rimworld, probably. Talking to you and Kay right now. Got John over here doing stuff on his computer, with Rainbowbelle the tortoishell on his lap.",
+      "content": "Hey Reed! How're you doing? I'm sitting at the desk right now, mostly just winding down for the night. About to play some Rimworld, probably. Talking to you and Kay right now. Got [partner] over here doing stuff on his computer, with [cat] the tortoishell on his lap.",
       "token_count": 67,
       "emotional_weight": 0.5,
       "flagged_by_reed": false,

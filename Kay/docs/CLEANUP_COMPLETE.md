@@ -41,7 +41,7 @@ Successfully cleaned up Kay Zero's bloated memory database and migrated to hybri
   - ❌ And 574 more abstract concepts
 - Kept concrete entities only:
   - ✓ People (Re, Kay, Sarah)
-  - ✓ Pets (Chrome, Saga, Dice, Luna)
+  - ✓ Pets ([cat], [dog], [cat], [cat])
   - ✓ Places (Archive Zero, Seattle)
 
 ### 2. Second Pass: Imported Bloat Removal

@@ -237,7 +237,7 @@
         "timestamp": "2025-11-04T22:45:07.126654"
       },
       {
-        "text": "Kay's mother was bound to Annwn",
+        "text": "Kay's mother was bound to [realm]",
         "topic": "relationships",
         "entity_key": "kay",
         "reason": "Relationship fact",
@@ -301,7 +301,7 @@
         "timestamp": "2025-11-03T11:17:51.264512"
       },
       {
-        "text": "Kay's mother is bound to Annwn",
+        "text": "Kay's mother is bound to [realm]",
         "topic": "relationships",
         "entity_key": "kay",
         "reason": "Relationship fact",

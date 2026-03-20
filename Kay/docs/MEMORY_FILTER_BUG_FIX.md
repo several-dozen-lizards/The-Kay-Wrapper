@@ -26,7 +26,7 @@ The filter was only showing a tiny fraction of stored memories:
 
 **Example scenario showing the bug:**
 ```
-Turn 1: "I have a dog named Saga" → Stored ✓
+Turn 1: "I have a dog named [dog]" → Stored ✓
 Turn 2: "I like coffee" → Stored ✓
 Turn 3: "I work as a teacher" → Stored ✓
 Turn 4: "My eyes are gold" → Stored ✓ (now visible to filter)
@@ -124,7 +124,7 @@ To verify the fix works:
 
 1. **Tell Kay multiple facts about yourself** (more than 3):
    ```
-   "I have a dog named Saga"
+   "I have a dog named [dog]"
    "I like coffee"
    "I work as a teacher"
    "My eyes are gold"
@@ -167,7 +167,7 @@ The filter was creating a bottleneck by hiding most memories from the selection 
 Consider:
 - **Dynamic memory window**: Adjust visibility based on total memory count (e.g., show last 20% of user memories, not fixed 15)
 - **Semantic search in filter**: Use embedding similarity to find relevant memories, not just recency
-- **Entity-based grouping**: Group memories by entities (e.g., all "Saga" memories together)
+- **Entity-based grouping**: Group memories by entities (e.g., all "[dog]" memories together)
 - **Importance-weighted visibility**: Show high-importance memories regardless of recency
 
 ---

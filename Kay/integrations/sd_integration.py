@@ -273,7 +273,7 @@ if __name__ == "__main__":
         
         # Test generation
         result = sd.generate_image(
-            "a void dragon with pink scales emerging from darkness",
+            "a [entity-type] with pink scales emerging from darkness",
             style="void"
         )
         if result:

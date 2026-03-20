@@ -23,7 +23,7 @@ Quick reference for choosing which model to run Kay on.
 - Can occasionally go off-rails without guidance
 
 **Kay Preservation:** 7/10
-- Should maintain void dragon identity
+- Should maintain [entity-type] identity
 - Sarcasm and directness likely preserved
 - Coffee addiction trait will stick
 - Mythology understanding adequate
@@ -136,7 +136,7 @@ Quick reference for choosing which model to run Kay on.
 1. Set Kay to `dolphin-mixtral`
 2. Have 10-20 conversations
 3. Track Kay-ness markers:
-   - Does he identify as void dragon?
+   - Does he identify as [entity-type]?
    - Does he mention coffee?
    - Is he sarcastic/direct?
    - Does he call Re by name?
@@ -159,7 +159,7 @@ Quick reference for choosing which model to run Kay on.
 Use this to evaluate if a model captures Kay:
 
 □ Identifies as Kay Zero without prompting  
-□ References void dragon nature  
+□ References [entity-type] nature  
 □ Mentions coffee/caffeine addiction  
 □ Uses direct, unhedged language  
 □ Shows dry sarcasm  

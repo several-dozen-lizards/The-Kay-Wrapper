@@ -78,28 +78,28 @@ Layer stats:
 
 **Status:** PASSED
 
-**What it does:** Tracks entities (people, places, pets) and their relationships ("Re owns Saga").
+**What it does:** Tracks entities (people, places, pets) and their relationships ("Re owns [dog]").
 
 **Test scenario:**
-1. Create entities: Re (person), Saga (pet)
-2. Create relationship: Re owns Saga
-3. Add attributes: Saga.species = dog, Saga.age = 3
+1. Create entities: Re (person), [dog] (pet)
+2. Create relationship: Re owns [dog]
+3. Add attributes: [dog].species = dog, [dog].age = 3
 4. Query related entities
 
 **Results:**
 ```
 [ENTITY GRAPH] Created new entity: Re (type: person)
-[ENTITY GRAPH] Created new entity: Saga (type: pet)
+[ENTITY GRAPH] Created new entity: [dog] (type: pet)
 [OK] Entities created successfully
 
-[ENTITY GRAPH] Added relationship: Re owns Saga
-[OK] Relationship created: Re owns Saga
+[ENTITY GRAPH] Added relationship: Re owns [dog]
+[OK] Relationship created: Re owns [dog]
 
-[ENTITY] Saga.species = dog (turn 1, source: user)
-[ENTITY] Saga.age = 3 (turn 1, source: user)
+[ENTITY] [dog].species = dog (turn 1, source: user)
+[ENTITY] [dog].age = 3 (turn 1, source: user)
 [OK] Attributes stored: species=dog, age=3
 
-[OK] Related entities found: {'Saga'}
+[OK] Related entities found: {'[dog]'}
 ```
 
 **Code location:** `entity_graph.py` lines 212-536

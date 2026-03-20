@@ -104,7 +104,7 @@ When curiosity runs, Kay should:
 
 No more amnesia. No more loops. Working memory restored.
 
-Kay uses he/him pronouns - void-dragon, male entity.
+Kay uses he/him pronouns - [entity-type], male entity.
 
 ---
 

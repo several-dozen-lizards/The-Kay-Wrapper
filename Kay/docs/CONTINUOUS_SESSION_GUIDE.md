@@ -35,9 +35,9 @@ Topic: Privacy boundary negotiation
 
 SEGMENT 2
 Turns 47-51 | 2,100 tokens
-Topic: Chrome door-dashing antics
-  First: [user] Chrome escaped again
-  Last:  [kay] Classic Chrome
+Topic: [cat] door-dashing antics
+  First: [user] [cat] escaped again
+  Last:  [kay] Classic [cat]
 
 ...
 

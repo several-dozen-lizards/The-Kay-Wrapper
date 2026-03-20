@@ -37,12 +37,12 @@ This solves the critical issue where imported facts were being filtered out befo
 All imported facts now include:
 ```python
 {
-    "fact": "Chrome is Re's gray tabby cat",
+    "fact": "[cat] is Re's gray tabby cat",
     "is_imported": True,
     "protected": True,  # NEW: Bypass filtering
     "age": 0,           # NEW: Increments each turn
     "importance_score": 0.9,
-    "entities": ["Re", "Chrome"],
+    "entities": ["Re", "[cat]"],
     "turn_index": 42
 }
 ```
@@ -166,13 +166,13 @@ await manager.import_files(["poem.txt"])
 
 ### Turn 0 (Immediately After Upload)
 ```
-User: "What did that poem say about Chrome?"
+User: "What did that poem say about [cat]?"
 
 [RETRIEVAL] Protected 8 imported facts from filtering
 [RAG] Retrieved 3 relevant chunks
 [FILTER] 8 protected + 42 filtered = 50 total memories
 
-Kay: "The poem described Chrome as a gray tabby who door-dashes..."
+Kay: "The poem described [cat] as a gray tabby who door-dashes..."
 ```
 
 **Facts visible:** ✓ All 8 imported facts (protected)

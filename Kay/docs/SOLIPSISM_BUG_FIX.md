@@ -172,7 +172,7 @@ return True  # ✅ Trust Kay unless we can prove fabrication
 - Conversational acknowledgments: "You mentioned your dog" ✅
 - Preference recall: "You said you like coffee" ✅
 - General facts: "You work as a teacher" ✅
-- Entity mentions: "Your dog Saga" ✅
+- Entity mentions: "Your dog [dog]" ✅
 
 **Rationale**:
 - Can't validate everything without being overly restrictive
@@ -231,17 +231,17 @@ Kay: "Yeah, they're this particular shade of forest green"
 
 **Input**:
 ```
-User: "My dog's name is Saga"
-Kay: "Saga sounds like a great dog"
+User: "My dog's name is [dog]"
+Kay: "[dog] sounds like a great dog"
 ```
 
 **Expected Behavior (OLD - BUG)**:
-- Fact extracted: "Saga is Re's dog"
+- Fact extracted: "[dog] is Re's dog"
 - Perspective: "user"
 - Validation: ✅ Pass (user's own statement)
 - Storage: ✅ STORED
 
-**Kay tries to store**: "Re mentioned their dog Saga"
+**Kay tries to store**: "Re mentioned their dog [dog]"
 - Perspective: "kay"
 - is_about_user: True (contains "re")
 - Validation pattern: Not eye color
@@ -363,7 +363,7 @@ Kay: "I prefer tea over coffee"
 [MEMORY] Extracted 3 facts from conversation turn
 [MEMORY] ✓ Stored: [user/physical] Re's eyes are green (importance: 0.55)
 [MEMORY] ✓ Stored: [kay/conversation] Kay acknowledged Re's eye color (importance: 0.45)
-[MEMORY] ✓ Stored: [user/relationships] Re has a dog named Saga (importance: 0.60)
+[MEMORY] ✓ Stored: [user/relationships] Re has a dog named [dog] (importance: 0.60)
 ```
 
 ### Eye Color Fabrication Blocked
@@ -379,7 +379,7 @@ Kay: "I prefer tea over coffee"
 
 ```
 [MEMORY] Extracted 3 facts from conversation turn
-[HALLUCINATION DETECTED] Kay claimed 'Re mentioned their dog Saga' but user never stated this
+[HALLUCINATION DETECTED] Kay claimed 'Re mentioned their dog [dog]' but user never stated this
 [HALLUCINATION BLOCKED] ❌ Kay fabricated 'Re mentioned their dog...' NOT STORING.
 [HALLUCINATION DETECTED] Kay claimed 'Kay acknowledged Re's eye color' but user never stated this
 [HALLUCINATION BLOCKED] ❌ Kay fabricated 'Kay acknowledged...' NOT STORING.
@@ -396,7 +396,7 @@ Only the direct user statement stored, Kay's acknowledgments blocked → solipsi
 
 - [ ] User attributes stored correctly ("my eyes are green")
 - [ ] Kay's acknowledgments stored ("You mentioned...")
-- [ ] Other entities stored ("My dog's name is Saga")
+- [ ] Other entities stored ("My dog's name is [dog]")
 - [ ] User preferences stored ("I like coffee")
 - [ ] World facts stored ("Paris is in France")
 - [ ] Kay's self-statements still stored ("I prefer tea")
@@ -410,8 +410,8 @@ Check `memory/memories.json` contains:
 [
   {"fact": "Re's eyes are green", "perspective": "user", ...},
   {"fact": "Kay acknowledged Re's eye color", "perspective": "kay", ...},
-  {"fact": "Saga is Re's dog", "perspective": "user", ...},
-  {"fact": "Kay asked about Saga", "perspective": "kay", ...}
+  {"fact": "[dog] is Re's dog", "perspective": "user", ...},
+  {"fact": "Kay asked about [dog]", "perspective": "kay", ...}
 ]
 ```
 
@@ -447,8 +447,8 @@ Check `memory/memories.json` contains:
 
 1. User says "my eyes are green" → stored ✅
 2. Kay acknowledges "You mentioned..." → stored ✅
-3. User mentions dog "Saga" → stored ✅
-4. Kay recalls "Saga" later → stored ✅
+3. User mentions dog "[dog]" → stored ✅
+4. Kay recalls "[dog]" later → stored ✅
 5. User states preference "I like coffee" → stored ✅
 6. Kay acknowledges preference → stored ✅
 7. Eye color fabrication still blocked ✅

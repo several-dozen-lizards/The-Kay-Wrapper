@@ -133,7 +133,7 @@ User uploads poem.txt (2000 lines)
 ### RAG Retrieval Flow
 
 ```
-User: "What did that poem say about Chrome?"
+User: "What did that poem say about [cat]?"
          │
          ├──────────────┬──────────────┐
          │              │              │

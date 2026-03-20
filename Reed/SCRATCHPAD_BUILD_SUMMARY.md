@@ -46,7 +46,7 @@ You'll see output like:
 ```
 --- SCRATCHPAD (2 items) ---
 [QUESTION] Check timeline on ChatGPT logs
-[FLAG] That fact about John seemed off
+[FLAG] That fact about [partner] seemed off
 ---
 ```
 

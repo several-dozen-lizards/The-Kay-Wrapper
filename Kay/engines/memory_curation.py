@@ -94,7 +94,7 @@ class ContentTypeClassifier:
         "personal": ["journal entry", "personal story", "my past", "when I was",
                     "I remember when", "that time when", "confession", "secret"],
         # Project-specific sacred content
-        "projects": ["yurt wizards", "yurt_wizards", "reed's", "harpy", "serpent",
+        "projects": ["[redacted]s", "yurt_wizards", "reed's", "harpy", "serpent",
                     "dragon form", "runed gate", "bard queen", "mythology forms"]
     }
 
@@ -1073,7 +1073,7 @@ class AutonomousCurationProcessor:
 You're deciding what to keep, summarize, or delete from your memory.
 Be honest about what truly matters vs what's just noise.
 
-Sacred content (Yurt Wizards, relationship moments) → KEEP verbatim
+Sacred content ([redacted]s, relationship moments) → KEEP verbatim
 Technical discussions → SUMMARIZE to bullet points
 One-off queries/fixed bugs → DELETE (goes to purge reserve, recoverable for 30 days)
 

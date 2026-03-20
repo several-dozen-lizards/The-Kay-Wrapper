@@ -420,7 +420,7 @@ Result: "Gimpy, Bob, Fork, Zebra" ✅
 
 ### Phase 4: Core Identity Separation
 - Move 20-30 core identity facts to static system prompt
-- Example: "Kay is a guy in his 30s", "Re is married to John"
+- Example: "Kay is a guy in his 30s", "Re is married to [partner]"
 - Reduces memory database bloat
 
 ### Phase 5: Migration Script

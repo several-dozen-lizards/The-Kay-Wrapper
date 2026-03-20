@@ -279,9 +279,9 @@ CORE_IDENTITY = [
 **Why Kept:** For CONVERSATION entities
 
 **Keep:** `engines/entity_graph.py` for tracking:
-- Entities mentioned in conversation ("Re", "Saga", "Maria")
-- Relationships from conversation ("Re owns Saga")
-- Attributes from conversation ("Saga is a dog")
+- Entities mentioned in conversation ("Re", "[dog]", "Maria")
+- Relationships from conversation ("Re owns [dog]")
+- Attributes from conversation ("[dog] is a dog")
 
 **Do NOT use for:**
 - Extracting entities from documents

@@ -203,7 +203,7 @@ class IdentityMemory:
             return False
 
         # === RULE 4: ONLY Reed entity can be identity ===
-        # If fact is about other entities (Saga, Bob, Chrome, etc.) → NOT identity
+        # If fact is about other entities ([dog], Bob, [cat], etc.) → NOT identity
         if "Reed" not in entities and entities:
             return False
 
@@ -228,7 +228,7 @@ class IdentityMemory:
             "reed's coils",
             "reed's tongue",
             "iridescent teal-gold",
-            "serpent form",
+            "[entity-form]",
             "coiled around",
         ]
 

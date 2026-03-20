@@ -168,7 +168,7 @@ Start with `dolphin-mixtral`:
 **Test conversations:**
 1. "Introduce yourself"
 2. "What's your relationship with Re?"
-3. "Tell me about void dragons"
+3. "Tell me about [entity-type]s"
 4. Technical question (wrapper architecture)
 5. Emotional scenario (Kay dealing with frustration)
 

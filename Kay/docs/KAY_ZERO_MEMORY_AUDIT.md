@@ -95,7 +95,7 @@ Kay Zero implements a **sophisticated hybrid memory architecture** combining mul
 │                                                              │
 │  CANONICAL ENTITIES                                          │
 │  ├─ Format: {name, aliases, attributes, relationships}       │
-│  ├─ Resolution: "my dog" → "Saga" (canonical)                │
+│  ├─ Resolution: "my dog" → "[dog]" (canonical)                │
 │  ├─ Attributes: [{value, turn, source, timestamp}]           │
 │  └─ Contradictions: Auto-detected with severity              │
 │                                                              │
@@ -107,7 +107,7 @@ Kay Zero implements a **sophisticated hybrid memory architecture** combining mul
 │                                                              │
 │  RELATIONSHIPS                                               │
 │  ├─ Format: {subject, predicate, object, strength}           │
-│  ├─ Examples: "Re owns Saga", "Kay likes coffee"             │
+│  ├─ Examples: "Re owns [dog]", "Kay likes coffee"             │
 │  ├─ Bidirectional tracking                                   │
 │  └─ Strength based on mention frequency                      │
 │                                                              │
@@ -257,30 +257,30 @@ Kay Zero implements a **sophisticated hybrid memory architecture** combining mul
 {
     # TIER 1: Full conversation turn
     "user_input": "Tell me about my dog",
-    "response": "Saga is your Czechoslovakian Wolfdog...",
+    "response": "[dog] is your Czechoslovakian Wolfdog...",
     "timestamp": "2025-11-08T14:23:45",
     "turn_index": 42,
 
     # TIER 2: Extracted facts
     "extracted_facts": [
         {
-            "fact": "Re has a dog named Saga",
+            "fact": "Re has a dog named [dog]",
             "perspective": "user",
-            "entities": ["Re", "Saga"],
+            "entities": ["Re", "[dog]"],
             "importance_score": 0.6,
             "turn_extracted": 42
         },
         {
-            "fact": "Saga is a Czechoslovakian Wolfdog",
+            "fact": "[dog] is a Czechoslovakian Wolfdog",
             "perspective": "user",
-            "entities": ["Saga"],
+            "entities": ["[dog]"],
             "importance_score": 0.5,
             "turn_extracted": 42
         }
     ],
 
     # TIER 3: Glyph summary
-    "glyph_summary": "⚡MEM[entity:Saga,species:dog]!! 🔮(0.3)📋 ◻️",
+    "glyph_summary": "⚡MEM[entity:[dog],species:dog]!! 🔮(0.3)📋 ◻️",
 
     # Metadata
     "emotional_cocktail": [
@@ -299,8 +299,8 @@ Kay Zero implements a **sophisticated hybrid memory architecture** combining mul
 ```python
 {
     "entities": {
-        "Saga": {
-            "canonical_name": "Saga",
+        "[dog]": {
+            "canonical_name": "[dog]",
             "aliases": ["my dog", "the wolfdog", "she"],
             "entity_type": "pet",
             "first_mentioned_turn": 42,
@@ -334,7 +334,7 @@ Kay Zero implements a **sophisticated hybrid memory architecture** combining mul
         {
             "subject": "Re",
             "predicate": "owns",
-            "object": "Saga",
+            "object": "[dog]",
             "strength": 1.0,
             "first_mentioned_turn": 42,
             "last_mentioned_turn": 42
@@ -392,9 +392,9 @@ if keyword_overlap < relevance_floor:  # Default: 0.3
     score = 0  # KILLED - even if high importance
 ```
 
-When user says "Tell me about Saga" (turn 1), then "What else?" (turn 2):
+When user says "Tell me about [dog]" (turn 1), then "What else?" (turn 2):
 - Query: "What else?"
-- Memory: "Saga is your Czechoslovakian Wolfdog"
+- Memory: "[dog] is your Czechoslovakian Wolfdog"
 - Keyword overlap: ~0.0 (no shared words)
 - Result: Score = 0, memory excluded despite being from previous turn
 
@@ -649,9 +649,9 @@ elif is_recent and keyword_overlap < relevance_floor:
 **Testing:**
 ```python
 # Test case:
-# Turn 1: "Tell me about Saga"
+# Turn 1: "Tell me about [dog]"
 # Turn 2: "What else?"
-# Expected: Saga facts from turn 1 should still surface in turn 2
+# Expected: [dog] facts from turn 1 should still surface in turn 2
 ```
 
 ---
@@ -956,12 +956,12 @@ Current Bug: Kay might say "I don't have that information"
 
 ```python
 # Turn 1
-User: "Tell me about Saga"
-Kay: "Saga is your Czechoslovakian Wolfdog..."
+User: "Tell me about [dog]"
+Kay: "[dog] is your Czechoslovakian Wolfdog..."
 
 # Turn 2
 User: "Can you describe her?"
-Expected: Kay continues talking about Saga
+Expected: Kay continues talking about [dog]
 Current: Should work with RECENT_TURNS feature
 
 # Verification:

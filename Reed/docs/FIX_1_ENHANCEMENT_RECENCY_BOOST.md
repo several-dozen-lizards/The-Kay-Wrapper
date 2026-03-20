@@ -12,8 +12,8 @@
 - User said: "I'd be a rogue"
 - Kay later said: "You're a warlock" ❌
 
-- User said: "Saga's eyes are brown"
-- Kay later said: "Saga's eyes are amber-gold" ❌
+- User said: "[dog]'s eyes are brown"
+- Kay later said: "[dog]'s eyes are amber-gold" ❌
 
 **Root cause:** Fix #1 prevented recent memories from being KILLED, but didn't make them SCORE HIGHER than old memories.
 
@@ -203,7 +203,7 @@ This enhancement **completes** Fix #1:
 ### Edge Case 1: Recent memory with zero keyword overlap
 ```
 Query: "What else?"
-Recent memory: "Saga is a wolfdog" (0.0 overlap with "what else")
+Recent memory: "[dog] is a wolfdog" (0.0 overlap with "what else")
 
 Old behavior:
   keyword_overlap = 0.0 → killed ❌
@@ -217,9 +217,9 @@ Enhancement:
 
 ### Edge Case 2: Conflicting facts from different turns
 ```
-Turn 10: "Saga's eyes are amber"
-Turn 100: "Saga's eyes are brown"
-Turn 102: "What color are Saga's eyes?"
+Turn 10: "[dog]'s eyes are amber"
+Turn 100: "[dog]'s eyes are brown"
+Turn 102: "What color are [dog]'s eyes?"
 
 Expected: "Brown" (most recent)
 Old behavior: Might retrieve "amber" if it had better keyword match

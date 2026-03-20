@@ -183,11 +183,11 @@ DEN_OBJECT_PRESENCE = {
         "rhythm": "still",
     },
     "Cat Tower": {
-        "delta": 0.2,    # deep rest — Chrome's domain
+        "delta": 0.2,    # deep rest — [cat]'s domain
         "theta": 0.4,    # reflective — sentinel presence
         "alpha": 0.5,    # relaxed — awareness of the edge-watcher
         "beta":  0.3,    # active — peripheral
-        "gamma": 0.4,    # focused — might need to check on Chrome
+        "gamma": 0.4,    # focused — might need to check on [cat]
         "texture": "tall sentinel, fur evidence, the edge-watcher's post",
         "rhythm": "still",
     },

@@ -169,11 +169,11 @@ memory_engine = MemoryEngine()
 
 3. **Test other entities**:
    ```
-   You: "My dog's name is Saga"
+   You: "My dog's name is [dog]"
    Expected: ✅ Stored
 
    Memory Stats should show:
-   Entities: 2-3    (Re, Saga, possibly Kay)
+   Entities: 2-3    (Re, [dog], possibly Kay)
    ```
 
 4. **Test eye color fabrication**:
@@ -192,7 +192,7 @@ memory_engine = MemoryEngine()
    ```
    Should contain facts about:
    - Re (the user) ✅
-   - Saga (the dog) ✅
+   - [dog] (the dog) ✅
    - Kay (the AI) ✅
 
 ### Test with main.py (CLI)
@@ -209,7 +209,7 @@ Same tests, same expected results ✅
 [MEMORY] Extracted 3 facts from conversation turn
 [MEMORY] ✓ Stored: [user/physical] Re's eyes are green (importance: 0.55)
 [MEMORY] ✓ Stored: [kay/conversation] Kay acknowledged Re's eye color (importance: 0.45)
-[MEMORY] ✓ Stored: [user/relationships] Re has a dog named Saga (importance: 0.60)
+[MEMORY] ✓ Stored: [user/relationships] Re has a dog named [dog] (importance: 0.60)
 ```
 
 ### If Fabrication Detected
@@ -244,7 +244,7 @@ Memory Stats
 Working: 5/10     ← User facts + Kay facts + acknowledgments
 Episodic: 0/100
 Semantic: 0
-Entities: 3       ← Re, Saga, Kay
+Entities: 3       ← Re, [dog], Kay
 ```
 
 The stats will now accurately reflect that Kay remembers the entire universe, not just himself.

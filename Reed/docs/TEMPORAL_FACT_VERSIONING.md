@@ -9,15 +9,15 @@
 
 The system was storing **duplicate facts** and running **695 contradiction checks** every turn:
 
-**Example - "Saga is orange" stored 38 times:**
+**Example - "[dog] is orange" stored 38 times:**
 ```
-Memory #1: "Saga is orange" (turn 1)
-Memory #2: "Saga is orange" (turn 5)
-Memory #3: "Saga is orange" (turn 10)
+Memory #1: "[dog] is orange" (turn 1)
+Memory #2: "[dog] is orange" (turn 5)
+Memory #3: "[dog] is orange" (turn 10)
 ... 35 more duplicates
 
 Every turn:
-[CONTRADICTION RESOLVED] Saga.color = orange (dominant: 38x vs 1x)
+[CONTRADICTION RESOLVED] [dog].color = orange (dominant: 38x vs 1x)
 ```
 
 **Problems:**
@@ -37,7 +37,7 @@ The fact storage system had no deduplication:
 self.memories.append(fact_record)  # ❌ Always appends, never checks for duplicates
 ```
 
-**Result**: Every time Kay mentioned "Saga is orange", it was stored as a NEW fact, creating 38 identical entries.
+**Result**: Every time Kay mentioned "[dog] is orange", it was stored as a NEW fact, creating 38 identical entries.
 
 ---
 
@@ -48,7 +48,7 @@ self.memories.append(fact_record)  # ❌ Always appends, never checks for duplic
 Instead of 38 duplicates:
 ```
 {
-  "entity": "Saga",
+  "entity": "[dog]",
   "attribute": "color",
   "current_value": "orange",
   "created_at": "2025-11-17T12:00:00Z",
@@ -60,10 +60,10 @@ Instead of 38 duplicates:
 
 When the fact changes:
 ```
-User: "Saga is brown now"
+User: "[dog] is brown now"
 
 {
-  "entity": "Saga",
+  "entity": "[dog]",
   "attribute": "color",
   "current_value": "brown",  // NEW value
   "version": 2,
@@ -286,7 +286,7 @@ python migrate_to_versioned_facts.py
 [MIGRATION] Found 3214 unique entity-attribute pairs
 [MIGRATION] Found 6524 non-entity memories (kept as-is)
 
-  [DEDUP] Saga.color: 38 -> 1 (constant value: orange)
+  [DEDUP] [dog].color: 38 -> 1 (constant value: orange)
   [VERSION] Re.shirt: 5 -> 1 with 3 history entries
             Values changed: red -> green -> blue -> red
 
@@ -319,7 +319,7 @@ python migrate_to_versioned_facts.py
 
 [TEST 3] Amending changed fact
   Update type: amend
-[FACT AMENDED] Saga.color: orange -> brown (version 2)
+[FACT AMENDED] [dog].color: orange -> brown (version 2)
   Current value: brown
   Version: 2
   History entries: 1
@@ -338,19 +338,19 @@ python migrate_to_versioned_facts.py
 
 ### Test Case 1: First Mention ✅
 
-**User**: "My dog Saga is orange"
+**User**: "My dog [dog] is orange"
 
 **BEFORE** (duplicate storage):
 ```
-[MEMORY] OK TIER 2 - Fact: Saga is orange
+[MEMORY] OK TIER 2 - Fact: [dog] is orange
 (Stores as new memory, memory count += 1)
 ```
 
 **AFTER** (versioned system):
 ```
-[FACT CREATED] Saga.color = orange (version 1)
+[FACT CREATED] [dog].color = orange (version 1)
 Memory: {
-  "entity": "Saga",
+  "entity": "[dog]",
   "attribute": "color",
   "current_value": "orange",
   "version": 1,
@@ -362,18 +362,18 @@ Memory: {
 
 ### Test Case 2: Repeated Mention (Same Value) ✅
 
-**User**: "Saga is orange" (again, days later)
+**User**: "[dog] is orange" (again, days later)
 
 **BEFORE** (duplicate storage):
 ```
-[MEMORY] OK TIER 2 - Fact: Saga is orange
+[MEMORY] OK TIER 2 - Fact: [dog] is orange
 (Stores as NEW memory, creating duplicate #2)
 Total memories: 2
 ```
 
 **AFTER** (versioned system):
 ```
-[FACT CONFIRMED] Saga.color = orange (unchanged)
+[FACT CONFIRMED] [dog].color = orange (unchanged)
 (Updates last_confirmed timestamp, NO new memory)
 Total memories: 1  ✅ No duplicate!
 ```
@@ -382,23 +382,23 @@ Total memories: 1  ✅ No duplicate!
 
 ### Test Case 3: Changed Value ✅
 
-**User**: "Saga is brown now"
+**User**: "[dog] is brown now"
 
 **BEFORE** (duplicate storage + contradiction):
 ```
-[MEMORY] OK TIER 2 - Fact: Saga is brown
+[MEMORY] OK TIER 2 - Fact: [dog] is brown
 Total memories: 3 (orange, orange, brown)
 
 Next turn:
-[CONTRADICTION RESOLVED] Saga.color = orange (dominant: 2x vs 1x)
+[CONTRADICTION RESOLVED] [dog].color = orange (dominant: 2x vs 1x)
 (System picks "orange" because it has 2 mentions vs 1)
 ```
 
 **AFTER** (versioned system):
 ```
-[FACT AMENDED] Saga.color: orange -> brown (version 2)
+[FACT AMENDED] [dog].color: orange -> brown (version 2)
 Memory: {
-  "entity": "Saga",
+  "entity": "[dog]",
   "attribute": "color",
   "current_value": "brown",  ✅ Current value
   "version": 2,
@@ -418,7 +418,7 @@ Total memories: 1  ✅ Still just 1 memory!
 
 ### Test Case 4: Temporal Queries ✅
 
-**User**: "What color was Saga before?"
+**User**: "What color was [dog] before?"
 
 **BEFORE** (no history):
 ```
@@ -428,7 +428,7 @@ Kay has no way to know - no history tracked
 **AFTER** (versioned history):
 ```
 Kay can check history field:
-  "Saga was orange before changing to brown at 2025-11-17T14:30:00Z"
+  "[dog] was orange before changing to brown at 2025-11-17T14:30:00Z"
 ```
 
 ---
@@ -461,14 +461,14 @@ Kay can check history field:
 
 ### Before Versioning:
 - **9738 memories** with massive duplication
-- **"Saga is orange"** stored 38 times
+- **"[dog] is orange"** stored 38 times
 - **695 contradiction checks** every turn
 - **No temporal awareness** (Kay doesn't know when facts changed)
 - **Memory bloat** (50-70% duplicates)
 
 ### After Versioning:
 - **~4312 memories** (55.7% reduction expected after migration)
-- **"Saga is orange"** stored ONCE with version history
+- **"[dog] is orange"** stored ONCE with version history
 - **0 contradiction checks** (not needed - current_value is authoritative)
 - **Temporal awareness** (Kay knows fact history)
 - **Clean memory** (no duplicates)
