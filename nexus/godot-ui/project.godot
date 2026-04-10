@@ -13,12 +13,17 @@ config_version=5
 config/name="Nexus"
 config/description="The crossroads where entities meet."
 run/main_scene="res://Main.tscn"
+config/auto_accept_quit=false
 config/features=PackedStringArray("4.3")
 config/icon="res://icon.svg"
 
 [audio]
 
 driver/enable_input=true
+
+[autoload]
+
+CrashLogger="*res://scripts/crash_logger.gd"
 
 [display]
 

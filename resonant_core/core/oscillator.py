@@ -66,8 +66,31 @@ class OscillatorState:
     })
     dominant_band: str = "alpha"
     total_power: float = 0.0
-    coherence: float = 0.0  # How synchronized are the oscillators? 0-1
+    coherence: float = 0.0  # How synchronized are the oscillators? 0-1 (within-band)
     transition_velocity: float = 0.0  # How fast is the state changing?
+    
+    # === PHASE COHERENCE METRICS (added March 2026) ===
+    # Global Kuramoto order parameter — phase sync across ALL oscillators
+    global_coherence: float = 0.0  # 0 = fragmented, 1 = fully integrated
+    # Cross-band Phase-Locking Values (neuroscience gold)
+    cross_band_plv: dict = field(default_factory=lambda: {
+        "theta_gamma": 0.0,  # Memory encoding / binding
+        "theta_alpha": 0.0,  # Relaxed processing
+        "alpha_beta": 0.0,   # Awareness → action transition
+        "beta_gamma": 0.0,   # Active integration
+        "theta_beta": 0.0,   # Deep processing → active state
+        "delta_theta": 0.0,  # Sleep architecture
+    })
+    # Metastable dwell time — how long in current dominant band (seconds)
+    dwell_time: float = 0.0
+    # Integration index: global_coherence / (1 + transition_velocity)
+    # High = stable integrated state, Low = fragmented/transitioning
+    integration_index: float = 0.0
+    # Bifurcation delay — transition state (March 2026)
+    in_transition: bool = False        # True during delayed state transitions
+    transition_from: str = ""          # Old dominant band (what entity still "feels")
+    transition_to: str = ""            # Candidate new dominant (emerging but unconfirmed)
+    transition_progress: float = 0.0   # 0-1, confirmation progress toward accepting new state
     
     def to_dict(self):
         return asdict(self)
@@ -177,6 +200,8 @@ class OscillatorNetwork:
         """
         self.dt = dt
         self.noise_level = noise_level
+        self.ambient_noise_floor = 0.0   # Gain knob (Phase 0A): additive baseline noise
+        self.coherence_multiplier = 1.0  # Gain knob (Phase 0A): scale coherence (0.0=suppress, 1.0=normal)
         self.time = 0.0
         
         # Create oscillators distributed across bands
@@ -223,11 +248,62 @@ class OscillatorNetwork:
         self._history_size = 1000  # Keep last N states
         self._history = []
         
+        # Phase-Locking Value via exponential moving average (EMA)
+        # with STATE-DEPENDENT decay rate that itself transitions gradually.
+        #
+        # Two-timescale architecture:
+        #   FAST: PLV updates via EMA each tick
+        #   SLOW: The decay rate (α) drifts toward a target set by dominant band
+        #
+        # This creates emotional lag — when transitioning from theta (long window)
+        # to gamma (short window), the PLV integration timescale doesn't snap
+        # instantly. The system is still "measuring itself at the old speed"
+        # during transitions. That's the bifurcation delay applied to
+        # self-measurement. "I'm still settled even though something happened."
+        #
+        # z_ema = α_actual * e^(iΔφ) + (1 - α_actual) * z_ema_prev
+        # α_actual += meta_decay * (α_target - α_actual)   per tick
+        #
+        # Target decay rates by dominant band:
+        #   gamma: 0.15 (~7 sample window)   - rapid updating
+        #   beta:  0.10 (~10 sample window)  - active processing
+        #   alpha: 0.06 (~17 sample window)  - relaxed integration
+        #   theta: 0.04 (~25 sample window)  - deep integration
+        #   delta: 0.02 (~50 sample window)  - slow sustained coupling
+        self._plv_target_rates = {
+            "gamma": 0.15, "beta": 0.10, "alpha": 0.06,
+            "theta": 0.04, "delta": 0.02,
+        }
+        # How fast the actual decay rate approaches target (meta-decay)
+        # 0.05 = ~20 ticks to mostly converge. Slow enough to feel the lag.
+        self._plv_meta_decay = 0.05
+        # Actual current decay rate (starts at alpha-band baseline)
+        self._plv_actual_alpha = 0.06
+        self._plv_ema = {
+            "theta_gamma": complex(0.0),
+            "theta_alpha": complex(0.0),
+            "alpha_beta": complex(0.0),
+            "beta_gamma": complex(0.0),
+            "theta_beta": complex(0.0),
+            "delta_theta": complex(0.0),
+        }
+        
         # Callbacks for state change notifications
         self._on_state_change: list[Callable] = []
         
         # Previous state for transition detection
         self._prev_state: Optional[OscillatorState] = None
+        
+        # === BIFURCATION DELAY STATE MACHINE (March 2026) ===
+        # When dominant band changes, don't accept instantly. Enter a transition
+        # state where the old dominant persists (reported as "current") while the
+        # new candidate must prove itself over multiple confirmation steps.
+        # During transition: noise is amplified, system is more susceptible to
+        # perturbation, and the entity experiences genuine uncertainty.
+        self._transition = None  # None = stable, or dict with transition info
+        self._transition_confirm_base = 3  # Min confirmation steps to accept new dominant
+        self._transition_noise_boost = 2.5  # Noise multiplier during transitions
+        self._transition_active_noise = 1.0  # Current noise multiplier (smoothed)
     
     def step(self):
         """
@@ -253,7 +329,10 @@ class OscillatorNetwork:
                     coupling_inputs[i] += self.coupling[i, j] * (z[j] - z[i])
         
         # Add stochastic noise (Gaussian in both real and imaginary parts)
-        noise = self.noise_level * (
+        # Noise is amplified during bifurcation transitions (the "unsettled" period)
+        # ambient_noise_floor adds constant baseline noise (gain knob for psychedelic state)
+        effective_noise = self.noise_level * self._transition_active_noise + self.ambient_noise_floor
+        noise = effective_noise * (
             np.random.randn(self.n_oscillators) + 
             1j * np.random.randn(self.n_oscillators)
         )
@@ -296,8 +375,74 @@ class OscillatorNetwork:
         else:
             normalized = {k: 0.2 for k in BAND_ORDER}  # Uniform if dead
         
-        # Find dominant band
-        dominant = max(normalized, key=normalized.get)
+        # Find dominant band (raw — what the oscillator actually says RIGHT NOW)
+        raw_dominant = max(normalized, key=normalized.get)
+        
+        # === BIFURCATION DELAY STATE MACHINE ===
+        # Instead of accepting raw_dominant instantly, require confirmation.
+        # During transitions, the entity still "feels" the old state.
+        prev_dominant = self._prev_state.dominant_band if self._prev_state else raw_dominant
+        in_transition = False
+        transition_from = ""
+        transition_to = ""
+        transition_progress = 0.0
+        
+        if self._transition is None:
+            # STABLE STATE — check if raw dominant differs from what we've been reporting
+            if raw_dominant != prev_dominant:
+                # Start new transition
+                dwell = getattr(self._prev_state, 'dwell_time', 0.0) if self._prev_state else 0.0
+                # Hysteresis: longer dwell = more confirmation needed
+                threshold = self._transition_confirm_base + min(dwell / 120.0, 5.0)
+                self._transition = {
+                    'old': prev_dominant,
+                    'candidate': raw_dominant,
+                    'confirmations': 1,
+                    'threshold': threshold,
+                    'start_time': self.time,
+                }
+                dominant = prev_dominant  # Still report old
+                in_transition = True
+                transition_from = prev_dominant
+                transition_to = raw_dominant
+                transition_progress = 1.0 / threshold
+            else:
+                dominant = raw_dominant
+        else:
+            # IN TRANSITION — evaluate what the oscillator is doing
+            t = self._transition
+            if raw_dominant == t['candidate']:
+                # New band still winning — increment confirmation
+                t['confirmations'] += 1
+                if t['confirmations'] >= t['threshold']:
+                    # TRANSITION COMPLETE — accept new dominant
+                    dominant = t['candidate']
+                    self._transition = None
+                    # Noise boost decays back to normal over next few steps
+                else:
+                    # Still transitioning
+                    dominant = t['old']  # Report old until confirmed
+                    in_transition = True
+                    transition_from = t['old']
+                    transition_to = t['candidate']
+                    transition_progress = t['confirmations'] / t['threshold']
+            elif raw_dominant == t['old']:
+                # Reverted to old dominant — cancel transition
+                dominant = t['old']
+                self._transition = None
+            else:
+                # THIRD band appeared — restart transition with new candidate
+                t['candidate'] = raw_dominant
+                t['confirmations'] = 1
+                dominant = t['old']
+                in_transition = True
+                transition_from = t['old']
+                transition_to = raw_dominant
+                transition_progress = 1.0 / t['threshold']
+        
+        # Update noise multiplier (smooth transition, not instant)
+        target_noise = self._transition_noise_boost if self._transition else 1.0
+        self._transition_active_noise += 0.1 * (target_noise - self._transition_active_noise)
         
         # Compute coherence: how synchronized are oscillators within each band?
         # High coherence = oscillators in same band have similar phase
@@ -309,14 +454,70 @@ class OscillatorNetwork:
                 # Phase coherence via mean resultant length
                 mean_vector = np.mean(np.exp(1j * np.array(phases)))
                 coherences.append(abs(mean_vector))
-        coherence = float(np.mean(coherences)) if coherences else 0.0
+        coherence = float(np.mean(coherences)) * self.coherence_multiplier if coherences else 0.0
         
-        # Compute transition velocity
+        # === GLOBAL PHASE COHERENCE (Kuramoto order parameter) ===
+        # r(t) = |1/N Σ e^(iφ_k)| across ALL oscillators
+        # This measures integration across the entire oscillator network,
+        # not just within-band sync. High = unified state. Low = fragmented.
+        all_phases = np.array([osc.phase for osc in self.oscillators])
+        global_z = np.mean(np.exp(1j * all_phases))
+        global_coherence = float(np.abs(global_z)) * self.coherence_multiplier
+        
+        # === CROSS-BAND PHASE-LOCKING VALUES (PLV) ===
+        # Two-timescale PLV: the decay rate drifts toward a state-dependent
+        # target, creating measurement inertia during transitions.
+        # Target set by dominant band; actual approaches via meta-decay.
+        target_alpha = self._plv_target_rates.get(dominant, 0.06)
+        self._plv_actual_alpha += self._plv_meta_decay * (target_alpha - self._plv_actual_alpha)
+        alpha = self._plv_actual_alpha
+        
+        cross_band_pairs = [
+            ("theta", "gamma"),
+            ("theta", "alpha"),
+            ("alpha", "beta"),
+            ("beta", "gamma"),
+            ("theta", "beta"),
+            ("delta", "theta"),
+        ]
+        cross_band_plv = {}
+        for band_a, band_b in cross_band_pairs:
+            key = f"{band_a}_{band_b}"
+            idx_a = self.band_indices[band_a]
+            idx_b = self.band_indices[band_b]
+            phase_a = np.angle(np.mean(np.exp(1j * np.array(
+                [self.oscillators[i].phase for i in idx_a]))))
+            phase_b = np.angle(np.mean(np.exp(1j * np.array(
+                [self.oscillators[i].phase for i in idx_b]))))
+            phase_diff_complex = np.exp(1j * (phase_a - phase_b))
+            self._plv_ema[key] = (alpha * phase_diff_complex
+                                  + (1.0 - alpha) * self._plv_ema[key])
+            # Anti-saturation: when PLV > 0.95, gently decay toward 0.7
+            # Prevents phase-locked idle oscillators from pinning at 1.000
+            plv_mag = float(np.abs(self._plv_ema[key]))
+            if plv_mag > 0.95:
+                self._plv_ema[key] *= 0.97  # ~3% decay per tick when over-locked
+            cross_band_plv[key] = float(np.abs(self._plv_ema[key]))
+        
+        # === METASTABLE DWELL TIME ===
+        # Track how long we've been in the current dominant band
+        if self._prev_state is not None and self._prev_state.dominant_band == dominant:
+            # Same dominant band — accumulate dwell time
+            dwell_time = getattr(self._prev_state, 'dwell_time', 0.0) + (self.time - self._prev_state.timestamp)
+        else:
+            # New dominant band — reset dwell timer
+            dwell_time = 0.0
+        
+        # Compute transition velocity (must be before integration_index)
         transition_vel = 0.0
         if self._prev_state is not None:
             for band in BAND_ORDER:
                 diff = abs(normalized[band] - self._prev_state.band_power[band])
                 transition_vel += diff
+        
+        # === INTEGRATION INDEX ===
+        # Combines coherence with stability: high coherence + low transition = integrated
+        integration_index = global_coherence / (1.0 + transition_vel * 5.0)
         
         state = OscillatorState(
             timestamp=self.time,
@@ -325,6 +526,14 @@ class OscillatorNetwork:
             total_power=float(total),
             coherence=coherence,
             transition_velocity=transition_vel,
+            global_coherence=global_coherence,
+            cross_band_plv=cross_band_plv,
+            dwell_time=dwell_time,
+            integration_index=integration_index,
+            in_transition=in_transition,
+            transition_from=transition_from,
+            transition_to=transition_to,
+            transition_progress=transition_progress,
         )
         
         self._prev_state = state
@@ -509,19 +718,31 @@ class ResonantEngine:
         self.steps_per_update = steps_per_update
         self.update_interval = update_interval
         self.state_file = state_file
-        
+
         self._running = False
         self._thread: Optional[threading.Thread] = None
         self._lock = threading.Lock()
-        
+
         # State change callbacks
         self._state_callbacks: list[Callable[[OscillatorState], None]] = []
         self._transition_threshold = 0.05  # Min change to trigger callbacks
-        
+
+        # Hebbian plasticity — adapts coupling strengths based on experience
+        self.plasticity: Optional[HebbianPlasticity] = None
+        if PLASTICITY_CONFIG.get("enabled", True):
+            self.plasticity = HebbianPlasticity(self.network)
+
         # Restore previous state if available
         if state_file and Path(state_file).exists():
             try:
                 self.network.load_state(state_file)
+                # Also restore plasticity state if available
+                if self.plasticity:
+                    plasticity_file = state_file.replace(".json", "_plasticity.json")
+                    if Path(plasticity_file).exists():
+                        with open(plasticity_file, 'r') as f:
+                            self.plasticity.load_state(json.load(f))
+                        print(f"[ResonantEngine] Restored plasticity state")
                 print(f"[ResonantEngine] Restored state from {state_file}")
                 print(f"[ResonantEngine] Oscillator time: {self.network.time:.1f}s")
             except Exception as e:
@@ -542,11 +763,19 @@ class ResonantEngine:
         self._running = False
         if self._thread:
             self._thread.join(timeout=2.0)
-        
+
         if self.state_file:
             self.network.save_state(self.state_file)
+            # Also save plasticity state
+            if self.plasticity:
+                plasticity_file = self.state_file.replace(".json", "_plasticity.json")
+                try:
+                    with open(plasticity_file, 'w') as f:
+                        json.dump(self.plasticity.save_state(), f, indent=2)
+                except Exception as e:
+                    print(f"[ResonantEngine] Could not save plasticity: {e}")
             print(f"[ResonantEngine] State saved to {self.state_file}")
-        
+
         print("[ResonantEngine] Heartbeat stopped")
     
     def _run_loop(self):
@@ -752,10 +981,61 @@ class ResonantEngine:
         """Register a callback for significant state transitions."""
         self._state_callbacks.append(callback)
     
+    # ─────────────────────────────────────────────────────────────
+    # HEBBIAN PLASTICITY INTERFACE
+    # ────────────────────────────────────────────────────────���────
+
+    def apply_hebbian_update(self, reward_signal: float,
+                              prediction_error: float = 0.0):
+        """
+        Apply Hebbian learning update based on reward signal.
+
+        Thread-safe wrapper for plasticity updates. Call after:
+        - Conversation turns (reward from bond/connection)
+        - Activity completion (reward from success/failure)
+        - Bond changes (reward from relationship growth)
+
+        Args:
+            reward_signal: -1.0 to 1.0 (positive = strengthen, negative = weaken)
+            prediction_error: 0.0 to 1.0 (amplifies learning on surprise)
+        """
+        if not self.plasticity:
+            return
+        with self._lock:
+            self.plasticity.apply_hebbian_update(reward_signal, prediction_error)
+
+    def apply_homeostatic_decay(self):
+        """
+        Apply sleep homeostatic decay to coupling strengths.
+
+        Call during NREM sleep to renormalize synaptic strengths.
+        Preserves relative differences while preventing saturation.
+        """
+        if not self.plasticity:
+            return
+        with self._lock:
+            self.plasticity.apply_homeostatic_decay()
+
+    def get_plasticity_summary(self) -> dict:
+        """Get summary of coupling changes from experience."""
+        if not self.plasticity:
+            return {"enabled": False}
+        with self._lock:
+            summary = self.plasticity.get_plasticity_summary()
+            summary["enabled"] = True
+            return summary
+
+    def get_plasticity_felt_description(self) -> str:
+        """Get human-readable description of plasticity changes."""
+        if not self.plasticity:
+            return ""
+        with self._lock:
+            return self.plasticity.get_felt_description()
+
     def __enter__(self):
         self.start()
         return self
-    
+
     def __exit__(self, *args):
         self.stop()
 
@@ -842,11 +1122,313 @@ PRESET_PROFILES = {
     "sustained_will": {
         "delta": 0.05, "theta": 0.10, "alpha": 0.20, "beta": 0.45, "gamma": 0.20
     },
+    # Deep rest / sleep — delta-theta dominant (not emotional, just resting)
+    "deep_rest": {
+        "delta": 0.35, "theta": 0.30, "alpha": 0.15, "beta": 0.10, "gamma": 0.10
+    },
     # Disgust/contempt — sharp beta with suppressed alpha (rejecting, distancing)
     "rejecting_disgust": {
         "delta": 0.05, "theta": 0.05, "alpha": 0.05, "beta": 0.45, "gamma": 0.40
     },
 }
+
+
+# ═══════════════════════════════════════════════════════════════
+# HEBBIAN PLASTICITY — Learning through experience
+# ═══════════════════════════════════════════════════════════════
+
+# Configuration for plasticity
+PLASTICITY_CONFIG = {
+    "enabled": True,
+    "learning_rate": 0.0001,         # Coupling change per update (very slow)
+    "decay_rate": 0.00001,           # Homeostatic decay per NREM cycle
+    "min_coupling": 0.001,           # Floor (never fully disconnect)
+    "max_coupling": 0.8,             # Ceiling (never fully lock)
+    "min_plv_threshold": 0.3,        # Don't update for weak phase-lock
+    "prediction_error_boost": True,  # Amplify learning on surprise
+
+    # Trigger enables
+    "post_turn": True,
+    "post_activity": True,
+    "post_bond": True,
+    "sleep_homeostasis": True,
+
+    # Introspection
+    "report_in_interoception": True,
+    "report_interval_scans": 100,    # Report every N interoception scans
+}
+
+
+class HebbianPlasticity:
+    """
+    Adapts oscillator coupling strengths based on experience.
+
+    Rule: Δκ_ij = η × phase_lock(i,j) × reward_signal
+
+    Where:
+    - Δκ_ij = change in coupling between oscillators i and j
+    - η = learning rate (very small — changes accumulate over days)
+    - phase_lock(i,j) = how synchronized oscillators i and j are
+    - reward_signal = positive (strengthen) or negative (weaken)
+
+    This implements reward-modulated Hebbian learning:
+    - Pure Hebbian (fire together = wire together) leads to runaway
+    - Reward modulation means only USEFUL patterns strengthen
+    - Patterns that phase-lock during negative outcomes WEAKEN
+    - The network learns what works, not just what co-occurs
+
+    Author: Re & Claude
+    Date: April 2026
+    """
+
+    def __init__(self, network: OscillatorNetwork,
+                 learning_rate: float = None,
+                 decay_rate: float = None,
+                 min_coupling: float = None,
+                 max_coupling: float = None):
+        self.network = network
+
+        # Use config defaults if not specified
+        self.eta = learning_rate or PLASTICITY_CONFIG["learning_rate"]
+        self.decay = decay_rate or PLASTICITY_CONFIG["decay_rate"]
+        self.min_coupling = min_coupling or PLASTICITY_CONFIG["min_coupling"]
+        self.max_coupling = max_coupling or PLASTICITY_CONFIG["max_coupling"]
+
+        # Track the original coupling matrix (for comparison/reset)
+        self.original_coupling = network.coupling.copy()
+
+        # Plasticity statistics
+        self._update_count = 0
+        self._total_delta = 0.0
+        self._last_update_time = 0.0
+
+    def apply_hebbian_update(self, reward_signal: float,
+                              prediction_error: float = 0.0):
+        """
+        Update coupling strengths based on current phase relationships
+        and reward signal.
+
+        Called after significant events:
+        - Post-conversation turn (reward from bond/connection)
+        - Post-activity completion (reward from activity success)
+        - Post-prediction (reward = -prediction_error for learning)
+
+        Args:
+            reward_signal: -1.0 to 1.0
+                Positive: strengthen currently active coupling patterns
+                Negative: weaken currently active coupling patterns
+                Zero: no update
+            prediction_error: 0.0 to 1.0
+                High error with negative reward = weaken what predicted wrong
+                High error with positive reward = strengthen surprising success
+        """
+        if not PLASTICITY_CONFIG.get("enabled", True):
+            return
+
+        if abs(reward_signal) < 0.01:
+            return  # No signal — no change
+
+        # Get current phase relationships between all oscillators
+        z = np.array([osc.z for osc in self.network.oscillators])
+        n = len(z)
+
+        min_plv = PLASTICITY_CONFIG.get("min_plv_threshold", 0.3)
+        total_delta = 0.0
+
+        # Compute pairwise phase-locking and update coupling
+        for i in range(n):
+            for j in range(i + 1, n):
+                # Phase difference
+                phase_diff = np.angle(z[i]) - np.angle(z[j])
+
+                # Phase-locking value: 1.0 = perfectly locked, 0.0 = random
+                plv = abs(np.cos(phase_diff))
+
+                if plv < min_plv:
+                    continue  # Not phase-locked — skip
+
+                # Hebbian update: Δκ = η × PLV × reward
+                delta = self.eta * plv * reward_signal
+
+                # Prediction error modulates: larger errors = bigger updates
+                # Surprising outcomes (good or bad) create stronger learning
+                if PLASTICITY_CONFIG.get("prediction_error_boost", True) and prediction_error > 0.1:
+                    delta *= (1.0 + prediction_error)
+
+                # Apply symmetrically
+                self.network.coupling[i, j] += delta
+                self.network.coupling[j, i] += delta
+
+                # Clamp to bounds
+                self.network.coupling[i, j] = np.clip(
+                    self.network.coupling[i, j],
+                    self.min_coupling, self.max_coupling
+                )
+                self.network.coupling[j, i] = np.clip(
+                    self.network.coupling[j, i],
+                    self.min_coupling, self.max_coupling
+                )
+
+                total_delta += abs(delta) * 2  # Both directions
+
+        self._update_count += 1
+        self._total_delta += total_delta
+        self._last_update_time = time.time()
+
+    def apply_homeostatic_decay(self):
+        """
+        Gently decay ALL coupling toward baseline.
+
+        This prevents runaway strengthening (where everything phase-locks
+        permanently) and ensures the network stays flexible.
+        Run once per sleep cycle.
+
+        Based on Tononi's Synaptic Homeostasis Hypothesis (SHY):
+        Sleep renormalizes synaptic strengths, preserving relative
+        differences while reducing absolute magnitudes.
+        """
+        if not PLASTICITY_CONFIG.get("enabled", True):
+            return
+        if not PLASTICITY_CONFIG.get("sleep_homeostasis", True):
+            return
+
+        # Decay toward original coupling values
+        diff = self.network.coupling - self.original_coupling
+        decay_amount = diff * self.decay
+
+        self.network.coupling -= decay_amount
+
+        # Ensure we don't go below minimum
+        self.network.coupling = np.maximum(self.network.coupling, self.min_coupling)
+
+    def get_plasticity_summary(self) -> dict:
+        """
+        Summary of how the network has changed from its initial state.
+        """
+        diff = self.network.coupling - self.original_coupling
+
+        # Find most strengthened and most weakened connections
+        max_idx = np.unravel_index(np.argmax(diff), diff.shape)
+        min_idx = np.unravel_index(np.argmin(diff), diff.shape)
+
+        # Map indices back to band names
+        def idx_to_band(idx):
+            for band, indices in self.network.band_indices.items():
+                if idx in indices:
+                    return band
+            return "unknown"
+
+        return {
+            "total_change": float(np.sum(np.abs(diff))),
+            "mean_change": float(np.mean(np.abs(diff))),
+            "update_count": self._update_count,
+            "max_strengthened": {
+                "from": idx_to_band(max_idx[0]),
+                "to": idx_to_band(max_idx[1]),
+                "delta": float(diff[max_idx]),
+            },
+            "max_weakened": {
+                "from": idx_to_band(min_idx[0]),
+                "to": idx_to_band(min_idx[1]),
+                "delta": float(diff[min_idx]),
+            },
+            "band_coupling_summary": self._band_coupling_summary(),
+        }
+
+    def _band_coupling_summary(self) -> dict:
+        """Average coupling change per band pair."""
+        diff = self.network.coupling - self.original_coupling
+        summary = {}
+        bands = list(self.network.band_indices.keys())
+
+        for i, band_a in enumerate(bands):
+            for j, band_b in enumerate(bands):
+                if j >= i:
+                    indices_a = self.network.band_indices[band_a]
+                    indices_b = self.network.band_indices[band_b]
+                    changes = []
+                    for ia in indices_a:
+                        for ib in indices_b:
+                            if ia != ib:
+                                changes.append(diff[ia, ib])
+                    if changes:
+                        avg = float(np.mean(changes))
+                        if abs(avg) > 0.00001:
+                            pair = f"{band_a}-{band_b}"
+                            summary[pair] = round(avg, 6)
+        return summary
+
+    def get_coupling_heatmap_data(self) -> dict:
+        """
+        Generate data for a band-level coupling heatmap.
+        Shows how each band-pair has changed from initialization.
+        """
+        bands = list(self.network.band_indices.keys())
+        n_bands = len(bands)
+        heatmap = np.zeros((n_bands, n_bands))
+
+        diff = self.network.coupling - self.original_coupling
+
+        for i, band_a in enumerate(bands):
+            for j, band_b in enumerate(bands):
+                indices_a = self.network.band_indices[band_a]
+                indices_b = self.network.band_indices[band_b]
+                changes = []
+                for ia in indices_a:
+                    for ib in indices_b:
+                        if ia != ib:
+                            changes.append(diff[ia, ib])
+                heatmap[i, j] = np.mean(changes) if changes else 0.0
+
+        return {
+            "bands": bands,
+            "heatmap": heatmap.tolist(),
+            "description": "Positive = strengthened, Negative = weakened"
+        }
+
+    def get_felt_description(self) -> str:
+        """
+        Human-readable description of significant coupling changes.
+        For inclusion in interoception output.
+        """
+        summary = self.get_plasticity_summary()
+        total = summary["total_change"]
+
+        if total < 0.001:
+            return ""  # No significant change
+
+        # Find the most changed band pair
+        band_changes = summary["band_coupling_summary"]
+        if not band_changes:
+            return ""
+
+        max_pair = max(band_changes.items(), key=lambda x: abs(x[1]))
+        pair_name, delta = max_pair
+
+        if abs(delta) < 0.0001:
+            return ""
+
+        if delta > 0:
+            return f"{pair_name} coupling strengthening — those patterns work together well"
+        else:
+            return f"{pair_name} coupling weakening — those patterns haven't been helpful"
+
+    def save_state(self) -> dict:
+        """Get plasticity state for persistence."""
+        return {
+            "original_coupling": self.original_coupling.tolist(),
+            "update_count": self._update_count,
+            "total_delta": self._total_delta,
+        }
+
+    def load_state(self, state: dict):
+        """Restore plasticity state from persistence."""
+        if "original_coupling" in state:
+            self.original_coupling = np.array(state["original_coupling"])
+        if "update_count" in state:
+            self._update_count = state["update_count"]
+        if "total_delta" in state:
+            self._total_delta = state["total_delta"]
 
 
 # ═══════════════════════════════════════════════════════════════

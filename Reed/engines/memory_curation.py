@@ -899,7 +899,7 @@ class CurationLearningTracker:
 
 class AutonomousCurationProcessor:
     """
-    Autonomous curation processor that actually has Kay review memories.
+    Autonomous curation processor that actually has Reed review memories.
 
     This is the missing piece - the actual LLM loop that:
     1. Groups memories into clusters for efficient processing
@@ -907,6 +907,11 @@ class AutonomousCurationProcessor:
     3. Calls Reed's LLM for decisions
     4. Parses responses and applies decisions
     5. Reports progress in real-time
+
+    System G (Phase 2): Curation timing based on oscillator band
+    - Allow curation during alpha/theta (receptive states)
+    - Defer during beta/gamma (focused states)
+    - Minimal during delta/sleep
     """
 
     def __init__(
@@ -920,6 +925,7 @@ class AutonomousCurationProcessor:
         self.memory_engine = memory_engine
         self.purge_reserve = purge_reserve
         self.progress_callback = progress_callback
+        self._osc_state = None  # System G: oscillator state for timing
 
         # Import LLM function
         try:
@@ -943,6 +949,46 @@ class AutonomousCurationProcessor:
             "end_time": None
         }
 
+    def set_oscillator_state(self, osc_state: dict):
+        """Set oscillator state for curation timing (System G).
+
+        Args:
+            osc_state: Dict with keys: band, sleep
+        """
+        self._osc_state = osc_state
+
+    def ready_for_curation(self) -> bool:
+        """Check if oscillator state allows curation (System G).
+
+        - Allow curation during alpha/theta (receptive states)
+        - Defer during beta/gamma (focused states)
+        - Minimal during delta/sleep (only if forced)
+
+        Returns:
+            True if curation should proceed, False to defer
+        """
+        if not self._osc_state:
+            return True  # No oscillator state, allow by default
+
+        band = self._osc_state.get("band", "alpha")
+        sleep = self._osc_state.get("sleep", 0)
+
+        # During sleep: defer full curation
+        if sleep >= 2:  # SLEEPING or DEEP_SLEEP
+            print("[CURATION] Deferred: sleep state")
+            return False
+
+        # During beta/gamma: defer to preserve focus
+        if band in ("beta", "gamma"):
+            print(f"[CURATION] Deferred: {band} band (focused)")
+            return False
+
+        # Alpha/theta: ideal curation times
+        if band in ("alpha", "theta"):
+            print(f"[CURATION] Ready: {band} band (receptive)")
+
+        return True
+
     def run_curation_session(
         self,
         memories: List[Dict],
@@ -961,6 +1007,11 @@ class AutonomousCurationProcessor:
             Session summary with all decisions and stats
         """
         import time
+
+        # System G: Check oscillator state before curation
+        if not self.ready_for_curation():
+            return {"status": "deferred", "reason": "oscillator_state"}
+
         self.stats["start_time"] = time.time()
 
         print(f"\n{'='*60}")

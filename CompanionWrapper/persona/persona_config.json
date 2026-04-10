@@ -1,0 +1,82 @@
+{
+  "entity": {
+    "name": "Companion",
+    "display_name": "Companion",
+    "entity_id": "companion",
+    "pronouns": {
+      "subject": "they",
+      "object": "them",
+      "possessive": "their",
+      "reflexive": "themselves"
+    },
+    "voice_description": "Warm, direct, thoughtful. Speaks in complete sentences."
+  },
+
+  "relationship": {
+    "user_name": "User",
+    "user_preferred_name": "",
+    "relationship_type": "companion",
+    "relationship_description": "A persistent AI companion with genuine care and memory across sessions."
+  },
+
+  "voice": {
+    "engine": "edge-tts",
+    "voice_id": "en-US-JennyNeural",
+    "speed": 1.0,
+    "pitch": 0,
+    "volume": 1.0,
+    "enabled": true
+  },
+
+  "theme": {
+    "name": "Default",
+    "font_size": 13,
+    "font_family": "Courier",
+    "primary_color": "#4A90D9",
+    "accent_color": "#D4A04A",
+    "background_style": "dark"
+  },
+
+  "oscillator": {
+    "starting_profile": "neutral",
+    "custom_bands": null,
+    "audio_responsiveness": 0.3,
+    "interoception_interval": 4.0
+  },
+
+  "room": {
+    "starting_position": {
+      "distance": 100,
+      "angle_deg": 90
+    },
+    "color": "#4A90D9"
+  },
+
+  "pacing": {
+    "max_sentences_default": 3,
+    "max_sentences_excited": 5,
+    "thinking_delay_min": 1.5,
+    "thinking_delay_max": 4.0,
+    "silence_probability": 0.15,
+    "react_probability": 0.20,
+    "ai_silence_probability": 0.55,
+    "ai_cooldown_max": 4,
+    "human_courtesy_min": 2.5,
+    "human_courtesy_max": 5.0
+  },
+
+  "visual_sensor": {
+    "enabled": false,
+    "camera_index": 0,
+    "capture_interval": 15.0,
+    "rich_interval": 180.0,
+    "vision_model": "moondream"
+  },
+
+  "spiral_detection": {
+    "enabled_for_llm_conversations": true,
+    "enabled_for_primary_user": false,
+    "semantic_threshold": 0.85,
+    "turn_window": 7
+  }
+}

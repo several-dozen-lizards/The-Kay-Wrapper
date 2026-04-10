@@ -68,12 +68,26 @@ class Curiosity:
         touched = datetime.fromisoformat(self.last_touched)
         return (datetime.now() - touched).total_seconds() / 3600
 
-    def effective_priority(self) -> float:
-        """Priority with time decay. Curiosities fade if not revisited."""
+    def effective_priority(self, interest_topology=None) -> float:
+        """Priority with time decay and optional interest topology boost.
+
+        Curiosities fade if not revisited (72hr half-life).
+        Topics matching historically rewarding interests get a boost.
+        """
         age = self.age_hours()
         # Half-life of 72 hours (3 days)
         decay = 0.5 ** (age / 72)
-        return self.priority * decay
+        base = self.priority * decay
+
+        # Boost from interest topology — topics entity has been rewarded for
+        interest_boost = 0.0
+        if interest_topology:
+            try:
+                interest_boost = interest_topology.get_interest_boost(self.text)
+            except Exception:
+                pass
+
+        return base + interest_boost
 
 
 # ---------------------------------------------------------------------------
@@ -171,20 +185,25 @@ class CuriosityStore:
             inactive = inactive[:max(0, max_inactive)]
         self._curiosities = active + inactive
 
-    def get_active(self, limit: int = 10) -> List[Curiosity]:
-        """Get top active curiosities sorted by effective priority."""
+    def get_active(self, limit: int = 10, interest_topology=None) -> List[Curiosity]:
+        """Get top active curiosities sorted by effective priority.
+
+        Args:
+            limit: Maximum number of curiosities to return
+            interest_topology: Optional InterestTopology for boosting rewarding topics
+        """
         active = [c for c in self._curiosities
                   if not c.dismissed and not c.explored]
-        active.sort(key=lambda c: c.effective_priority(), reverse=True)
+        active.sort(key=lambda c: c.effective_priority(interest_topology), reverse=True)
         return active[:limit]
 
     def get_all(self) -> List[Curiosity]:
         """Get all curiosities (for UI display)."""
         return list(self._curiosities)
 
-    def pop_for_session(self) -> Optional[Curiosity]:
+    def pop_for_session(self, interest_topology=None) -> Optional[Curiosity]:
         """Pop highest-priority unexplored curiosity for an autonomous session."""
-        active = self.get_active(1)
+        active = self.get_active(1, interest_topology=interest_topology)
         if not active:
             return None
         curiosity = active[0]
@@ -198,6 +217,17 @@ class CuriosityStore:
         for c in self._curiosities:
             if c.id == curiosity_id:
                 c.dismissed = True
+                self._save()
+                return True
+        return False
+
+    def mark_pursued(self, curiosity_id: str, outcome: str = "pursued") -> bool:
+        """Mark a curiosity as pursued (entity explored it)."""
+        for c in self._curiosities:
+            if c.id == curiosity_id:
+                c.explored = True
+                c.explored_session_id = outcome
+                c.touch()
                 self._save()
                 return True
         return False
@@ -222,11 +252,11 @@ class CuriosityStore:
                 self._save()
                 return
 
-    def to_list(self) -> List[Dict]:
+    def to_list(self, interest_topology=None) -> List[Dict]:
         """Serialize active curiosities for API/UI."""
         return [
-            {**c.to_dict(), "effective_priority": round(c.effective_priority(), 3)}
-            for c in self.get_active(20)
+            {**c.to_dict(), "effective_priority": round(c.effective_priority(interest_topology), 3)}
+            for c in self.get_active(20, interest_topology=interest_topology)
         ]
 
 
@@ -463,21 +493,24 @@ class CuriosityManager:
                 added.append(c)
         return added
 
-    def pop_for_session(self, entity: str) -> Optional[str]:
+    def pop_for_session(self, entity: str, interest_topology=None) -> Optional[str]:
         """Pop top curiosity for autonomous session. Returns topic string or None."""
         store = self.get_store(entity)
-        curiosity = store.pop_for_session()
+        curiosity = store.pop_for_session(interest_topology=interest_topology)
         if curiosity:
             return curiosity.text
         return None
 
-    def get_active(self, entity: str, limit: int = 10) -> List[Dict]:
+    def get_active(self, entity: str, limit: int = 10, interest_topology=None) -> List[Dict]:
         """Get active curiosities for API/UI."""
         store = self.get_store(entity)
-        return store.to_list()[:limit]
+        return store.to_list(interest_topology=interest_topology)[:limit]
 
     def dismiss(self, entity: str, curiosity_id: str) -> bool:
         return self.get_store(entity.capitalize()).dismiss(curiosity_id)
 
     def boost(self, entity: str, curiosity_id: str) -> bool:
         return self.get_store(entity.capitalize()).boost(curiosity_id)
+
+    def mark_pursued(self, entity: str, curiosity_id: str, outcome: str = "pursued") -> bool:
+        return self.get_store(entity.capitalize()).mark_pursued(curiosity_id, outcome)

@@ -1,0 +1,37 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="Companion"
+config/description="Your AI companion"
+run/main_scene="res://Main.tscn"
+config/auto_accept_quit=false
+config/features=PackedStringArray("4.3")
+config/icon="res://icon.svg"
+
+[audio]
+
+driver/enable_input=true
+
+[autoload]
+
+CrashLogger="*res://scripts/crash_logger.gd"
+
+[display]
+
+window/size/viewport_width=1400
+window/size/viewport_height=800
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[gui]
+
+theme/custom_font_size=14

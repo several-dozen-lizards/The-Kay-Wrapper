@@ -1,0 +1,10 @@
+{
+  "kay": {
+    "voice": "en-US-EricNeural",
+    "backend_preference": null
+  },
+  "reed": {
+    "voice": "en-US-SaraNeural",
+    "backend_preference": null
+  }
+}

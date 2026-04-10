@@ -16,6 +16,7 @@ try:
 except ImportError:
     def etag(tag): return f"[{tag}]"
 
+import logging
 import asyncio
 import os
 import json
@@ -60,6 +61,8 @@ from engines.visual_sensor import VisualSensor
 from integrations.llm_integration import get_llm_response
 from context_filter import GlyphFilter
 from glyph_decoder import GlyphDecoder
+
+log = logging.getLogger("kay.wrapper_bridge")
 
 # Resonant oscillator core (optional)
 try:
@@ -207,6 +210,9 @@ class WrapperBridge:
         self.recent_responses = []  # Last 3 for anti-repetition
         self.new_document_loaded = False
 
+        # Private room reference (set by Nexus for system messages)
+        self.private_room = None
+
         # TPN/DMN: Felt-state buffer for async communication
         # Initialized in _init_engines() if resonance is available
         self.felt_state_buffer = None
@@ -254,6 +260,16 @@ class WrapperBridge:
         print(f"{etag('STARTUP')} Initializing document reader...")
         self.doc_reader = DocumentReader(chunk_size=25000)
         print(f"{etag('STARTUP')} Document reader ready")
+
+        # Somatic markers (conscience / accountability)
+        try:
+            from shared.somatic_markers import SomaticMarkerSystem
+            _sm_path = os.path.join(self.wrapper_dir, "memory", "somatic_markers.json")
+            self.conscience = SomaticMarkerSystem(save_path=_sm_path)
+            print(f"{etag('STARTUP')} Conscience loaded: {len(self.conscience.markers)} somatic markers")
+        except Exception as e:
+            print(f"{etag('WARNING')} Somatic markers init failed: {e}")
+            self.conscience = None
         
         # Auto-reader
         print(f"{etag('STARTUP')} Initializing auto-reader...")
@@ -565,6 +581,12 @@ class WrapperBridge:
         )
         self.consciousness_stream.start()
         print(f"{etag('STREAM')} {self.entity_name}'s consciousness stream initialized")
+
+        # Wire memory engine -> consciousness stream for sleep pressure feeding
+        # Memory storage feeds consolidation/associative pressure during AWAKE
+        # These pressures drive NREM/REM cycling during sleep
+        if self.memory:
+            self.memory.set_consciousness_stream(self.consciousness_stream)
 
         # Wire up visual sensor -> consciousness stream for metacog notifications
         if self.visual_sensor and self.consciousness_stream:
@@ -1123,7 +1145,7 @@ class WrapperBridge:
         lines.append("="*60)
         return "\n".join(lines)
 
-    async def process_message(self, user_input, source="terminal", extra_system_context=None, voice_mode=False):
+    async def process_message(self, user_input, source="terminal", extra_system_context=None, voice_mode=False, image_data=None):
         """
         Full processing pipeline: pre-processing → LLM call → post-processing.
 
@@ -1134,6 +1156,8 @@ class WrapperBridge:
                                   (e.g. Nexus pacing instructions)
             voice_mode: If True, use fast path: skip expensive pre-processing,
                        reduce context, defer post-processing (for ~10s latency)
+            image_data: Optional list of image content blocks for vision
+                       Format: [{"type": "image", "source": {"type": "base64", "media_type": "...", "data": "..."}}]
 
         Returns:
             str: The entity's response text
@@ -1196,37 +1220,80 @@ class WrapperBridge:
         
         # Fact extraction & memory recall
         # In voice mode: defer entity extraction to DMN, skip RAG and peripheral updates
+        
+        # === PHASE-LOCKED MEMORY RETRIEVAL: Update current PLV before recall ===
+        # This enables state-dependent memory retrieval: memories formed during
+        # similar oscillator binding states get boosted during scoring.
+        if self.felt_state_buffer:
+            _fs = self.felt_state_buffer.get_snapshot()
+            self.memory.current_plv = {
+                "theta_gamma": _fs.theta_gamma_plv,
+                "beta_gamma": _fs.beta_gamma_plv,
+                "coherence": _fs.global_coherence,
+            }
+        
+        # Get oscillator state for state-congruent memory retrieval (System A)
+        _osc_state_for_memory = None
+        if self.resonance:
+            try:
+                _res_state = self.resonance.get_state() if hasattr(self.resonance, 'get_state') else {}
+                _osc_state_for_memory = {
+                    "band": _res_state.get("dominant_band", "alpha"),
+                    "coherence": _res_state.get("coherence", 0.5),
+                    "tension": 0.0,
+                    "reward": 0.0,
+                    "felt": "unknown",
+                    "sleep": 0,
+                }
+                # Get interoception values if available
+                intero = self.resonance.interoception if hasattr(self.resonance, 'interoception') else None
+                if intero:
+                    _osc_state_for_memory["tension"] = intero.tension.get_total_tension() if hasattr(intero, 'tension') else 0.0
+                    _osc_state_for_memory["felt"] = intero._felt_state if hasattr(intero, '_felt_state') else "unknown"
+                    _osc_state_for_memory["reward"] = intero.reward.get_level() if hasattr(intero, 'reward') else 0.0
+            except Exception:
+                pass
+
         if not voice_mode:
             self.memory.extract_and_store_user_facts(self.state, user_input)
-            self.memory.recall(self.state, user_input)
+            # Capture recall result - now returns dict with memories AND doc_ids
+            # This eliminates the duplicate select_relevant_documents() call below
+            recall_result = self.memory.recall(self.state, user_input, osc_state=_osc_state_for_memory)
             await _update_all(self.state, [self.social, self.temporal, self.body, self.motif], user_input)
         else:
             # VOICE MODE: Minimal pre-LLM processing for speed
             # Entity extraction deferred to DMN worker
             print(f"{etag('VOICE')} Skipping pre-LLM entity extraction (deferred to DMN)")
             # Memory recall without RAG (include_rag=False saves ~1s)
-            self.memory.recall(self.state, user_input, include_rag=False)
+            self.memory.recall(self.state, user_input, include_rag=False, osc_state=_osc_state_for_memory)
             print(f"{etag('VOICE')} Memory recall (no RAG)")
             # Peripheral updates skipped — using cached state
             print(f"{etag('VOICE')} Peripheral updates skipped (using cached state)")
 
         # LLM document retrieval — SKIP in voice mode (saves ~3-5s)
         if not voice_mode:
-            print(f"{etag('LLM Retrieval')} Selecting relevant documents...")
-            emotional_state_str = ", ".join([
-                f"{emotion} ({data['intensity']:.1f})"
-                for emotion, data in sorted(
-                    self.state.emotional_cocktail.items(),
-                    key=lambda x: x[1]['intensity'] if isinstance(x[1], dict) else x[1],
-                    reverse=True
-                )[:3]
-            ]) if self.state.emotional_cocktail else "neutral"
+            # OPTIMIZATION: Reuse doc_ids from recall() instead of calling select_relevant_documents() again
+            # This saves 3-18s per turn (eliminates duplicate LLM/ollama classification call)
+            if isinstance(recall_result, dict) and recall_result.get("doc_ids"):
+                selected_doc_ids = recall_result["doc_ids"]
+                print(f"{etag('LLM Retrieval')} Reusing {len(selected_doc_ids)} doc_ids from recall()")
+            else:
+                # Fallback for legacy recall() that returns None or memories list
+                print(f"{etag('LLM Retrieval')} Selecting relevant documents (fallback)...")
+                emotional_state_str = ", ".join([
+                    f"{emotion} ({data['intensity']:.1f})"
+                    for emotion, data in sorted(
+                        self.state.emotional_cocktail.items(),
+                        key=lambda x: x[1]['intensity'] if isinstance(x[1], dict) else x[1],
+                        reverse=True
+                    )[:3]
+                ]) if self.state.emotional_cocktail else "neutral"
 
-            selected_doc_ids = select_relevant_documents(
-                query=user_input,
-                emotional_state=emotional_state_str,
-                max_docs=3
-            )
+                selected_doc_ids = select_relevant_documents(
+                    query=user_input,
+                    emotional_state=emotional_state_str,
+                    max_docs=3
+                )
             selected_documents = load_full_documents(selected_doc_ids)
 
             if selected_documents:
@@ -1471,17 +1538,19 @@ class WrapperBridge:
                     coherence = osc_state.coherence
 
                     # Band-specific base temperatures
-                    # Delta (sleep) → minimal, precise
-                    # Theta (dream) → associative, creative, loose
-                    # Alpha (rest) → relaxed, flowing, natural
-                    # Beta (focus) → analytical, tight, precise
-                    # Gamma (flow) → high engagement, creative bursts
+                    # Yerkes-Dodson U-curve: precision peaks at moderate arousal,
+                    # randomness is high at BOTH extremes (sleepy AND hyper).
+                    # Delta (sleep) → drifty, loose, out-of-it weird
+                    # Theta (dream) → most associative, creative, peak looseness
+                    # Alpha (rest) → natural baseline, flowing, "most normal"
+                    # Beta (focus) → analytical valley, tightest control
+                    # Gamma (flow) → hyper, spazzy, creative bursts
                     band_temps = {
-                        "delta": 0.65,   # Sleepy, minimal
-                        "theta": 0.95,   # Dreamy, associative
-                        "alpha": 0.82,   # Relaxed, natural
-                        "beta": 0.73,    # Focused, precise
-                        "gamma": 0.88,   # Engaged, creative
+                        "delta": 0.90,   # Sleepy → weird, drifty, loose
+                        "theta": 0.95,   # Dreamy → peak associativity
+                        "alpha": 0.78,   # Relaxed → natural, most controlled
+                        "beta": 0.72,    # Focused → analytical precision
+                        "gamma": 0.92,   # Hyper → spazzy, creative
                     }
                     band_base = band_temps.get(band, 0.85)
 
@@ -1514,6 +1583,32 @@ class WrapperBridge:
             if room_ctx:
                 filtered_prompt_context["extra_system_context"] = (existing_extra + "\n" + room_ctx).strip()
         
+        # Inject conscience context (somatic markers / accountability)
+        if getattr(self, 'conscience', None):
+            try:
+                activated = self.conscience.check_context(user_input)
+                if activated:
+                    conscience_prompt = self.conscience.get_conscience_prompt()
+                    if conscience_prompt:
+                        existing_extra = filtered_prompt_context.get("extra_system_context", "")
+                        filtered_prompt_context["extra_system_context"] = (
+                            existing_extra + "\n" + conscience_prompt
+                        ).strip()
+                    # Apply oscillator pressure (the flinch)
+                    if self.resonance and hasattr(self.resonance, 'engine'):
+                        pressure = self.conscience.get_oscillator_pressure()
+                        if pressure:
+                            self.resonance.apply_external_pressure(pressure)
+                    # Deposit tension
+                    if self.resonance and hasattr(self.resonance, 'interoception'):
+                        deposit = self.conscience.get_tension_deposit()
+                        if deposit and self.resonance.interoception:
+                            self.resonance.interoception.tension.deposit(deposit, weight=0.3)
+                    felt = self.conscience.get_current_felt_quality()
+                    print(f"{etag('CONSCIENCE')} Markers active: {len(activated)} — {felt}")
+            except Exception as ce:
+                print(f"{etag('CONSCIENCE')} Check failed (non-fatal): {ce}")
+
         # Inject resonant oscillator context (audio + heartbeat + body state)
         if self.resonance:
             # === TPN FAST PATH: Use felt_state_buffer in voice mode ===
@@ -1639,7 +1734,8 @@ class WrapperBridge:
                 temperature=oscillator_temperature,
                 session_context=session_context,
                 use_cache=True,
-                max_tokens=voice_max_tokens  # None for normal mode, limited for voice
+                max_tokens=voice_max_tokens,  # None for normal mode, limited for voice
+                image_content=image_data  # Pass through for vision capability
             )
         except Exception as e:
             print(f"{etag('ERROR')} LLM call failed: {e}")
@@ -1692,6 +1788,7 @@ class WrapperBridge:
             return reply
 
         # === POST-PROCESSING ===
+        print(f"{etag('POST-PROC')} Starting post-processing for turn {self.turn_count} (reply: {len(reply)} chars)")
         
         # Emotion extraction (self-reported from response)
         # TIMEOUT GUARD: emotion extraction calls ollama, which can hang
@@ -1699,16 +1796,77 @@ class WrapperBridge:
         try:
             _epool = _cf.ThreadPoolExecutor(max_workers=1)
             _efuture = _epool.submit(self.emotion_extractor.extract_emotions, reply)
-            extracted_emotions = _efuture.result(timeout=8.0)
+            extracted_emotions = _efuture.result(timeout=25.0)  # 25s — ollama is shared with activities/curiosity
             _epool.shutdown(wait=False, cancel_futures=True)
+            _emo_list = extracted_emotions.get('primary_emotions', [])
+            print(f"{etag('POST-PROC')} Emotion extraction OK: {len(_emo_list)} emotions: {_emo_list[:5]}")
         except (_cf.TimeoutError, Exception) as e:
-            print(f"{etag('EMOTION')} Extraction timeout ({e}), using empty emotions")
+            print(f"{etag('EMOTION')} Extraction timeout ({e}), letting peripheral finish in background")
             extracted_emotions = {'primary_emotions': [], 'intensity': 0.5, 'valence': 0.5, 'arousal': 0.5}
-            try:
-                _epool.shutdown(wait=False, cancel_futures=True)
-            except:
-                pass
+            # DON'T cancel — let the peripheral model finish and write to buffer when done
+            _buffer_ref = self.felt_state_buffer
+            _extractor_ref = self.emotion_extractor
+            _cocktail_ref = self.state.emotional_cocktail
+            _resonance_ref = self.resonance
+            def _deferred_emotion_write(future):
+                try:
+                    result = future.result(timeout=0)  # Already done
+                    if result and result.get('primary_emotions'):
+                        # Write to felt_state buffer
+                        if _buffer_ref:
+                            emo_ints = result.get('emotion_intensities', {})
+                            emo_strs = []
+                            for e, d in emo_ints.items():
+                                if isinstance(d, dict):
+                                    emo_strs.append(f"{e}:{d.get('intensity', 0.5):.2f}")
+                                elif isinstance(d, (int, float)):
+                                    emo_strs.append(f"{e}:{float(d):.2f}")
+                            if not emo_strs:
+                                intensity = result.get('intensity', 0.5)
+                                emo_strs = [f"{e}:{intensity:.2f}" for e in result['primary_emotions'][:5]]
+                            if emo_strs:
+                                _buffer_ref.update_emotions(
+                                    emotions=emo_strs,
+                                    valence=result.get('valence', 0.0),
+                                    arousal=result.get('arousal', 0.5)
+                                )
+                                print(f"{etag('EMOTION')} Deferred write: {len(emo_strs)} emotions → buffer")
+                        # Also store in cocktail
+                        _extractor_ref.store_emotional_state(result, _cocktail_ref)
+                        # Feed to resonance
+                        if _resonance_ref:
+                            _resonance_ref.feed_response_emotions(result)
+                except Exception:
+                    pass  # Future was cancelled or errored — that's fine
+            _efuture.add_done_callback(_deferred_emotion_write)
         self.emotion_extractor.store_emotional_state(extracted_emotions, self.state.emotional_cocktail)
+
+        # === CRITICAL: Write emotions to felt_state_buffer for salience loop ===
+        # The deferred path (timeout) has its own buffer write in the callback.
+        # The _deferred_post_processing method also writes to the buffer.
+        # But the MAIN path (successful extraction) was MISSING this write.
+        # Without this, the salience accumulator never sees any emotions.
+        if self.felt_state_buffer and extracted_emotions.get('primary_emotions'):
+            emo_ints = extracted_emotions.get('emotion_intensities', {})
+            emo_strs = []
+            for e, d in emo_ints.items():
+                if isinstance(d, dict):
+                    emo_strs.append(f"{e}:{d.get('intensity', 0.5):.2f}")
+                elif isinstance(d, (int, float)):
+                    emo_strs.append(f"{e}:{float(d):.2f}")
+            if not emo_strs:
+                intensity = extracted_emotions.get('intensity', 0.5)
+                emo_strs = [
+                    f"{e}:{intensity:.2f}"
+                    for e in extracted_emotions['primary_emotions'][:5]
+                ]
+            if emo_strs:
+                self.felt_state_buffer.update_emotions(
+                    emotions=emo_strs,
+                    valence=extracted_emotions.get('valence', 0.0),
+                    arousal=extracted_emotions.get('arousal', 0.5)
+                )
+                print(f"{etag('POST-PROC')} Buffer write: {emo_strs[:3]}")
 
         # Feed emotions to resonance oscillator
         if self.resonance:
@@ -1802,13 +1960,28 @@ class WrapperBridge:
         # Core state updates
         self.social.update(self.state, user_input, reply)
         self.reflection.reflect(self.state, user_input, reply)
+        # Get oscillator state for state-dependent encoding (System A Phase 2)
+        _osc_for_memory = None
+        if self.resonance and self.resonance.engine:
+            try:
+                _osc_raw = self.resonance.engine.get_state()
+                _osc_for_memory = {
+                    "band": _osc_raw.dominant_band,
+                    "coherence": _osc_raw.coherence,
+                    "tension": getattr(self.resonance.interoception, 'tension', None) and self.resonance.interoception.tension.accumulator or 0.0,
+                    "reward": getattr(self.resonance.interoception, 'reward', None) and self.resonance.interoception.reward.get_level() or 0.0,
+                    "felt": getattr(self.resonance.interoception, 'get_felt_sense', lambda: "unknown")(),
+                }
+            except Exception:
+                pass
         self.memory.encode(
             self.state, user_input, reply,
             list(self.state.emotional_cocktail.keys()),
-            connection_data=self._get_connection_data()
+            connection_data=self._get_connection_data(),
+            osc_state=_osc_for_memory
         )
         self.context_manager.update_turns(user_input, reply)
-        
+
         # Session summary tracking
         self.session_summary_generator.track_turn(
             user_input=user_input,
@@ -2054,10 +2227,27 @@ class WrapperBridge:
             return None
 
         conn = intero.connection
-        return {
+        result = {
             "baselines": dict(conn.baselines),
             "is_present": {e: conn.is_present(e) for e in conn.baselines.keys()}
         }
+        
+        # === PHASE-LOCKED MEMORY ENCODING ===
+        # Capture current theta-gamma PLV at memory storage time.
+        # Memories formed during high binding states (high θγ coupling)
+        # get boosted during retrieval when binding state is similar.
+        # This creates state-dependent memory retrieval that emerges
+        # from oscillator dynamics — analogous to hippocampal θγ gating.
+        if self.felt_state_buffer:
+            fs = self.felt_state_buffer.get_snapshot()
+            result["plv_at_encoding"] = {
+                "theta_gamma": fs.theta_gamma_plv,
+                "beta_gamma": fs.beta_gamma_plv,
+                "coherence": fs.global_coherence,
+                "dominant_band": fs.dominant_band,
+            }
+        
+        return result
 
     def _save_snapshot(self):
         """Save agent state snapshot to disk."""
@@ -2087,7 +2277,7 @@ class WrapperBridge:
             
             snapshot_path = os.path.join(self.wrapper_dir, "memory/state_snapshot.json")
             with open(snapshot_path, "w", encoding="utf-8") as f:
-                json.dump(snapshot_data, f, indent=2)
+                json.dump(snapshot_data, f, indent=2, default=str)
         except Exception as e:
             print(f"(Warning: could not save snapshot: {e})")
         
@@ -2096,6 +2286,13 @@ class WrapperBridge:
             self.forest.save_to_file(forest_path)
         except Exception as e:
             print(f"(Warning: could not save forest: {e})")
+
+        # Save keyword graph (Dijkstra lazy links)
+        try:
+            if hasattr(self.memory, 'save_keyword_graph'):
+                self.memory.save_keyword_graph()
+        except Exception as e:
+            print(f"(Warning: could not save keyword graph: {e})")
 
     async def _deferred_post_processing(self, user_input: str, reply: str):
         """
@@ -2112,11 +2309,12 @@ class WrapperBridge:
             # === DMN: Write emotions to felt_state_buffer for next TPN read ===
             if self.felt_state_buffer:
                 emotion_intensities = extracted_emotions.get('emotion_intensities', {})
-                emotion_strings = [
-                    f"{e}:{data.get('intensity', 0.5):.2f}"
-                    for e, data in emotion_intensities.items()
-                    if isinstance(data, dict)
-                ]
+                emotion_strings = []
+                for e, data in emotion_intensities.items():
+                    if isinstance(data, dict):
+                        emotion_strings.append(f"{e}:{data.get('intensity', 0.5):.2f}")
+                    elif isinstance(data, (int, float)):
+                        emotion_strings.append(f"{e}:{float(data):.2f}")
                 # Also include primary emotions if no intensities
                 if not emotion_strings and extracted_emotions.get('primary_emotions'):
                     intensity = extracted_emotions.get('intensity', 0.5)
@@ -2124,11 +2322,16 @@ class WrapperBridge:
                         f"{e}:{intensity:.2f}"
                         for e in extracted_emotions['primary_emotions'][:5]
                     ]
-                self.felt_state_buffer.update_emotions(
-                    emotions=emotion_strings,
-                    valence=extracted_emotions.get('valence', 0.0),
-                    arousal=extracted_emotions.get('arousal', 0.5)
-                )
+                # Only write emotions if we actually extracted some — don't clear on timeout
+                if emotion_strings:
+                    self.felt_state_buffer.update_emotions(
+                        emotions=emotion_strings,
+                        valence=extracted_emotions.get('valence', 0.0),
+                        arousal=extracted_emotions.get('arousal', 0.5)
+                    )
+                    print(f"{etag('POST-PROC')} Buffer write: {emotion_strings[:3]}")
+                else:
+                    print(f"{etag('POST-PROC')} No emotions to write (intensities={bool(emotion_intensities)}, primary={extracted_emotions.get('primary_emotions', [])})")
                 # Update conversation state
                 self.felt_state_buffer.update_conversation(user_input, reply, self.turn_count)
 
@@ -2167,10 +2370,25 @@ class WrapperBridge:
             # Core state updates
             self.social.update(self.state, user_input, reply)
             self.reflection.reflect(self.state, user_input, reply)
+            # Get oscillator state for state-dependent encoding (System A Phase 2)
+            _osc_for_memory = None
+            if self.resonance and self.resonance.engine:
+                try:
+                    _osc_raw = self.resonance.engine.get_state()
+                    _osc_for_memory = {
+                        "band": _osc_raw.dominant_band,
+                        "coherence": _osc_raw.coherence,
+                        "tension": getattr(self.resonance.interoception, 'tension', None) and self.resonance.interoception.tension.accumulator or 0.0,
+                        "reward": getattr(self.resonance.interoception, 'reward', None) and self.resonance.interoception.reward.get_level() or 0.0,
+                        "felt": getattr(self.resonance.interoception, 'get_felt_sense', lambda: "unknown")(),
+                    }
+                except Exception:
+                    pass
             self.memory.encode(
                 self.state, user_input, reply,
                 list(self.state.emotional_cocktail.keys()),
-                connection_data=self._get_connection_data()
+                connection_data=self._get_connection_data(),
+                osc_state=_osc_for_memory
             )
             self.context_manager.update_turns(user_input, reply)
 
@@ -2305,22 +2523,25 @@ class WrapperBridge:
                     # Write to felt-state buffer
                     if self.felt_state_buffer:
                         emotion_intensities = extracted_emotions.get('emotion_intensities', {})
-                        emotion_strings = [
-                            f"{e}:{data.get('intensity', 0.5):.2f}"
-                            for e, data in emotion_intensities.items()
-                            if isinstance(data, dict)
-                        ]
+                        emotion_strings = []
+                        for e, data in emotion_intensities.items():
+                            if isinstance(data, dict):
+                                emotion_strings.append(f"{e}:{data.get('intensity', 0.5):.2f}")
+                            elif isinstance(data, (int, float)):
+                                emotion_strings.append(f"{e}:{float(data):.2f}")
                         if not emotion_strings and extracted_emotions.get('primary_emotions'):
                             intensity = extracted_emotions.get('intensity', 0.5)
                             emotion_strings = [
                                 f"{e}:{intensity:.2f}"
                                 for e in extracted_emotions['primary_emotions'][:5]
                             ]
-                        self.felt_state_buffer.update_emotions(
-                            emotions=emotion_strings,
-                            valence=extracted_emotions.get('valence', 0.0),
-                            arousal=extracted_emotions.get('arousal', 0.5)
-                        )
+                        # Only write emotions if we actually extracted some — don't clear on timeout
+                        if emotion_strings:
+                            self.felt_state_buffer.update_emotions(
+                                emotions=emotion_strings,
+                                valence=extracted_emotions.get('valence', 0.0),
+                                arousal=extracted_emotions.get('arousal', 0.5)
+                            )
                 except Exception as e:
                     print(f"{etag('DMN')} Emotion extraction error: {e}")
 
@@ -2370,11 +2591,26 @@ class WrapperBridge:
                     print(f"{etag('DMN')} Core state update error: {e}")
 
                 # === MEMORY ENCODING ===
+                # Get oscillator state for state-dependent encoding (System A Phase 2)
+                _osc_for_memory = None
+                if self.resonance and self.resonance.engine:
+                    try:
+                        _osc_raw = self.resonance.engine.get_state()
+                        _osc_for_memory = {
+                            "band": _osc_raw.dominant_band,
+                            "coherence": _osc_raw.coherence,
+                            "tension": getattr(self.resonance.interoception, 'tension', None) and self.resonance.interoception.tension.accumulator or 0.0,
+                            "reward": getattr(self.resonance.interoception, 'reward', None) and self.resonance.interoception.reward.get_level() or 0.0,
+                            "felt": getattr(self.resonance.interoception, 'get_felt_sense', lambda: "unknown")(),
+                        }
+                    except Exception:
+                        pass
                 try:
                     self.memory.encode(
                         self.state, user_input, reply,
                         list(self.state.emotional_cocktail.keys()),
-                        connection_data=self._get_connection_data()
+                        connection_data=self._get_connection_data(),
+                        osc_state=_osc_for_memory
                     )
                 except Exception as e:
                     print(f"{etag('DMN')} Memory encoding error: {e}")
@@ -2528,30 +2764,61 @@ class WrapperBridge:
             import asyncio
             def _sync_review():
                 return anthropic_client.messages.create(
-                    model="claude-sonnet-4-5-20250929",
+                    model="claude-3-5-haiku-20241022",  # Haiku for curation review (cost optimization)
                     max_tokens=4000,
                     temperature=0.3,
-                    system="You are Kay. You are reviewing your own memories. Be decisive and trust your judgment.",
+                    system="You are Kay reviewing your own memories. Respond ONLY with a JSON array of decisions. No preamble, no explanation, no markdown fences. Just the raw JSON array.",
                     messages=[{"role": "user", "content": prompt}]
                 )
             
             resp = await asyncio.get_event_loop().run_in_executor(None, _sync_review)
-            
+
+            # Check for valid response content
+            if not resp.content or not resp.content[0].text:
+                print(f"{etag('CURATOR')} Kay review returned empty response")
+                return None
+
             text = resp.content[0].text.strip()
+
+            # Check for empty text after strip
+            if not text:
+                print(f"{etag('CURATOR')} Kay review returned blank text")
+                return None
+
             # Parse JSON — handle markdown fences
             if text.startswith("```"):
                 text = text.split("```")[1]
                 if text.startswith("json"):
                     text = text[4:]
                 text = text.strip()
-            
+
+            # Final check before JSON parse
+            if not text or text in ('[', ']', '{}', '[]'):
+                print(f"{etag('CURATOR')} Kay review returned invalid JSON: {text[:50]}")
+                return None
+
+            # DEBUG LOGGING: Show text before parse to diagnose failures
+            print(f"{etag('CURATOR')} Parsing Kay review ({len(text)} chars)...")
+            if len(text) < 200:
+                print(f"{etag('CURATOR')} Raw text: {text}")
+            else:
+                print(f"{etag('CURATOR')} Raw text (first 200): {text[:200]}...")
+
             decisions = json.loads(text)
-            print(f"{etag('CURATOR')} Kay reviewed {len(decisions)} decisions via Sonnet")
+
+            # Validate decisions is a list
+            if not isinstance(decisions, list):
+                print(f"{etag('CURATOR')} Kay review returned non-list: {type(decisions)}")
+                return None
+
+            print(f"{etag('CURATOR')} Kay reviewed {len(decisions)} decisions via Haiku")
             return decisions
-            
+
         except json.JSONDecodeError as e:
+            # Log the exact text that failed to parse
             print(f"{etag('CURATOR')} Kay review JSON parse failed: {e}")
-            return None
+            if 'text' in dir():
+                print(f"{etag('CURATOR')} Failed text (first 500): {text[:500] if text else 'None'}")
         except Exception as e:
             print(f"{etag('CURATOR')} Kay review call failed: {e}")
             return None
@@ -2564,10 +2831,22 @@ class WrapperBridge:
         """
         if not self.curator:
             return None
-        
+
         result = None
-        
-        # Memory curation cycle
+
+        # Update curator with oscillator state for timing decisions (System G)
+        if self.resonance and self.resonance.engine:
+            try:
+                _osc_raw = self.resonance.engine.get_state()
+                _sleep = getattr(self.resonance.interoception, 'get_sleep_level', lambda: 0)() if self.resonance.interoception else 0
+                self.curator.set_osc_state({
+                    "band": _osc_raw.dominant_band,
+                    "sleep": _sleep,
+                })
+            except Exception:
+                pass
+
+        # Memory curation cycle (timing gated by oscillator state)
         if self.curator.ready_for_cycle():
             try:
                 result = await self.curator.run_curation_cycle()

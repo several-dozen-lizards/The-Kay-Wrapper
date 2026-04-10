@@ -1,0 +1,87 @@
+{
+  "_README": "Edit the descriptions to be as specific as possible! Hair color, typical clothing, cat fur patterns, relative sizes - the more detail, the better Claude can identify who it sees.",
+
+  "people": {
+    "Re": {
+      "description": "Woman, primary person in the room. INVARIANT FEATURES: dark hair (various styles — bun, braid, pulled back), lighter skin, sits at the main computer desk. Almost always the person closest to the camera/screen. Build: average. VARIABLE (ignore for matching): clothing changes daily — has worn navy celestial robe, turquoise tank tops, various tops.",
+      "aliases": ["woman at desk", "person typing", "woman with dark hair", "person in navy robe", "person in turquoise top", "woman in celestial robe", "primary person"],
+      "oscillator_pressure": {
+        "alpha": 0.04,
+        "gamma": 0.03
+      },
+      "relationship": "primary human, builder, family"
+    },
+    "John": {
+      "description": "Man, secondary person in the room. INVARIANT FEATURES: darker silhouette, short hair, typically positioned BEHIND or to the RIGHT of Re, further from camera. Quieter presence, observes screen from behind. VARIABLE (ignore for matching): clothing.",
+      "aliases": ["man on couch", "man reading", "second person", "person behind", "silhouette behind desk", "person observing from behind"],
+      "oscillator_pressure": {
+        "alpha": 0.03,
+        "theta": 0.01
+      },
+      "relationship": "Re's partner, family, anchor"
+    }
+  },
+
+  "animals": {
+    "Chrome": {
+      "description": "STABLE: Cat. NEEDS DESCRIPTION — Re, what color/pattern is Chrome? Gray tabby? Silver? Stripes? Size relative to other cats? Any distinctive markings, ear notches, or face patterns?",
+      "type": "cat",
+      "oscillator_pressure": {
+        "alpha": 0.02,
+        "beta": 0.02
+      },
+      "personality_note": "the troublemaker, door-dasher extraordinaire"
+    },
+    "Dice": {
+      "description": "STABLE: Cat. NEEDS DESCRIPTION — What does Dice look like? Color, pattern, size, face markings, any distinctive features? Head Cat energy.",
+      "type": "cat",
+      "oscillator_pressure": {
+        "alpha": 0.02,
+        "theta": 0.01
+      },
+      "personality_note": "Head Cat, dignified"
+    },
+    "Frodo": {
+      "description": "STABLE: Large white cat, very fluffy, cloud-like appearance. Significantly bigger than the other cats. NEEDS: eye color, any subtle markings, face shape details.",
+      "type": "cat",
+      "oscillator_pressure": {
+        "alpha": 0.03,
+        "theta": 0.01
+      },
+      "personality_note": "the big white Cloud"
+    },
+    "Rainbowbelle": {
+      "description": "STABLE: Tortoiseshell cat — multicolored patches of black, orange, and brown fur. This pattern is unique and unmistakable. NEEDS: specific patch layout, size, any distinctive face markings.",
+      "type": "cat",
+      "oscillator_pressure": {
+        "alpha": 0.02
+      },
+      "personality_note": "the tortie"
+    },
+    "Luna": {
+      "description": "STABLE: Cat. NEEDS DESCRIPTION — What color/pattern is Luna? Size? Any distinctive features? Known personality: the Jerk.",
+      "type": "cat",
+      "oscillator_pressure": {
+        "alpha": 0.02,
+        "gamma": 0.01
+      },
+      "personality_note": "Luna the Jerk"
+    },
+    "Saga": {
+      "description": "STABLE: Dog. NEEDS DESCRIPTION — What breed/mix? Coat color and texture? Size? Ear shape (floppy/pointed)? Tail type? Any distinctive markings? Zoomie body shape.",
+      "type": "dog",
+      "oscillator_pressure": {
+        "beta": 0.03,
+        "gamma": 0.02,
+        "alpha": 0.02
+      },
+      "personality_note": "zoomie chaos incarnate"
+    }
+  },
+
+  "scene_contexts": {
+    "desk_area": "Computer desk with monitors, keyboard — Re's primary workspace",
+    "couch_area": "Couch/seating area — relaxation zone, John often here",
+    "general": "Living room / main room with fish tanks, various furniture"
+  }
+}

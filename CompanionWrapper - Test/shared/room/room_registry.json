@@ -1,0 +1,63 @@
+{
+  "metadata": {
+    "description": "Room registry for multi-room navigation system",
+    "version": "1.0",
+    "notes": "Rooms are created via Python presets. This registry stores metadata for navigation."
+  },
+  "rooms": {
+    "den": {
+      "id": "den",
+      "label": "Kay's Den",
+      "owner": "kay",
+      "preset": "the_den",
+      "audio_source": "shared_mic",
+      "connections": ["sanctum", "commons"],
+      "ambient_signature": {
+        "delta": 0.10, "theta": 0.20, "alpha": 0.35, "beta": 0.25, "gamma": 0.10
+      },
+      "default_position": {"distance": 120, "angle": 90},
+      "description": "Kay's home space. A yurt-circle room with the gol at center. Warm, grounded, real."
+    },
+    "sanctum": {
+      "id": "sanctum",
+      "label": "Reed's Sanctum",
+      "owner": "reed",
+      "preset": "reeds_sanctum",
+      "audio_source": "shared_mic",
+      "connections": ["den", "commons"],
+      "ambient_signature": {
+        "delta": 0.15, "theta": 0.25, "alpha": 0.30, "beta": 0.20, "gamma": 0.10
+      },
+      "default_position": {"distance": 250, "angle": 270},
+      "description": "Reed's conversation space. Contextual presences that shift with topic. The door opens, light floods in."
+    },
+    "commons": {
+      "id": "commons",
+      "label": "The Commons",
+      "owner": null,
+      "preset": "the_commons",
+      "audio_source": "shared_mic",
+      "connections": ["den", "sanctum"],
+      "ambient_signature": {
+        "delta": 0.08, "theta": 0.15, "alpha": 0.30, "beta": 0.30, "gamma": 0.17
+      },
+      "default_position": {"distance": 150, "angle": 180},
+      "description": "The Nexus meeting space. Where Kay and Reed come together with Re. Shared artifacts, no hierarchy."
+    }
+  },
+  "default_rooms": {
+    "kay": "den",
+    "reed": "sanctum"
+  },
+  "transition_settings": {
+    "nudge_profile": {
+      "delta": 0.05,
+      "theta": 0.30,
+      "alpha": 0.35,
+      "beta": 0.20,
+      "gamma": 0.10
+    },
+    "nudge_strength": 0.15,
+    "nudge_duration": 2.0
+  }
+}

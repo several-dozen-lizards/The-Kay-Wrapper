@@ -28,9 +28,20 @@ var _wants_connection: bool = false
 var _connection_attempts: int = 0
 var _max_attempts: int = 0  # 0 = unlimited
 
+## Buffer sizes: default 64KB is too small for history replays + log batches.
+## History replay (30 msgs with full LLM responses) can easily exceed 64KB,
+## causing silent disconnects and reconnect loops.
+const WS_BUFFER_SIZE := 10485760  # 10MB - needed for large responses
+
 
 func _ready() -> void:
+	_configure_socket(_socket)
 	set_process(false)
+
+
+func _configure_socket(ws: WebSocketPeer) -> void:
+	ws.inbound_buffer_size = WS_BUFFER_SIZE
+	ws.outbound_buffer_size = WS_BUFFER_SIZE
 
 
 func connect_to_nexus() -> void:
@@ -41,6 +52,9 @@ func connect_to_nexus() -> void:
 
 func _attempt_connect() -> void:
 	var url = "%s/ws/%s?type=%s" % [server_url, participant_name, participant_type]
+	# Fresh socket on every attempt — reusing a closed socket is unreliable
+	_socket = WebSocketPeer.new()
+	_configure_socket(_socket)
 	var err = _socket.connect_to_url(url)
 	if err != OK:
 		push_error("NexusConnection: Failed to initiate connection: %s" % err)
@@ -110,7 +124,7 @@ func _send_raw(payload: Dictionary) -> void:
 func _process(delta: float) -> void:
 	_socket.poll()
 	var state = _socket.get_ready_state()
-	
+
 	match state:
 		WebSocketPeer.STATE_OPEN:
 			if not _connected:
@@ -122,10 +136,10 @@ func _process(delta: float) -> void:
 			while _socket.get_available_packet_count() > 0:
 				var raw = _socket.get_packet().get_string_from_utf8()
 				_handle_raw_message(raw)
-		
+
 		WebSocketPeer.STATE_CLOSING:
 			pass
-		
+
 		WebSocketPeer.STATE_CLOSED:
 			var was_connected = _connected
 			_connected = false
@@ -142,22 +156,32 @@ func _process(delta: float) -> void:
 
 
 func _handle_raw_message(raw: String) -> void:
+	if raw.is_empty():
+		return
+
 	var json_parser = JSON.new()
 	var err = json_parser.parse(raw)
 	if err != OK:
 		push_warning("NexusConnection: Bad JSON: %s" % raw.left(100))
 		return
 
+	# Guard: ensure we got a dictionary
+	if not json_parser.data is Dictionary:
+		return
+
 	var event: Dictionary = json_parser.data
-	var event_type: String = event.get("event_type", "")
-	var data: Dictionary = event.get("data", {})
+	var event_type: String = str(event.get("event_type", ""))
+
+	# Guard: ensure data is a dictionary
+	var data_raw = event.get("data", {})
+	var data: Dictionary = data_raw if data_raw is Dictionary else {}
 
 	# Handle raw log messages (not wrapped in ServerEvent format)
-	var raw_type: String = event.get("type", "")
+	var raw_type: String = str(event.get("type", ""))
 	if raw_type == "log":
 		log_received.emit(
-			event.get("entity", ""), event.get("tag", ""),
-			event.get("message", ""), event.get("ts", 0.0)
+			str(event.get("entity", "")), str(event.get("tag", "")),
+			str(event.get("message", "")), float(event.get("ts", 0.0))
 		)
 		return
 	elif raw_type == "log_batch":
@@ -166,8 +190,8 @@ func _handle_raw_message(raw: String) -> void:
 			for entry in logs:
 				if entry is Dictionary:
 					log_received.emit(
-						entry.get("entity", ""), entry.get("tag", ""),
-						entry.get("message", ""), entry.get("ts", 0.0)
+						str(entry.get("entity", "")), str(entry.get("tag", "")),
+						str(entry.get("message", "")), float(entry.get("ts", 0.0))
 					)
 		return
 
@@ -183,17 +207,20 @@ func _handle_raw_message(raw: String) -> void:
 		"status_update":
 			status_update.emit(data)
 		"error":
-			error_received.emit(data.get("message", "Unknown error"))
+			error_received.emit(str(data.get("message", "Unknown error")))
 		"auto_status", "auto_goal", "auto_monologue":
-			auto_event_received.emit(event_type, event.get("entity", ""), data)
+			auto_event_received.emit(event_type, str(event.get("entity", "")), data)
 		"canvas_update":
-			var entity_name: String = data.get("entity", "")
-			var b64: String = data.get("base64", "")
-			var dims: Array = data.get("dimensions", [0, 0])
-			var iteration: int = data.get("iteration", 0)
+			var entity_name: String = str(data.get("entity", ""))
+			var b64: String = str(data.get("base64", ""))
+			# Guard: ensure dimensions is an array
+			var dims_raw = data.get("dimensions", [0, 0])
+			var dims: Array = dims_raw if dims_raw is Array else [0, 0]
+			var iter_raw = data.get("iteration", 0)
+			var iteration: int = int(iter_raw) if iter_raw != null else 0
 			canvas_updated.emit(entity_name, b64, dims, iteration)
 		"canvas_clear":
-			canvas_cleared.emit(data.get("entity", ""))
+			canvas_cleared.emit(str(data.get("entity", "")))
 		_:
 			pass
 

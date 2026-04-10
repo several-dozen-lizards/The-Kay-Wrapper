@@ -164,6 +164,8 @@ def main():
     parser.add_argument("--no-kay", action="store_true", help="Don't start Kay")
     parser.add_argument("--no-reed", action="store_true", help="Don't start Reed")
     parser.add_argument("--server-only", action="store_true", help="Server only")
+    parser.add_argument("--with-ui", action="store_true",
+                        help="Also launch + watchdog the Godot UI (runs as standalone game, not editor)")
     args = parser.parse_args()
 
     print("=" * 50)
@@ -220,10 +222,25 @@ def main():
     print()
     print("=" * 50)
     print("  ✅ Nexus is running!")
-    print("  Start Godot UI separately to connect.")
+    if not args.with_ui:
+        print("  Start Godot UI separately to connect.")
     print("  Press Ctrl+C to shut down all components.")
     print("=" * 50)
     print()
+
+    # Optionally start + watchdog the Godot UI
+    ui_watchdog = None
+    if args.with_ui:
+        try:
+            from ui_watchdog import UIWatchdog
+            ui_watchdog = UIWatchdog()
+            if not ui_watchdog.launch_godot():
+                print("  ⚠ UI launch failed — continuing without UI")
+                ui_watchdog = None
+        except ImportError:
+            print("  ⚠ ui_watchdog.py not found — continuing without UI")
+        except Exception as e:
+            print(f"  ⚠ UI launch error: {e} — continuing without UI")
 
     # Monitor loop
     reported_dead = set()
@@ -250,8 +267,25 @@ def main():
                 print("\n  All components exited.")
                 break
 
+            # Watchdog the Godot UI — restart if it died
+            if ui_watchdog and ui_watchdog.process:
+                if ui_watchdog.process.poll() is not None:
+                    from datetime import datetime
+                    ts = datetime.now().strftime("%H:%M:%S")
+                    ui_watchdog.restart_count += 1
+                    print(f"  [{ts}] ⚠ Godot UI died — restarting (#{ui_watchdog.restart_count})...")
+                    time.sleep(5)
+                    ui_watchdog.launch_godot()
+
             time.sleep(5)
     except KeyboardInterrupt:
+        if ui_watchdog and ui_watchdog.process and ui_watchdog.process.poll() is None:
+            print("  → Stopping Godot UI...")
+            ui_watchdog.process.terminate()
+            try:
+                ui_watchdog.process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                ui_watchdog.process.kill()
         shutdown_all()
 
 

@@ -1,0 +1,21 @@
+{
+  "entity": "companion",
+  "description": "Default neutral resonance profile. The oscillator will develop its own patterns through interaction.",
+  "timestamp": 0,
+  "dominant_band": "alpha",
+  "coherence": 0.3,
+  "band_power": {
+    "delta": 0.10,
+    "theta": 0.15,
+    "alpha": 0.35,
+    "beta": 0.25,
+    "gamma": 0.15
+  },
+  "x": 0.0,
+  "y": 120.0,
+  "connection": {
+    "total": 0.15,
+    "longing": 0.0,
+    "active_bonds": []
+  }
+}

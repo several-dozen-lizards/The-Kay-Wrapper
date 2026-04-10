@@ -54,6 +54,34 @@ class ExpressionState:
         return asdict(self)
 
 
+# ═══════════════════════════════════════════════════════════════
+# BAND-SPECIFIC EXPRESSION BASELINES (System I)
+# The oscillator band affects resting facial expression
+# ═══════════════════════════════════════════════════════════════
+BAND_EXPRESSION_BASELINE = {
+    "delta": {
+        "eye_openness": 0.3,    # Heavy-lidded, drowsy
+        "brow_position": -0.1,  # Slightly relaxed brow
+    },
+    "theta": {
+        "eye_openness": 0.5,    # Soft, relaxed gaze
+        "brow_position": 0.0,   # Neutral brow
+    },
+    "alpha": {
+        "eye_openness": 0.6,    # Default comfortable openness
+        "brow_position": 0.05,  # Slightly engaged
+    },
+    "beta": {
+        "eye_openness": 0.7,    # Alert, focused
+        "brow_position": 0.1,   # Slight concentration furrow
+    },
+    "gamma": {
+        "eye_openness": 0.8,    # Wide, alert
+        "brow_position": 0.08,  # Interested raise
+    },
+}
+
+
 class ExpressionEngine:
     """
     Composites three expression layers into a single ExpressionState.
@@ -150,11 +178,29 @@ class ExpressionEngine:
         self.state.blink_rate = auto["blink_rate"]
         self.state.mouth_openness = auto.get("mouth_openness", 0.0)
 
+        # === BAND-SPECIFIC BASELINES (System I) ===
+        # Extract dominant band from felt_state for expression baseline
+        _dominant_band = "alpha"  # Default
+        if hasattr(felt_state, 'band_weights'):
+            bands = felt_state.band_weights
+            if bands:
+                _dominant_band = max(bands.items(), key=lambda x: x[1])[0]
+        elif isinstance(felt_state, dict):
+            bands = felt_state.get('band_weights', {})
+            if bands:
+                _dominant_band = max(bands.items(), key=lambda x: x[1])[0]
+            # Also check direct dominant_band key
+            _dominant_band = felt_state.get('dominant_band', _dominant_band)
+
+        _band_baseline = BAND_EXPRESSION_BASELINE.get(_dominant_band, BAND_EXPRESSION_BASELINE["alpha"])
+        _eye_baseline = _band_baseline.get("eye_openness", 0.6)
+        _brow_modifier = _band_baseline.get("brow_position", 0.0)
+
         # Limbic (dampened by poker face)
-        self.state.brow_raise = limbic.get("brow_raise", 0.0)
-        self.state.brow_furrow = limbic.get("brow_furrow", 0.0)
+        self.state.brow_raise = limbic.get("brow_raise", 0.0) + max(0, _brow_modifier)
+        self.state.brow_furrow = limbic.get("brow_furrow", 0.0) + max(0, -_brow_modifier)
         self.state.mouth_curve = limbic.get("mouth_curve", 0.0)
-        self.state.eye_openness = 0.6 + limbic.get("eye_openness_delta", 0.0)
+        self.state.eye_openness = _eye_baseline + limbic.get("eye_openness_delta", 0.0)
         self.state.head_tilt = limbic.get("head_tilt", 0.0)
         self.state.eye_x = 0.5 + limbic.get("eye_x_delta", 0.0)
         self.state.eye_y = 0.5 + limbic.get("eye_y_delta", 0.0)

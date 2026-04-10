@@ -375,6 +375,13 @@ class ResonantIntegration:
         # Start interoception bridge if memory layers provided (Phase 1 + Phase 2)
         if self._memory_layers and INTEROCEPTION_AVAILABLE:
             try:
+                # DEFENSIVE: Stop any existing interoception thread before creating new one
+                # Prevents ghost heartbeats from zombie threads on restart
+                if self.interoception:
+                    print(f"{self._tag('RESONANCE')} Stopping existing interoception before restart...")
+                    self.interoception.stop()
+                    self.interoception = None
+
                 self.interoception = InteroceptionBridge(
                     memory_layers=self._memory_layers,
                     engine=self.engine,
@@ -491,6 +498,9 @@ class ResonantIntegration:
             self.interoception.felt_state_buffer = buffer
         print(f"{self._tag('RESONANCE')} Felt-state buffer connected")
 
+    # Psychedelic state context tag (set by trip controller)
+    _psychedelic_tag = ""
+
     def get_context_injection(self, skip_peripheral: bool = False) -> str:
         """
         Get minimal context tag for LLM prompt injection.
@@ -507,6 +517,26 @@ class ResonantIntegration:
         base = self.bridge.get_context_injection()
 
         parts = [base]
+
+        # Oscillator-derived emotion (what the frequency pattern feels like)
+        try:
+            from resonant_core.oscillator_emotion_bridge import read_oscillator_emotion
+            osc_state = self.engine.get_state()
+            emo = read_oscillator_emotion(
+                band_power=osc_state.band_power,
+                preset_profiles=PRESET_PROFILES,
+                cross_band_plv=getattr(osc_state, 'cross_band_plv', {}),
+                integration_index=getattr(osc_state, 'integration_index', 0.0),
+                in_transition=getattr(osc_state, 'in_transition', False),
+            )
+            if emo.get('felt_sense'):
+                parts.append(f"[body_feels:{emo['felt_sense']}]")
+        except Exception:
+            pass
+
+        # Psychedelic state context (if active)
+        if self._psychedelic_tag:
+            parts.append(self._psychedelic_tag)
 
         # Audio room state
         if self.audio_bridge:
@@ -828,13 +858,40 @@ class ResonantIntegration:
 
         try:
             state = self.engine.get_state()
+            # Extract cross-band PLV for key pairs
+            plv = getattr(state, 'cross_band_plv', {})
+            
+            # Compute oscillator-derived emotion via pattern matching
+            osc_emotion = ""
+            try:
+                from resonant_core.oscillator_emotion_bridge import read_oscillator_emotion
+                emo_result = read_oscillator_emotion(
+                    band_power=state.band_power,
+                    preset_profiles=PRESET_PROFILES,
+                    cross_band_plv=plv,
+                    integration_index=getattr(state, 'integration_index', 0.0),
+                    in_transition=getattr(state, 'in_transition', False),
+                )
+                osc_emotion = emo_result.get('felt_sense', '')
+            except Exception:
+                pass
+            
             self.felt_state_buffer.update_oscillator(
                 dominant_band=state.dominant_band,
                 coherence=state.coherence,
                 band_weights=dict(zip(
                     ["delta", "theta", "alpha", "beta", "gamma"],
                     state.band_powers if hasattr(state, 'band_powers') else [0.2] * 5
-                ))
+                )),
+                global_coherence=getattr(state, 'global_coherence', 0.0),
+                integration_index=getattr(state, 'integration_index', 0.0),
+                dwell_time=getattr(state, 'dwell_time', 0.0),
+                theta_gamma_plv=plv.get('theta_gamma', 0.0),
+                beta_gamma_plv=plv.get('beta_gamma', 0.0),
+                in_transition=getattr(state, 'in_transition', False),
+                transition_from=getattr(state, 'transition_from', ''),
+                transition_to=getattr(state, 'transition_to', ''),
+                oscillator_emotion=osc_emotion,
             )
         except Exception as e:
             print(f"{self._tag('RESONANCE')} Buffer update error: {e}")

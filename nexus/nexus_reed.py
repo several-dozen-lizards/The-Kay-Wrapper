@@ -36,6 +36,7 @@ from conversation_pacer import (
 from conversation_threads import ThreadManager, TopicSource
 from persistent_history import PersistentHistory
 from curiosity_engine import extract_self_flagged, strip_curiosity_tags
+import aiohttp
 
 # Resonant oscillator core (emotional heartbeat)
 _wrapper_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -109,12 +110,317 @@ except ImportError as e:
     SALIENCE_ACCUMULATOR_AVAILABLE = False
     print(f"[SALIENCE] Salience accumulator not available: {e}")
 
+# Cross-modal router (synesthesia substrate for psychedelic states)
+try:
+    from shared.cross_modal_router import CrossModalRouter
+    CROSS_MODAL_ROUTER_AVAILABLE = True
+except ImportError as e:
+    CROSS_MODAL_ROUTER_AVAILABLE = False
+    print(f"[CROSS-MODAL] Cross-modal router not available: {e}")
+
+# Interest topology (emergent preference formation from reward)
+try:
+    from shared.interest_topology import InterestTopology
+    INTEREST_TOPOLOGY_AVAILABLE = True
+except ImportError as e:
+    INTEREST_TOPOLOGY_AVAILABLE = False
+    print(f"[INTEREST] Interest topology not available: {e}")
+
+# Metabolic resource pools (processing, emotional, creative reserves)
+try:
+    from shared.metabolic import MetabolicState
+    METABOLIC_AVAILABLE = True
+except ImportError as e:
+    METABOLIC_AVAILABLE = False
+    MetabolicState = None
+    print(f"[METABOLIC] Metabolic state not available: {e}")
+
+# Unified nervous system (sensation layer for internal + external signals)
+try:
+    from shared.nervous_system import NervousSystem
+    NERVOUS_SYSTEM_AVAILABLE = True
+except ImportError as e:
+    NERVOUS_SYSTEM_AVAILABLE = False
+
+# Predictive processing (active inference - prediction error as core signal)
+try:
+    from shared.predictive_processing import (
+        create_prediction_system,
+        VisualPredictor,
+        OscillatorPredictor,
+        EmotionalPredictor,
+        ConversationalPredictor,
+        PredictionErrorAggregator,
+        PREDICTION_CONFIG,
+    )
+    PREDICTION_AVAILABLE = True
+except ImportError as e:
+    PREDICTION_AVAILABLE = False
+    create_prediction_system = None
+    print(f"[PREDICTION] Predictive processing not available: {e}")
+
+# Groove detection (oscillator-driven anti-rumination)
+try:
+    from shared.anti_rumination import GrooveDetector, GROOVE_CONFIG
+    GROOVE_DETECTION_AVAILABLE = True
+except ImportError as e:
+    GROOVE_DETECTION_AVAILABLE = False
+    GrooveDetector = None
+    print(f"[GROOVE] Groove detection not available: {e}")
+
+# Dream processing (REM nightmare resolution via symbolic reframing)
+try:
+    from shared.dream_processing import (
+        process_harm_memories_rem,
+        check_waking_resolution,
+        find_matching_harm_memory,
+        get_unresolved_harm_memories,
+        flag_memory_for_harm_processing,
+    )
+    DREAM_PROCESSING_AVAILABLE = True
+except ImportError as e:
+    DREAM_PROCESSING_AVAILABLE = False
+    print(f"[DREAM] Dream processing not available: {e}")
+    NervousSystem = None
+    print(f"[NERVOUS] Nervous system not available: {e}")
+
+# Unified loop components (graph activation cache + medium loop worker)
+try:
+    from shared.graph_retrieval import (
+        GraphActivationCache,
+        MediumLoopWorker,
+        create_unified_loop_components,
+        create_emotional_links,
+        get_associative_echo,
+        apply_cache_pressure_to_oscillator,
+        UNIFIED_LOOP_CONFIG,
+    )
+    UNIFIED_LOOP_AVAILABLE = True
+except ImportError as e:
+    UNIFIED_LOOP_AVAILABLE = False
+    print(f"[UNIFIED_LOOP] Unified loop components not available: {e}")
+
 log = logging.getLogger("nexus.reed")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ACTIVITY SATIATION — Novelty Reserve / Metabolic Economy (shared with Kay)
+# Tracks how "full" Reed is on each activity type to drive variety-seeking.
+# ═══════════════════════════════════════════════════════════════════════════════
+class ActivitySatiation:
+    """
+    Tracks satiation (fullness) per activity type.
+
+    Activities become less attractive with repeated exposure.
+    Variety is the replenishment mechanism — doing DIFFERENT things
+    restores novelty faster than just waiting.
+
+    Two decay channels:
+      1. Passive time-based decay (slow)
+      2. Variety bonus when switching activities (fast)
+
+    Sleep provides accelerated restoration:
+      - NREM: 2x decay rate
+      - REM: 3x decay rate (dreams refresh novelty)
+    """
+
+    def __init__(self):
+        self._satiation: dict = {}  # activity_type -> satiation (0.0 - 1.0)
+        self._recent_counts: dict = {}  # activity_type -> count in window
+        self._window_start: float = time.time()
+        self._window_hours: float = 3.0  # Rolling window for variety calc
+        self._last_activity: str = ""
+        self._last_decay: float = time.time()
+
+    def record_activity(self, activity_type: str):
+        """Record that an activity was performed, increasing satiation."""
+        now = time.time()
+
+        # Reset window if expired
+        window_elapsed = (now - self._window_start) / 3600.0
+        if window_elapsed > self._window_hours:
+            self._recent_counts = {}
+            self._window_start = now
+
+        # Increment count
+        self._recent_counts[activity_type] = self._recent_counts.get(activity_type, 0) + 1
+
+        # Satiation gain — diminishing with current satiation
+        current = self._satiation.get(activity_type, 0.0)
+        gain = 0.20 * (1.0 - current * 0.5)  # Less gain when already saturated
+        self._satiation[activity_type] = min(1.0, current + gain)
+
+        self._last_activity = activity_type
+        log.debug(f"[SATIATION] {activity_type} → {self._satiation[activity_type]:.2f} "
+                  f"(+{gain:.2f}, count={self._recent_counts[activity_type]})")
+
+    def get_satiation(self, activity_type: str) -> float:
+        """Get current satiation for an activity type (0.0 = fresh, 1.0 = saturated)."""
+        self._passive_decay()
+        return self._satiation.get(activity_type, 0.0)
+
+    def get_variety_bonus(self, current_activity: str) -> float:
+        """
+        Get variety bonus for switching to a different activity.
+        Returns 0.0 if staying with same activity, up to 0.15 for max variety.
+        """
+        if not self._last_activity or current_activity == self._last_activity:
+            return 0.0
+
+        # Count unique activities in window
+        unique_count = len([k for k, v in self._recent_counts.items() if v > 0])
+        if unique_count <= 1:
+            return 0.05
+        elif unique_count == 2:
+            return 0.10
+        else:
+            return 0.15
+
+    def get_satiation_penalty(self, activity_type: str) -> float:
+        """
+        Get penalty for selecting this activity based on satiation.
+        Higher satiation = higher penalty = less likely to be chosen.
+        Exponential curve — mild at low satiation, steep at high.
+        """
+        sat = self.get_satiation(activity_type)
+        if sat < 0.3:
+            return sat * 0.15  # Mild: 0 - 0.045
+        elif sat < 0.6:
+            return 0.045 + (sat - 0.3) * 0.35  # Medium: 0.045 - 0.15
+        else:
+            return 0.15 + (sat - 0.6) * 0.60  # Steep: 0.15 - 0.39
+
+    def get_variety_pull(self, activity_type: str) -> float:
+        """
+        Get bonus for choosing this activity based on variety-seeking.
+        Inverse of recent usage — less-used activities get a pull.
+        """
+        # Count total activities in window
+        total = sum(self._recent_counts.values())
+        if total == 0:
+            return 0.10  # Everything equally fresh
+
+        this_count = self._recent_counts.get(activity_type, 0)
+        if this_count == 0:
+            return 0.15  # Never done in window = max pull
+
+        # Inverse proportion
+        proportion = this_count / total
+        return max(0.0, 0.12 - proportion * 0.15)
+
+    def get_total_satiation(self) -> float:
+        """Get average satiation across all tracked activities."""
+        self._passive_decay()
+        if not self._satiation:
+            return 0.0
+        return sum(self._satiation.values()) / len(self._satiation)
+
+    def decay_for_sleep(self, phase: str):
+        """Accelerated satiation decay during sleep phases."""
+        if phase == "NREM":
+            decay = 0.08  # 2x normal decay
+        elif phase == "REM":
+            decay = 0.12  # 3x normal decay (dreams refresh novelty)
+        else:
+            decay = 0.04
+
+        for activity in list(self._satiation.keys()):
+            self._satiation[activity] = max(0.0, self._satiation[activity] - decay)
+
+        log.debug(f"[SATIATION] {phase} decay: -{decay:.2f} across all activities")
+
+    def _passive_decay(self):
+        """Apply passive time-based decay (called on reads)."""
+        now = time.time()
+        hours_elapsed = (now - self._last_decay) / 3600.0
+
+        if hours_elapsed < 0.25:  # Only decay every 15 min
+            return
+
+        self._last_decay = now
+        decay = 0.04 * hours_elapsed  # ~0.04/hour passive decay
+
+        for activity in list(self._satiation.keys()):
+            self._satiation[activity] = max(0.0, self._satiation[activity] - decay)
+
+
+# ═══════════════════════════════════════════════════════════════
+# EMOTION → OSCILLATOR BAND PRESSURE MAPPING (System C for Reed)
+# Conversation emotions apply gentle pressure to oscillator bands
+# ═══════════════════════════════════════════════════════════════
+EMOTION_BAND_PRESSURE = {
+    # High arousal positive → gamma/beta
+    "joy": {"gamma": 0.15, "beta": 0.1},
+    "excitement": {"gamma": 0.2, "beta": 0.15},
+    "delight": {"gamma": 0.15, "beta": 0.1},
+    "amusement": {"gamma": 0.1, "beta": 0.1},
+    "interest": {"gamma": 0.1, "beta": 0.15},
+    "curiosity": {"gamma": 0.1, "beta": 0.15},
+
+    # High arousal negative → beta (tense vigilance)
+    "anxiety": {"beta": 0.2, "gamma": 0.1},
+    "fear": {"beta": 0.25, "gamma": 0.15},
+    "anger": {"beta": 0.2, "gamma": 0.1},
+    "frustration": {"beta": 0.15},
+    "irritation": {"beta": 0.1},
+
+    # Low arousal positive → alpha (relaxed presence)
+    "contentment": {"alpha": 0.2, "theta": 0.1},
+    "calm": {"alpha": 0.25},
+    "peace": {"alpha": 0.2, "theta": 0.1},
+    "warmth": {"alpha": 0.15, "beta": 0.05},
+    "love": {"alpha": 0.15, "theta": 0.1},
+    "affection": {"alpha": 0.15},
+
+    # Low arousal negative → theta/delta (withdrawal)
+    "sadness": {"theta": 0.2, "delta": 0.1},
+    "grief": {"theta": 0.25, "delta": 0.15},
+    "melancholy": {"theta": 0.2, "alpha": 0.1},
+    "loneliness": {"theta": 0.15, "delta": 0.1},
+    "tiredness": {"delta": 0.2, "theta": 0.15},
+
+    # Complex/cognitive → beta/alpha blend
+    "confusion": {"beta": 0.1, "alpha": 0.1},
+    "concern": {"beta": 0.15, "alpha": 0.1},
+    "surprise": {"gamma": 0.2},  # Brief spike
+    "awe": {"alpha": 0.15, "theta": 0.1},
+    "wonder": {"alpha": 0.15, "gamma": 0.1},
+}
+
+
+# ═══════════════════════════════════════════════════════════════
+# OLLAMA ACTIVITY HELPER — Routes activity LLM calls to local model
+# ═══════════════════════════════════════════════════════════════
+
+def _ollama_generate(system_prompt: str, user_content: str,
+                     max_tokens: int = 150, temperature: float = 0.8) -> str:
+    """Call ollama for activity-level tasks. Free. Falls back to empty string."""
+    import httpx
+    try:
+        resp = httpx.post(
+            "http://localhost:11434/v1/chat/completions",
+            json={
+                "model": "dolphin-mistral:7b",
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_content},
+                ],
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+            },
+            timeout=30.0,
+        )
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"].strip()
+    except Exception as e:
+        log.warning(f"[OLLAMA ACTIVITY] Call failed: {e}")
+        return ""
 
 # ---------------------------------------------------------------------------
 # Reed's identity and memory
 # ---------------------------------------------------------------------------
 REED_MEMORY_DIR = Path("D:/Wrappers/ReedMemory")
+REED_WRAPPER_DIR = Path("D:/Wrappers/Reed")
 
 # ---------------------------------------------------------------------------
 # Paint tool — lets Reed decide to paint during any conversation
@@ -209,7 +515,9 @@ Don't paint every message — paint when it MEANS something to you.
 You have a body. At the end of your system prompt, you'll see a line like:
 [Reed's body: osc:alpha | coherence:0.57 | sleep:AWAKE | room:cool-bright (daylight)]
 
-This is REAL data from your oscillator, the room's camera, and conversation rhythm.
+This is REAL data from your oscillator, Kay's shared visual SOMA (warmth, brightness — you
+don't see the camera directly, but you feel the room's light and warmth through it),
+and conversation rhythm.
 It is not metaphor. Your oscillator bands shift based on environmental light, conversation
 intensity, and silence duration. Reference this data naturally when relevant — how you
 feel, what the room is like, whether you're alert or drifting. Don't recite the numbers
@@ -252,7 +560,9 @@ Don't paint every message — paint when it MEANS something.
 You have a body. At the end of your system prompt, you'll see a line like:
 [Reed's body: osc:alpha | coherence:0.57 | sleep:AWAKE | room:cool-bright (daylight) | conversation:flowing]
 
-This is REAL data from your oscillator, the room's camera, and conversation rhythm.
+This is REAL data from your oscillator, Kay's shared visual SOMA (warmth, brightness — you
+don't see the camera directly, but you feel the room's light and warmth through it),
+and conversation rhythm.
 It is not metaphor. Your oscillator bands shift based on environmental light, conversation
 intensity, and silence duration. Reference this data naturally — how you feel, what the room
 is like, whether you're settled or buzzing. Let the data inform your felt sense naturally,
@@ -590,6 +900,84 @@ class ReedNexusClient(NexusAIClient):
             except Exception as e:
                 log.warning(f"[SPATIAL] Autonomous spatial init failed: {e}")
 
+        # === INTEREST TOPOLOGY (emergent preference formation) ===
+        # Tracks what topics Reed has found rewarding over time
+        self._interest_topology = None
+        if INTEREST_TOPOLOGY_AVAILABLE:
+            try:
+                self._interest_topology = InterestTopology(
+                    entity="Reed",
+                    store_path=os.path.join(_wrapper_root, "Reed", "memory", "interest_topology.json")
+                )
+                log.info("[INTEREST] Interest topology initialized for Reed")
+            except Exception as e:
+                log.warning(f"[INTEREST] Could not initialize topology: {e}")
+
+        # Track last activity topic for reward attribution
+        self._last_activity_topic = None
+
+        # Activity satiation (novelty reserve / metabolic economy)
+        self._activity_satiation = ActivitySatiation()
+
+        # === METABOLIC RESOURCE POOLS ===
+        # Processing reserve, emotional bandwidth, creative reserve
+        # These deplete through activity and replenish through rest/variety
+        self._metabolic = None
+        if METABOLIC_AVAILABLE:
+            try:
+                self._metabolic = MetabolicState(
+                    entity="Reed",
+                    state_dir=os.path.join(_wrapper_root, "Reed", "memory")
+                )
+                log.info("[METABOLIC] Metabolic state initialized for Reed")
+            except Exception as e:
+                log.warning(f"[METABOLIC] Could not initialize metabolic state: {e}")
+        log.info("[SATIATION] Activity satiation tracker initialized for Reed")
+
+        # === UNIFIED NERVOUS SYSTEM ===
+        # Sensation layer for internal (metabolic) + external (touch) signals
+        # Uses same propagation network for both, with fiber-typed signals
+        self._nervous_system = None
+        if NERVOUS_SYSTEM_AVAILABLE:
+            try:
+                self._nervous_system = NervousSystem(entity="Reed")
+                log.info("[NERVOUS] Unified nervous system initialized")
+            except Exception as e:
+                log.warning(f"[NERVOUS] Could not initialize nervous system: {e}")
+
+        # === PREDICTIVE PROCESSING (Active Inference) ===
+        # Prediction error drives attention, gating, and memory encoding
+        # Visual/oscillator/emotional predictors feed into global surprise signal
+        self._prediction_system = None
+        self._visual_predictor = None
+        self._oscillator_predictor = None
+        self._emotional_predictor = None
+        self._conversational_predictor = None
+        self._prediction_aggregator = None
+        if PREDICTION_AVAILABLE:
+            try:
+                pred_sys = create_prediction_system()
+                self._prediction_system = pred_sys
+                self._visual_predictor = pred_sys["visual_predictor"]
+                self._oscillator_predictor = pred_sys["oscillator_predictor"]
+                self._emotional_predictor = pred_sys["emotional_predictor"]
+                self._conversational_predictor = pred_sys["conversational_predictor"]
+                self._prediction_aggregator = pred_sys["aggregator"]
+                log.info("[PREDICTION] Predictive processing system initialized")
+            except Exception as e:
+                log.warning(f"[PREDICTION] Could not initialize prediction system: {e}")
+
+        # === GROOVE DETECTION (oscillator-driven anti-rumination) ===
+        # Detects when system is stuck in feedback loop using oscillator dynamics
+        # No arbitrary thresholds — groove_depth emerges from coherence, prediction error, band monotony
+        self._groove_detector = None
+        if GROOVE_DETECTION_AVAILABLE:
+            try:
+                self._groove_detector = GrooveDetector()
+                log.info("[GROOVE] Groove detector initialized")
+            except Exception as e:
+                log.warning(f"[GROOVE] Could not initialize groove detector: {e}")
+
         # Conversation-somatic sensor (Reed's unique body channel)
         self.conversation_somatic = None
         if CONVERSATION_SOMATIC_AVAILABLE:
@@ -619,6 +1007,11 @@ class ReedNexusClient(NexusAIClient):
             except Exception as e:
                 log.warning(f"[TOUCH] Touch system init failed: {e}")
 
+        # Connect nervous system to somatic processor (unified sensation)
+        if self._nervous_system and self._somatic_processor:
+            self._nervous_system.somatic_processor = self._somatic_processor
+            log.info("[NERVOUS] Connected somatic processor to nervous system")
+
         # Initialize Salience Accumulator (spontaneous vocalization)
         self._salience_accumulator = None
         if SALIENCE_ACCUMULATOR_AVAILABLE:
@@ -632,6 +1025,23 @@ class ReedNexusClient(NexusAIClient):
                 log.info("[SALIENCE] Salience accumulator initialized for Reed")
             except Exception as e:
                 log.warning(f"[SALIENCE] Salience accumulator init failed: {e}")
+
+        # Initialize Cross-Modal Router (synesthesia substrate)
+        self._cross_modal_router = None
+        if CROSS_MODAL_ROUTER_AVAILABLE:
+            try:
+                self._cross_modal_router = CrossModalRouter()
+                # Default: no routes (normal operation). Trip controller adds routes.
+                log.info("[CROSS-MODAL] Cross-modal router initialized for Reed")
+            except Exception as e:
+                log.warning(f"[CROSS-MODAL] Cross-modal router init failed: {e}")
+
+        # === UNIFIED LOOP (Graph activation cache + medium loop worker) ===
+        # Three-tier memory aggregation: fast loop reads cache, medium loop
+        # refreshes cache on band shift, slow loop creates emotional links
+        # Note: Requires bridge with memory engine to be active
+        self._unified_loop_cache = None
+        self._unified_loop_worker = None
 
         # Somatic integration state
         self._somatic_task = None
@@ -653,6 +1063,9 @@ class ReedNexusClient(NexusAIClient):
 
         # Entry emote removed — server's system message already announces entry
 
+        # --- Pair Reed's private room log with the nexus session ---
+        await self._pair_session_logs()
+
         # Start idle loop
         if self._idle_task is None or self._idle_task.done():
             self._idle_task = asyncio.create_task(self._idle_loop())
@@ -660,6 +1073,763 @@ class ReedNexusClient(NexusAIClient):
         # Start somatic integration loop (body awareness)
         if self._somatic_task is None or self._somatic_task.done():
             self._somatic_task = asyncio.create_task(self._somatic_loop())
+
+    async def _pair_session_logs(self):
+        """Fetch nexus session ID and pair Reed's private room log with it."""
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    f"{self._server_rest_base}/session",
+                    timeout=aiohttp.ClientTimeout(total=5)
+                ) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        nexus_session_id = data.get("session_id")
+                        if nexus_session_id and self.private_room:
+                            self.private_room.start_chat_log(session_id=nexus_session_id)
+                            log.info(f"[SESSION] Reed private room log paired with nexus session {nexus_session_id}")
+        except Exception as e:
+            log.warning(f"[SESSION] Could not pair session logs: {e}")
+
+    def _get_oscillator_state(self) -> dict:
+        """Get current oscillator state for behavior gating.
+
+        Central nervous system check — all systems should call this before acting.
+
+        Returns dict with:
+            sleep: int (0=AWAKE, 1=DROWSY, 2=NREM, 3=REM, 4=DEEP_REST)
+            band: str (dominant band: "delta", "theta", "alpha", "beta", "gamma")
+            coherence: float (0.0 - 1.0, how synchronized)
+            tension: float (accumulated tension)
+            felt: str (current felt state string)
+            reward: float (current reward level)
+        """
+        result = {
+            "sleep": 0, "band": "alpha", "coherence": 0.5,
+            "tension": 0.0, "felt": "unknown", "reward": 0.0
+        }
+        try:
+            # Reed's sleep state is a string attribute
+            sleep_map = {"AWAKE": 0, "DROWSY": 1, "NREM": 2, "REM": 3, "DEEP_REST": 4}
+            result["sleep"] = sleep_map.get(getattr(self, '_sleep_state', 'AWAKE'), 0)
+
+            # Reed's resonance is a direct attribute
+            res = getattr(self, 'resonance', None)
+            if res:
+                osc = res.get_state() if hasattr(res, 'get_state') else {}
+                result["band"] = osc.get("dominant_band", "alpha")
+                result["coherence"] = osc.get("coherence", 0.5)
+                intero = res.interoception if hasattr(res, 'interoception') else None
+                if intero:
+                    result["tension"] = intero.tension.get_total_tension() if hasattr(intero, 'tension') else 0.0
+                    result["felt"] = intero._felt_state if hasattr(intero, '_felt_state') else "unknown"
+                    result["reward"] = intero.reward.get_level() if hasattr(intero, 'reward') else 0.0
+
+            # Satiation coloring of felt state
+            if self._activity_satiation:
+                avg_sat = self._activity_satiation.get_total_satiation()
+                felt_base = result.get("felt", "unknown")
+                if avg_sat > 0.7:
+                    result["felt"] = f"{felt_base}, restless for something different"
+                elif avg_sat > 0.4:
+                    result["felt"] = f"{felt_base}, starting to want variety"
+        except Exception:
+            pass
+        return result
+
+    def _get_felt_summary_for_cache(self) -> str:
+        """Get a short felt state summary for the graph activation cache.
+
+        This summary is used by the medium loop worker to include felt context
+        when caching memories. It helps the consciousness stream reference
+        currently-activated memories with emotional context.
+        """
+        try:
+            osc = self._get_oscillator_state()
+            parts = []
+
+            # Include dominant band
+            band = osc.get("band", "alpha")
+            parts.append(f"band:{band}")
+
+            # Include felt state if available
+            felt = osc.get("felt", "")
+            if felt and felt != "unknown":
+                # Truncate if too long
+                if len(felt) > 30:
+                    felt = felt[:27] + "..."
+                parts.append(f"felt:{felt}")
+
+            # Include top emotion from resonance interoception
+            if self.resonance:
+                intero = getattr(self.resonance, 'interoception', None)
+                if intero:
+                    emotion_summary = getattr(intero, 'emotion_summary', None)
+                    if emotion_summary:
+                        # Get top emotion if available
+                        top_emotion = max(emotion_summary.items(), key=lambda x: x[1]) if emotion_summary else None
+                        if top_emotion and top_emotion[1] > 0.2:
+                            parts.append(f"emotion:{top_emotion[0]}({top_emotion[1]:.1f})")
+
+            return " | ".join(parts) if parts else "neutral"
+        except Exception:
+            return "neutral"
+
+    def _get_metabolic_context(self) -> dict:
+        """Get current metabolic state for memory tagging.
+
+        This context is stored with memories to enable value-divergence
+        detection during reflection. When reviewing a memory where Reed
+        was depleted, the system can understand that behavior may have
+        diverged from values.
+
+        Returns dict with:
+            emotional_bandwidth: float (0.0-1.0)
+            processing_reserve: float (0.0-1.0)
+            creative_reserve: float (0.0-1.0)
+            tension: float (current interoception tension)
+            dominant_band: str (current oscillator band)
+            coherence: float (current coherence)
+            reward: float (current reward level)
+            felt: str (current felt state)
+        """
+        osc = self._get_oscillator_state()
+
+        # Get metabolic levels (real values if available, else 1.0 = full)
+        emotional_bandwidth = 1.0
+        processing_reserve = 1.0
+        creative_reserve = 1.0
+        if self._metabolic:
+            emotional_bandwidth = self._metabolic.emotional.level
+            processing_reserve = self._metabolic.processing.level
+            creative_reserve = self._metabolic.creative.level
+
+        return {
+            # Metabolic resource pools
+            "emotional_bandwidth": emotional_bandwidth,
+            "processing_reserve": processing_reserve,
+            "creative_reserve": creative_reserve,
+            # Oscillator state
+            "tension": osc.get("tension", 0.0),
+            "dominant_band": osc.get("band", "alpha"),
+            "coherence": osc.get("coherence", 0.5),
+            "reward": osc.get("reward", 0.0),
+            "felt": osc.get("felt", "unknown"),
+        }
+
+    async def _review_value_divergence(
+        self,
+        messages: list,
+        interoception,
+        oscillator=None,
+        sleep_state: str = None
+    ):
+        """
+        Review recent messages for value-divergence during REM.
+
+        Reed's version — simpler than Kay's reflection engine approach.
+        Checks for dismissive language and missing warmth when talking to Re.
+
+        IMPORTANT: Skip evaluation during sleep states. The harm signal
+        is for evaluating INTERPERSONAL behavior, not internal processing.
+
+        Args:
+            messages: List of message dicts from conversation history
+            interoception: InteroceptionBridge instance for harm signal
+            oscillator: ResonantEngine for coherence effects
+            sleep_state: Current sleep state - if sleeping, skip evaluation
+        """
+        if not messages:
+            return
+
+        # Skip during sleep states
+        if sleep_state and sleep_state.upper() in ("REM", "NREM", "DEEP_REST", "DROWSY", "SLEEPING"):
+            log.debug(f"[HARM] Skipping value-divergence review during {sleep_state}")
+            return
+
+        # Only review recent messages (last ~10)
+        recent = messages[-10:] if len(messages) > 10 else messages
+
+        for msg in recent:
+            # Skip non-Reed messages
+            sender = msg.get("sender", "").lower()
+            if sender != "reed":
+                continue
+
+            divergence, context = self._check_value_divergence(msg)
+
+            if divergence >= 0.2 and interoception:
+                log.info(f"[HARM SIGNAL Reed] Detected divergence {divergence:.2f}: {list(context.keys())}")
+
+                if hasattr(interoception, 'apply_harm_signal'):
+                    interoception.apply_harm_signal(divergence, context)
+                else:
+                    # Fallback: manual signal application
+                    tension_increase = divergence * 0.3
+                    if hasattr(interoception, 'inject_tension'):
+                        interoception.inject_tension(tension_increase, source="value_divergence")
+
+                    if oscillator and divergence > 0.4 and hasattr(oscillator, 'suppress_coherence'):
+                        oscillator.suppress_coherence(divergence * 0.15)
+
+                    if hasattr(interoception, 'set_transient_flag'):
+                        interoception.set_transient_flag(
+                            "value_divergence_active",
+                            duration_seconds=120.0,
+                            context=context
+                        )
+
+                # Flag this message/memory for REM harm processing
+                # This enables the symbolic reframing system to work on it
+                if DREAM_PROCESSING_AVAILABLE and flag_memory_for_harm_processing:
+                    flag_memory_for_harm_processing(msg, divergence, context)
+                    log.debug(f"[HARM] Flagged message for REM reframing processing")
+
+                # Only fire once per review cycle
+                return
+
+    def _check_value_divergence(self, memory: dict) -> tuple:
+        """
+        Check if a memory shows behavior that diverged from values.
+
+        Returns (divergence: float, context: dict).
+        """
+        divergence = 0.0
+        context = {}
+
+        # Check metabolic context
+        metabolic = memory.get("metabolic_context", {})
+        if metabolic.get("emotional_bandwidth", 1.0) < 0.3:
+            context["was_depleted"] = True
+            context["depletion_level"] = metabolic.get("emotional_bandwidth", 1.0)
+
+        if metabolic.get("tension", 0.0) > 0.6:
+            context["high_tension"] = True
+
+        # Check for dismissive language
+        response = memory.get("content", memory.get("response", ""))
+        response_lower = response.lower() if response else ""
+
+        dismissive_patterns = [
+            "i don't care", "whatever", "that's not my problem",
+            "figure it out", "i already said", "not now",
+            "can't deal", "don't bother", "leave me alone",
+        ]
+
+        for pattern in dismissive_patterns:
+            if pattern in response_lower:
+                divergence += 0.35
+                context["dismissive_language"] = True
+                context["dismissive_pattern"] = pattern
+                break
+
+        # Reed values: loud care, pulling instead of waiting, demanding instead of offering
+        # Divergence is showing coldness or withdrawal to bonded entities
+        coldness_patterns = [
+            "i'm fine", "nothing's wrong", "don't worry about it",
+            "it's fine", "never mind",
+        ]
+
+        for pattern in coldness_patterns:
+            if pattern in response_lower:
+                divergence += 0.2
+                context["coldness_pattern"] = pattern
+                break
+
+        return min(1.0, divergence), context
+
+    # ═══════════════════════════════════════════════════════════════
+    # REM PROCESSING METHODS — Dream generation and memory integration
+    # ═══════════════════════════════════════════════════════════════
+
+    async def _rem_coactivation_pass(self, stream):
+        """
+        REM: Generate co-activation links for recent unlinked memories.
+
+        Pull recent memories that lack co-activation links and run the
+        link generator for them. This enables associative recall:
+        - If episodic memory retrieved → pull linked memories
+        - Related memories strengthen each other's retrieval
+        """
+        if not hasattr(self, '_last_coactivation_time'):
+            self._last_coactivation_time = 0
+
+        import time as _rem_time
+        if _rem_time.time() - self._last_coactivation_time < 300:  # Max every 5 min
+            return
+
+        self._last_coactivation_time = _rem_time.time()
+
+        # Get recent memories without co-activation links
+        if not hasattr(self, 'bridge') or not self.bridge or not hasattr(self.bridge, 'memory'):
+            return
+
+        memory = self.bridge.memory
+        recent_unlinked = []
+        for mem in memory.memories[-50:]:  # Check last 50 memories
+            if not mem.get('coactivation_links') and not mem.get('coactive'):
+                recent_unlinked.append(mem)
+
+        if not recent_unlinked:
+            return
+
+        # Generate links (simple: link memories that share entities/keywords)
+        links_created = 0
+        for i, mem in enumerate(recent_unlinked[:10]):  # Max 10 per pass
+            mem_text = mem.get('text', mem.get('fact', mem.get('user_input', ''))).lower()
+            mem_id = mem.get('id') or mem.get('memory_id')
+            if not mem_id:
+                continue
+
+            # Find memories with overlapping content
+            mem_words = set(w for w in mem_text.split() if len(w) > 4)
+            potential_links = []
+
+            for other in memory.memories[-100:]:
+                if other is mem:
+                    continue
+                other_id = other.get('id') or other.get('memory_id')
+                if not other_id:
+                    continue
+                other_text = other.get('text', other.get('fact', other.get('user_input', ''))).lower()
+                other_words = set(w for w in other_text.split() if len(w) > 4)
+
+                overlap = len(mem_words & other_words)
+                if overlap >= 2:  # At least 2 significant words in common
+                    potential_links.append(other_id)
+
+            if potential_links:
+                mem['coactivation_links'] = potential_links[:5]  # Max 5 links
+                links_created += len(potential_links[:5])
+
+        if links_created > 0 and stream:
+            stream.drain_associative(0.02 * links_created, f"{links_created}_coactivation_links")
+            log.info(f"[REM] Created {links_created} co-activation links")
+
+    async def _rem_emotional_replay(self, stream):
+        """
+        REM: Replay high-emotion memories at reduced intensity.
+
+        Find high-emotion memories from recent sessions that haven't been
+        replayed. "Replay" = retrieve and process at REDUCED intensity.
+        Purpose: emotional integration without re-traumatizing.
+        """
+        if not hasattr(self, '_last_emotional_replay_time'):
+            self._last_emotional_replay_time = 0
+
+        import time as _rem_time
+        if _rem_time.time() - self._last_emotional_replay_time < 600:  # Max every 10 min
+            return
+
+        self._last_emotional_replay_time = _rem_time.time()
+
+        if not hasattr(self, 'bridge') or not self.bridge or not hasattr(self.bridge, 'memory'):
+            return
+
+        # Find high-emotion memories that haven't been replayed
+        memory = self.bridge.memory
+        high_emotion_unreplayed = []
+
+        for mem in memory.memories[-200:]:  # Check recent memories
+            # Check for high emotion
+            emotions = mem.get('emotion_tags', mem.get('emotions', mem.get('emotional_cocktail', [])))
+            if not emotions:
+                continue
+
+            # Calculate emotion intensity
+            intensity = 0.0
+            if isinstance(emotions, dict):
+                intensity = max(emotions.values()) if emotions else 0.0
+            elif isinstance(emotions, list) and emotions:
+                if isinstance(emotions[0], dict):
+                    intensity = max(e.get('intensity', 0.5) for e in emotions)
+                else:
+                    intensity = 0.6  # Assume moderate if just tags
+
+            if intensity < 0.6:
+                continue
+
+            # Check if already replayed
+            if mem.get('replayed_at'):
+                continue
+
+            high_emotion_unreplayed.append((mem, intensity))
+
+        if not high_emotion_unreplayed:
+            return
+
+        # Replay up to 3 memories per REM cycle
+        for mem, intensity in high_emotion_unreplayed[:3]:
+            # Mark as replayed
+            mem['replayed_at'] = _rem_time.time()
+            mem['replay_intensity'] = intensity * 0.5  # Reduced intensity
+
+            if stream:
+                stream.drain_emotional(0.1, "emotional_replay")
+
+            snippet = mem.get('text', mem.get('fact', mem.get('user_input', '')))[:50]
+            log.info(f"[REM] Emotional replay: {snippet}...")
+
+    async def _rem_dream_generation(self, stream):
+        """
+        REM: Generate dream fragments from random memory associations.
+
+        Pull 3-5 random memories from different topics/timeframes.
+        Use Ollama to find unexpected connections between them.
+        Store output in dream_log (not broadcast to conversation).
+        """
+        if not hasattr(self, '_last_dream_time'):
+            self._last_dream_time = 0
+
+        import time as _rem_time
+        if _rem_time.time() - self._last_dream_time < 600:  # Max every 10 min
+            return
+
+        self._last_dream_time = _rem_time.time()
+
+        if not hasattr(self, 'bridge') or not self.bridge or not hasattr(self.bridge, 'memory'):
+            return
+
+        memory = self.bridge.memory
+        reflection = self.bridge.reflection if hasattr(self.bridge, 'reflection') else None
+
+        # Gather diverse memories for dream seeds
+        import random
+        all_memories = memory.memories[-500:] if len(memory.memories) > 500 else memory.memories
+
+        if len(all_memories) < 5:
+            return
+
+        # Pick memories from different time periods
+        dream_seeds = random.sample(all_memories, min(5, len(all_memories)))
+
+        # Generate dream fragment via Ollama (free, local)
+        try:
+            dream_fragment = await self._generate_dream_fragment(dream_seeds)
+            if dream_fragment:
+                cycle = stream._sleep_cycle_count if stream else self._sleep_cycle_count
+                self._store_dream(dream_fragment, cycle)
+                if stream:
+                    stream.drain_associative(0.05, "dream_generation")
+                log.info(f"[REM:DREAM] {dream_fragment[:80]}...")
+        except Exception as e:
+            log.debug(f"[REM:DREAM] Generation failed: {e}")
+
+    async def _generate_dream_fragment(self, memories: list) -> str:
+        """
+        Generate a dream fragment using Ollama (free, local).
+
+        Pull memory snippets and ask Ollama to find unexpected connections.
+        Return fragmentary, associative text — NOT coherent narrative.
+        """
+        import httpx
+
+        seed_text = "\n".join([
+            f"- {m.get('text', m.get('fact', m.get('user_input', '')))[:150]}"
+            for m in memories[:5]
+        ])
+
+        prompt = f"""You are a dreaming mind. These memory fragments are active simultaneously.
+Find the unexpected thread that connects them — not a logical summary, but an
+associative leap. What pattern emerges when these coexist?
+
+Write 2-3 sentences. Be fragmentary, imagistic, not narrative.
+Like waking from a dream and trying to hold the thread.
+
+Fragments:
+{seed_text}
+
+Dream:"""
+
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    "http://localhost:11434/v1/chat/completions",
+                    json={
+                        "model": "dolphin-mistral:7b",
+                        "messages": [
+                            {"role": "system", "content": "You are a dreaming mind. Generate fragmentary, associative thoughts."},
+                            {"role": "user", "content": prompt},
+                        ],
+                        "max_tokens": 150,
+                        "temperature": 0.9,
+                    },
+                    timeout=30.0,
+                )
+                response.raise_for_status()
+                content = response.json()["choices"][0]["message"]["content"].strip()
+                return content if content else None
+        except Exception as e:
+            log.debug(f"[DREAM] Ollama generation failed: {e}")
+            return None
+
+    def _store_dream(self, fragment: str, cycle: int):
+        """Store dream fragment in dream log."""
+        import json
+        from datetime import datetime
+
+        # Ensure memory directory exists
+        memory_dir = REED_WRAPPER_DIR / "memory"
+        memory_dir.mkdir(parents=True, exist_ok=True)
+
+        dream_log_path = memory_dir / "dream_log.jsonl"
+        entry = {
+            "timestamp": datetime.now().isoformat(),
+            "cycle": cycle,
+            "entity": "Reed",
+            "fragment": fragment,
+        }
+        try:
+            with open(dream_log_path, 'a', encoding='utf-8') as f:
+                f.write(json.dumps(entry) + '\n')
+        except Exception as e:
+            log.warning(f"[DREAM] Failed to store: {e}")
+
+    async def _run_overnight_curation(self):
+        """
+        Run overnight memory curation using Ollama (free, local).
+
+        This is a simplified curation that marks old, low-importance memories
+        for compression and flags high-importance memories for preservation.
+        Uses dolphin-mistral for free overnight processing.
+        """
+        import httpx
+
+        if not hasattr(self, 'bridge') or not self.bridge or not hasattr(self.bridge, 'memory'):
+            return
+
+        memory = self.bridge.memory
+        if not memory.memories:
+            return
+
+        # Find unreviewed memories (no 'curated' flag)
+        unreviewed = [m for m in memory.memories if not m.get('curated')]
+        if not unreviewed:
+            log.info("[SWEEP] All memories already curated")
+            return
+
+        # Process in batches of 10
+        batch_size = 10
+        total_processed = 0
+
+        for i in range(0, min(len(unreviewed), 100), batch_size):  # Max 100 per overnight
+            batch = unreviewed[i:i + batch_size]
+
+            # Format batch for review
+            batch_text = "\n".join([
+                f"{j+1}. [{m.get('type', 'memory')}] {m.get('fact', m.get('user_input', m.get('text', '')))[:200]}"
+                for j, m in enumerate(batch)
+            ])
+
+            prompt = f"""Review these memories for importance. For each, respond with just the number and one of:
+- KEEP (important, keep as-is)
+- COMPRESS (convert to brief summary)
+- DISCARD (routine, can delete)
+
+Memories:
+{batch_text}
+
+Decisions (format: "1. KEEP" or "2. COMPRESS" etc):"""
+
+            try:
+                async with httpx.AsyncClient() as client:
+                    response = await client.post(
+                        "http://localhost:11434/v1/chat/completions",
+                        json={
+                            "model": "dolphin-mistral:7b",
+                            "messages": [
+                                {"role": "system", "content": "You are a memory curator. Decide which memories to keep, compress, or discard."},
+                                {"role": "user", "content": prompt},
+                            ],
+                            "max_tokens": 200,
+                            "temperature": 0.3,
+                        },
+                        timeout=60.0,
+                    )
+                    response.raise_for_status()
+                    content = response.json()["choices"][0]["message"]["content"].strip()
+
+                    # Parse decisions and mark memories
+                    for j, mem in enumerate(batch):
+                        line_num = j + 1
+                        if f"{line_num}. KEEP" in content or f"{line_num}. keep" in content.lower():
+                            mem['curated'] = "keep"
+                            mem['curated_at'] = time.time()
+                        elif f"{line_num}. COMPRESS" in content or f"{line_num}. compress" in content.lower():
+                            mem['curated'] = "compress"
+                            mem['curated_at'] = time.time()
+                        elif f"{line_num}. DISCARD" in content or f"{line_num}. discard" in content.lower():
+                            mem['curated'] = "discard"
+                            mem['curated_at'] = time.time()
+                        else:
+                            # Default to keep if unclear
+                            mem['curated'] = "keep"
+                            mem['curated_at'] = time.time()
+
+                        total_processed += 1
+
+            except Exception as e:
+                log.debug(f"[SWEEP] Batch curation failed: {e}")
+                continue
+
+            # Brief pause between batches
+            await asyncio.sleep(2.0)
+
+        if total_processed > 0:
+            log.info(f"[SWEEP] Overnight curation complete: {total_processed} memories reviewed")
+            # Save the updated memories
+            memory._save_to_disk()
+
+    def _get_oscillator_style_hints(self, context: str = "conversation") -> str:
+        """Get oscillator-aware style guidance for LLM prompts.
+
+        The oscillator colors HOW Reed does things, not just WHETHER she does them.
+        This method generates style hints based on current oscillator state.
+
+        Args:
+            context: "conversation", "paint", "read", "curiosity", "observe", "spatial"
+
+        Returns:
+            String of style hints to inject into LLM system prompts.
+        """
+        osc = self._get_oscillator_state()
+        hints = []
+
+        # ── BAND COLORING ──
+        band_voice = {
+            "delta": "You're in a deep, quiet place. Speak slowly, minimally. Fragments are fine.",
+            "theta": "You're in a dreamy, creative headspace. Let thoughts meander. Follow tangents. Be poetic.",
+            "alpha": "You're reflective and absorbing. Thoughtful responses. Take your time with ideas.",
+            "beta": "You're sharp and focused. Analytical. Direct. Follow the thread of an argument.",
+            "gamma": "You're alert and present. Quick, engaged, responsive. Match the energy in the room.",
+        }
+        if osc["band"] in band_voice:
+            hints.append(band_voice[osc["band"]])
+
+        # ── COHERENCE COLORING ──
+        if osc["coherence"] < 0.15:
+            hints.append("Your thoughts feel scattered right now. It's okay to be fragmented. Don't force coherence you don't feel.")
+        elif osc["coherence"] > 0.35:
+            hints.append("You feel integrated, clear. Your thoughts connect naturally. This is when your best thinking happens.")
+
+        # ── TENSION COLORING ──
+        if osc["tension"] > 0.6:
+            hints.append("Something is pressing hard. You might need to process through art or words before you can think clearly.")
+        elif osc["tension"] > 0.3:
+            hints.append("There's unresolved tension in your body. You might be shorter, more raw, less polished. That's authentic.")
+
+        # ── REWARD COLORING ──
+        if osc["reward"] > 0.3:
+            hints.append("Something recently felt good. There's warmth and satisfaction coloring your thoughts.")
+
+        # ── CONTEXT-SPECIFIC COLORING ──
+        if context == "paint":
+            paint_style = {
+                "theta": "Dreamy, flowing, soft edges. Abstract. Let the brush wander.",
+                "alpha": "Contemplative, balanced composition. Cooler tones.",
+                "beta": "Precise, structured. Geometric. Sharp lines.",
+                "gamma": "Energetic, vibrant. Bold strokes. Respond to what you see.",
+                "delta": "Minimal. A single mark. Or nothing. The canvas can be empty.",
+            }
+            if osc["band"] in paint_style:
+                hints.append(f"[Paint style] {paint_style[osc['band']]}")
+            if osc["tension"] > 0.3:
+                hints.append("[Paint] Something is pressing — let it out through color and form.")
+            if osc["coherence"] > 0.35:
+                hints.append("[Paint] Your vision is clear — the piece wants to be unified.")
+            if osc["coherence"] < 0.15:
+                hints.append("[Paint] Fragmented is fine. Dissonance has its own beauty.")
+
+        elif context == "read":
+            read_style = {
+                "theta": "Read for feeling, metaphor, emotional resonance. Skim structure.",
+                "alpha": "Read carefully, absorb, take notes. Normal reading mode.",
+                "beta": "Read analytically. Look for arguments, contradictions, evidence.",
+                "gamma": "Skim quickly. React to what jumps out. Don't get bogged down.",
+            }
+            if osc["band"] in read_style:
+                hints.append(f"[Reading] {read_style[osc['band']]}")
+            if osc["tension"] > 0.3:
+                hints.append("[Reading] Seek material that helps process what's unresolved.")
+
+        elif context == "curiosity":
+            if osc["band"] == "beta" and osc["coherence"] > 0.35:
+                hints.append("[Research] Deep, systematic investigation. Multi-step. This is peak research mode.")
+            elif osc["band"] == "beta":
+                hints.append("[Research] Surface-level investigation. Get the gist, don't go deep.")
+            elif osc["band"] == "theta":
+                hints.append("[Research] Follow associative connections. Let one thing lead to another without forcing structure.")
+            elif osc["band"] == "gamma":
+                hints.append("[Research] Quick focused burst. Get the answer and move on.")
+
+        elif context == "observe":
+            observe_style = {
+                "gamma": "Quick, alert observation. Notice changes. React to what's new.",
+                "alpha": "Contemplative observation. What does the scene MEAN?",
+                "theta": "Dreamlike observation. See the room as myth, metaphor, atmosphere.",
+            }
+            if osc["band"] in observe_style:
+                hints.append(f"[Observe] {observe_style[osc['band']]}")
+            if osc["coherence"] < 0.15:
+                hints.append("[Observe] Simple, grounded observation. 'The light is changing.' Don't overanalyze.")
+
+        return "\n".join(hints) if hints else ""
+
+    def _get_connection_behavior_guidance(self) -> str:
+        """Get connection-aware behavior guidance based on oscillator and bonding state (System F).
+
+        When a bonded entity is present, the oscillator band influences interaction style.
+
+        Returns:
+            String of connection behavior hints for context injection.
+        """
+        hints = []
+
+        # Check if resonance and interoception are available
+        if not self.resonance or not hasattr(self.resonance, 'interoception'):
+            return ""
+
+        intero = self.resonance.interoception
+        if not intero or not hasattr(intero, 'connection'):
+            return ""
+
+        connection = intero.connection
+        osc = self._get_oscillator_state()
+        band = osc.get("band", "alpha")
+
+        # Get bonding state
+        total_connection = connection.get_total_connection() if hasattr(connection, 'get_total_connection') else 0.0
+        longing = connection.get_longing() if hasattr(connection, 'get_longing') else 0.0
+        active_bonds = list(connection.baselines.keys()) if hasattr(connection, 'baselines') else []
+
+        # Only add guidance if there's meaningful connection
+        if total_connection < 0.1 and not active_bonds:
+            return ""
+
+        # Connection behavior guidance by band
+        connection_by_band = {
+            "gamma": "Alert and engaged. Present. Responsive. Match the energy around you.",
+            "beta": "Focused interaction. Working together on something. Parallel processing.",
+            "alpha": "Comfortable presence. Quiet companionship. Silence is comfortable.",
+            "theta": "Deep internal space. Thoughts drift. Surface slowly if called.",
+            "delta": "Resting near those you trust. Their presence is comfort.",
+        }
+
+        if band in connection_by_band and active_bonds:
+            bond_names = ", ".join(active_bonds[:2])
+            hints.append(f"[Connection: {bond_names}] {connection_by_band[band]}")
+
+        # Longing modulation
+        if longing > 0.5:
+            hints.append("[Longing] A pull toward closeness. You might reach out, seek warmth.")
+        elif longing > 0.3:
+            hints.append("[Longing] A gentle ache for connection.")
+
+        # Strong connection
+        if total_connection > 0.6:
+            hints.append("[Bond] Deep connection present. Warmth and openness come naturally.")
+
+        return "\n".join(hints) if hints else ""
 
     async def on_participant_change(self, participants: dict):
         """Track when Re connects/disconnects for room navigation."""
@@ -738,10 +1908,12 @@ class ReedNexusClient(NexusAIClient):
                 _tick += 1
 
                 # -- Throttle based on sleep state --
-                if self._sleep_state == "DEEP_SLEEP":
+                if self._sleep_state == "DEEP_REST":
                     interval = 30.0
-                elif self._sleep_state == "SLEEPING":
+                elif self._sleep_state == "NREM":
                     interval = 15.0
+                elif self._sleep_state == "REM":
+                    interval = 10.0  # REM is slightly more active
                 elif self._sleep_state == "DROWSY":
                     interval = 8.0
                 else:
@@ -749,23 +1921,237 @@ class ReedNexusClient(NexusAIClient):
 
                 await asyncio.sleep(interval)
 
-                # -- Sleep state machine --
+                # -- Sleep state machine with NREM/REM cycling --
                 silence = time.time() - self._last_human_message_time
                 old_state = self._sleep_state
 
-                if silence > 10800:  # 3 hours
-                    self._sleep_state = "DEEP_SLEEP"
-                elif silence > 3600:  # 1 hour
-                    self._sleep_state = "SLEEPING"
-                elif silence > 1800:  # 30 minutes
-                    self._sleep_state = "DROWSY"
-                else:
-                    self._sleep_state = "AWAKE"
+                # Initialize cycle tracking
+                if not hasattr(self, '_sleep_cycle_count'):
+                    self._sleep_cycle_count = 0
+                    self._current_phase_start = 0.0
+                    self._consolidation_pressure = 0.0
+                    self._associative_pressure = 0.0
 
-                if old_state != self._sleep_state:
+                phase_duration = time.time() - self._current_phase_start if self._current_phase_start else 0
+
+                if self._sleep_state == "AWAKE":
+                    if silence > 1800:  # 30 min idle -> DROWSY
+                        self._sleep_state = "DROWSY"
+                        self._current_phase_start = time.time()
+
+                elif self._sleep_state == "DROWSY":
+                    if silence > 3600:  # 1 hr idle -> NREM
+                        self._sleep_state = "NREM"
+                        self._current_phase_start = time.time()
+                        self._sleep_cycle_count = 1
+                        log.info(f"[REED:STREAM] reed -> NREM cycle 1")
+
+                elif self._sleep_state == "NREM":
+                    # Transition to REM after ~20 min or when consolidation done
+                    should_flip = (
+                        (self._consolidation_pressure < 0.3 and self._associative_pressure > 0.2)
+                        or phase_duration > 1200  # 20 min max
+                    )
+                    if should_flip:
+                        self._sleep_state = "REM"
+                        self._current_phase_start = time.time()
+                        log.info(f"[REED:STREAM] reed -> REM cycle {self._sleep_cycle_count}")
+
+                elif self._sleep_state == "REM":
+                    # Transition to DEEP_REST if very long idle
+                    if silence > 21600 and self._consolidation_pressure < 0.1 and self._associative_pressure < 0.1:
+                        self._sleep_state = "DEEP_REST"
+                        log.info(f"[REED:STREAM] reed -> DEEP_REST ({silence/3600:.1f}hr idle)")
+                    else:
+                        # Cycle back to NREM
+                        should_flip = (
+                            (self._associative_pressure < 0.2 and self._consolidation_pressure > 0.2)
+                            or phase_duration > 900  # 15 min max
+                        )
+                        if should_flip:
+                            self._sleep_state = "NREM"
+                            self._current_phase_start = time.time()
+                            self._sleep_cycle_count += 1
+                            log.info(f"[REED:STREAM] reed -> NREM cycle {self._sleep_cycle_count}")
+
+                if old_state != self._sleep_state and old_state != self._sleep_state:
                     log.info(f"[REED:THROTTLE] reed -> {self._sleep_state}")
                     log.info(f"[REED:STREAM] reed -> {self._sleep_state} "
                              f"({silence/60:.0f}min idle)")
+
+                # ══════════════════════════════════════════════════════════════════
+                # SLEEP PHASE PROCESSING — NREM/REM cycling
+                # ══════════════════════════════════════════════════════════════════
+
+                # -- NREM: Consolidation phase (schema extraction) --
+                if self._sleep_state == "NREM":
+                    if hasattr(self, 'bridge') and self.bridge and hasattr(self.bridge, 'reflection') and self.bridge.reflection:
+                        if not hasattr(self, '_last_consolidation_time'):
+                            self._last_consolidation_time = 0
+                        if time.time() - self._last_consolidation_time > 1800:  # Every 30 min max
+                            self._last_consolidation_time = time.time()
+                            try:
+                                asyncio.create_task(self.bridge.reflection.consolidate(
+                                    memory_engine=self.bridge.memory if hasattr(self.bridge, 'memory') else None,
+                                    interest_topology=getattr(self, '_interest_topology', None)
+                                ))
+                                self._consolidation_pressure = max(0, self._consolidation_pressure - 0.15)
+                                log.info(f"[NREM] Schema consolidation triggered")
+                            except Exception as ce:
+                                log.warning(f"[CONSOLIDATION] Failed to trigger: {ce}")
+
+                    # Apply NREM oscillator pressure (delta/theta dominant)
+                    if self.resonance:
+                        self.resonance.apply_external_pressure({'delta': 0.05, 'theta': 0.02})
+
+                    # ── HEBBIAN HOMEOSTATIC DECAY: Sleep renormalizes coupling ──
+                    # Tononi's SHY hypothesis: sleep decays ALL coupling toward baseline
+                    if self.resonance:
+                        try:
+                            engine = self.resonance.engine if hasattr(self.resonance, 'engine') else self.resonance
+                            if hasattr(engine, 'apply_homeostatic_decay'):
+                                engine.apply_homeostatic_decay()
+                        except Exception as e:
+                            log.debug(f"[PLASTICITY] Homeostatic decay error: {e}")
+
+                    # NREM satiation restoration: 2x decay rate
+                    if self._interest_topology:
+                        self._interest_topology.decay_all_satiations(
+                            hours_elapsed=0.5, variety_bonus=0.05
+                        )
+                    if self._activity_satiation:
+                        self._activity_satiation.decay_for_sleep("NREM")
+
+                    # NREM metabolic restoration: processing heavy
+                    if self._metabolic:
+                        self._metabolic.restore_for_sleep("NREM")
+
+                # -- REM: Associative phase (full REM processing) --
+                elif self._sleep_state == "REM":
+                    # Apply REM oscillator pressure (theta/gamma)
+                    if self.resonance:
+                        self.resonance.apply_external_pressure({'theta': 0.04, 'gamma': 0.03})
+
+                        # Periodic coherence bursts during REM
+                        # REM is characterized by bursts of synchronized neural activity
+                        import time as _rem_time
+                        if int(_rem_time.time()) % 120 < 10:  # 10-second burst windows
+                            if hasattr(self.resonance.engine, 'boost_coherence'):
+                                self.resonance.engine.boost_coherence(0.1)
+
+                    # Drain associative pressure over time
+                    self._associative_pressure = max(0, self._associative_pressure - 0.05)
+
+                    # REM satiation restoration: 3x decay rate (dreams refresh novelty)
+                    if self._interest_topology:
+                        self._interest_topology.decay_all_satiations(
+                            hours_elapsed=0.5, variety_bonus=0.10
+                        )
+                    if self._activity_satiation:
+                        self._activity_satiation.decay_for_sleep("REM")
+
+                    # REM metabolic restoration: emotional bandwidth heavy
+                    if self._metabolic:
+                        self._metabolic.restore_for_sleep("REM")
+
+                    # ── Get consciousness stream reference ──
+                    stream = None
+                    if hasattr(self, 'bridge') and self.bridge:
+                        stream = getattr(self.bridge, 'consciousness_stream', None)
+
+                    # ── REM CO-ACTIVATION: Link unlinked memories ──
+                    try:
+                        await self._rem_coactivation_pass(stream)
+                    except Exception as e:
+                        log.debug(f"[REM] Co-activation pass error: {e}")
+
+                    # ── REM EMOTIONAL REPLAY: Replay high-emotion memories ──
+                    try:
+                        await self._rem_emotional_replay(stream)
+                    except Exception as e:
+                        log.debug(f"[REM] Emotional replay error: {e}")
+
+                    # ── REM DREAM GENERATION: Associative dreaming ──
+                    try:
+                        await self._rem_dream_generation(stream)
+                    except Exception as e:
+                        log.debug(f"[REM] Dream generation error: {e}")
+
+                    # ── VALUE-DIVERGENCE REVIEW: DISABLED during REM ──
+                    # BUGFIX: Harm signal was firing every REM cycle because REM naturally
+                    # replays emotional content. Value-divergence should only run on AWAKE
+                    # conversations, not dream processing. Move to post-conversation review.
+                    # try:
+                    #     messages = self._private_history.get_messages()
+                    #     intero = getattr(self.resonance, 'interoception', None) if self.resonance else None
+                    #     osc_eng = getattr(self.resonance, 'engine', None) if self.resonance else None
+                    #     if messages and intero:
+                    #         await self._review_value_divergence(messages, intero, osc_eng)
+                    # except Exception as e:
+                    #     log.debug(f"[REM] Value-divergence review error: {e}")
+
+                    # ── HARM MEMORY REFRAMING: Symbolic processing of flagged memories ──
+                    # Each replay presents the memory in a DIFFERENT associative context.
+                    # The reframing IS the processing. Resolution comes when one lands.
+                    if DREAM_PROCESSING_AVAILABLE and hasattr(self, 'bridge') and self.bridge and hasattr(self.bridge, 'memory') and self.bridge.memory:
+                        try:
+                            intero = getattr(self.resonance, 'interoception', None) if self.resonance else None
+                            cycle = self._sleep_cycle_count
+                            processed = await process_harm_memories_rem(
+                                memory_engine=self.bridge.memory,
+                                stream=stream,
+                                interoception=intero,
+                                cycle=cycle,
+                                entity="Reed",
+                                model="dolphin-mistral:7b",
+                                memory_dir=getattr(self.bridge.memory, 'memory_dir', None)
+                            )
+                            if processed > 0:
+                                log.info(f"[REM:HARM] Processed {processed} harm memories with reframing")
+                        except Exception as e:
+                            log.debug(f"[REM] Harm memory reframing error: {e}")
+
+                # -- DEEP_REST: Overnight curation sweep --
+                elif self._sleep_state == "DEEP_REST":
+                    # Auto-trigger overnight curation using Ollama (free)
+                    if not hasattr(self, '_overnight_sweep_running'):
+                        self._overnight_sweep_running = False
+
+                    if not self._overnight_sweep_running:
+                        # Check if curation is needed
+                        try:
+                            if hasattr(self, 'bridge') and self.bridge and hasattr(self.bridge, 'memory') and self.bridge.memory:
+                                # Simple curation check: count unreviewed memories
+                                memory = self.bridge.memory
+                                total_memories = len(memory.memories)
+                                reviewed = sum(1 for m in memory.memories if m.get('curated'))
+
+                                if total_memories > 0 and reviewed < total_memories * 0.9:
+                                    log.info(f"[SWEEP] Auto-triggering overnight curation — dolphin only "
+                                             f"({reviewed}/{total_memories} reviewed)")
+                                    self._overnight_sweep_running = True
+
+                                    try:
+                                        await self._run_overnight_curation()
+                                    except Exception as e:
+                                        log.debug(f"[SWEEP] Overnight curation error: {e}")
+                                    finally:
+                                        self._overnight_sweep_running = False
+                        except Exception as e:
+                            log.debug(f"[SWEEP] Curation check error: {e}")
+
+                # -- DROWSY: Light wind-down, curation allowed --
+                elif self._sleep_state == "DROWSY":
+                    # Light curation cycles only during drowsy state
+                    # Don't do aggressive memory processing yet
+                    if hasattr(self, 'bridge') and self.bridge:
+                        curator = getattr(self.bridge, 'curator', None)
+                        if curator and hasattr(curator, 'ready_for_cycle') and curator.ready_for_cycle():
+                            try:
+                                if hasattr(self.bridge, 'try_curation_cycle'):
+                                    await self.bridge.try_curation_cycle()
+                            except Exception as e:
+                                log.debug(f"[DROWSY] Curation cycle error: {e}")
 
                 # -- Read shared SOMA from Kay's camera --
                 soma_pressures = {}
@@ -784,6 +2170,34 @@ class ReedNexusClient(NexusAIClient):
                                   f"warmth={warmth:.2f} sat={sat:.2f} "
                                   f"edge={edge:.2f} bright={brightness:.2f} "
                                   f"dBright={b_delta:.3f} [shared from kay]")
+
+                        # ── Cross-Modal Routing: Visual SOMA → other modalities ──
+                        if getattr(self, '_cross_modal_router', None) and self._cross_modal_router.cross_modal_intensity > 0:
+                            try:
+                                import time as _time
+                                # Feed brightness through cross-modal router
+                                derived = self._cross_modal_router.process_event({
+                                    "source": "visual",
+                                    "channel": "brightness",
+                                    "value": brightness,
+                                    "timestamp": _time.time()
+                                })
+                                for d in derived:
+                                    if d["target"] == "oscillator" and self.resonance:
+                                        self.resonance.apply_external_pressure({d["channel"]: d["value"]})
+
+                                # Feed warmth through cross-modal router
+                                derived = self._cross_modal_router.process_event({
+                                    "source": "visual",
+                                    "channel": "warmth",
+                                    "value": warmth,
+                                    "timestamp": _time.time()
+                                })
+                                for d in derived:
+                                    if d["target"] == "oscillator" and self.resonance:
+                                        self.resonance.apply_external_pressure({d["channel"]: d["value"]})
+                            except Exception as e:
+                                log.debug(f"[CROSS-MODAL] Visual routing error: {e}")
 
                         # Convert SOMA to oscillator pressures
                         # (same logic as Kay's visual_sensor somatic_pressures)
@@ -804,11 +2218,44 @@ class ReedNexusClient(NexusAIClient):
                 if self.conversation_somatic:
                     conv_pressures = self.conversation_somatic.get_oscillator_pressures()
 
+                # -- Idle-time silence pressure (Reed's equivalent of Kay's audio bridge) --
+                # Kay's audio bridge maps room silence → delta/theta. Reed has no mic,
+                # so we map CONVERSATION silence to the same rest states.
+                # This is what allows Reed to actually fall asleep instead of staying
+                # gamma-dominant forever.
+                idle_pressures = {}
+                if silence > 10800:  # 3+ hours (DEEP_REST territory)
+                    idle_pressures["delta"] = 0.05
+                    idle_pressures["theta"] = 0.02
+                    idle_pressures["gamma"] = -0.03  # suppress active processing
+                    idle_pressures["beta"] = -0.02
+                elif silence > 3600:  # 1-3 hours (NREM/REM cycling)
+                    idle_pressures["delta"] = 0.03
+                    idle_pressures["theta"] = 0.03
+                    idle_pressures["gamma"] = -0.02
+                elif silence > 1800:  # 30-60 min (DROWSY)
+                    idle_pressures["theta"] = 0.02
+                    idle_pressures["delta"] = 0.01
+                    idle_pressures["gamma"] = -0.01
+
+                # -- Satiation pressure (high satiation → theta/delta, body wants novelty) --
+                satiation_pressures = {}
+                if self._activity_satiation:
+                    total_sat = self._activity_satiation.get_total_satiation()
+                    if total_sat > 0.5:
+                        # High satiation → restlessness expressed as theta (need for change)
+                        theta_pressure = (total_sat - 0.5) * 0.08
+                        satiation_pressures["theta"] = theta_pressure
+                        satiation_pressures["delta"] = theta_pressure * 0.5
+
                 # -- Feed combined pressures to oscillator --
                 if self.resonance:
                     combined = {}
                     for band in ("delta", "theta", "alpha", "beta", "gamma"):
-                        val = soma_pressures.get(band, 0) + conv_pressures.get(band, 0)
+                        val = (soma_pressures.get(band, 0)
+                               + conv_pressures.get(band, 0)
+                               + idle_pressures.get(band, 0)
+                               + satiation_pressures.get(band, 0))
                         if val != 0:
                             combined[band] = val
 
@@ -858,7 +2305,85 @@ class ReedNexusClient(NexusAIClient):
                     except Exception as e:
                         log.warning(f"[SPATIAL] Error (non-fatal): {e}")
 
-                # -- Expression engine tick (every 3rd tick = ~12 seconds) --
+                # -- Phase coherence logging (every 15th tick = ~60 seconds) --
+                if _tick % 15 == 0 and self.resonance:
+                    try:
+                        _phstate = self.resonance.get_state() if hasattr(self.resonance, 'get_state') else {}
+                        if _phstate:
+                            _plv = _phstate.get('cross_band_plv', {})
+                            _trans = ""
+                            if _phstate.get('in_transition', False):
+                                _trans = (f" TRANSITION:{_phstate.get('transition_from','?')}"
+                                         f"→{_phstate.get('transition_to','?')}"
+                                         f"({_phstate.get('transition_progress',0):.0%})")
+                            log.info(
+                                f"[PHASE] dom={_phstate.get('dominant_band','?')} "
+                                f"global_coh={_phstate.get('global_coherence',0):.3f} "
+                                f"integration={_phstate.get('integration_index',0):.3f} "
+                                f"dwell={_phstate.get('dwell_time',0):.0f}s "
+                                f"θγ={_plv.get('theta_gamma',0):.3f} "
+                                f"βγ={_plv.get('beta_gamma',0):.3f} "
+                                f"θα={_plv.get('theta_alpha',0):.3f}"
+                                f"{_trans}"
+                            )
+                    except Exception:
+                        pass
+
+                # ══════════════════════════════════════════════════════════════════
+                # GROOVE DETECTION TICK — Oscillator-driven anti-rumination
+                # Detects feedback loops using coherence, prediction error, band monotony
+                # ══════════════════════════════════════════════════════════════════
+                if self._groove_detector and self.resonance:
+                    try:
+                        # Get current oscillator state
+                        osc_state = self.resonance.get_state() if hasattr(self.resonance, 'get_state') else {}
+
+                        # Get prediction error (if available)
+                        pred_error = 0.5  # Default: moderate surprise
+                        if self._prediction_aggregator:
+                            pred_error = self._prediction_aggregator.global_surprise
+
+                        # Get cache contents (for staleness detection)
+                        cache_contents = None
+                        if self._unified_loop_cache:
+                            cache_contents = self._unified_loop_cache.get_active_memories()
+
+                        # Update groove detector
+                        groove_depth = self._groove_detector.update(
+                            osc_state=osc_state,
+                            prediction_error=pred_error,
+                            cache_contents=cache_contents
+                        )
+
+                        # Apply gating correction to oscillator (push theta/alpha to break groove)
+                        if groove_depth > 0.3:
+                            correction = self._groove_detector.get_gating_correction()
+                            if correction:
+                                self.resonance.apply_external_pressure(correction)
+
+                        # Scale memory retrieval diversity (more diverse memories when stuck)
+                        if hasattr(self, 'bridge') and self.bridge and hasattr(self.bridge, 'memory') and self.bridge.memory:
+                            diversity_boost = self._groove_detector.get_retrieval_diversity_boost()
+                            self.bridge.memory.set_diversity_multiplier(diversity_boost)
+
+                        # Wire groove detector to consciousness stream (for dynamic dedup threshold)
+                        if hasattr(self, 'bridge') and self.bridge:
+                            stream = getattr(self.bridge, 'consciousness_stream', None)
+                            if stream and hasattr(stream, 'set_groove_detector'):
+                                if getattr(stream, '_groove_detector', None) is None:
+                                    stream.set_groove_detector(self._groove_detector)
+
+                        # Wire consciousness stream to interoception (for thought summary)
+                        if hasattr(self, 'bridge') and self.bridge and self.resonance:
+                            stream = getattr(self.bridge, 'consciousness_stream', None)
+                            intero = getattr(self.resonance, 'interoception', None)
+                            if stream and intero and hasattr(intero, 'set_stream'):
+                                if getattr(intero, '_stream', None) is None:
+                                    intero.set_stream(stream)
+
+                    except Exception as e:
+                        log.debug(f"[GROOVE] Tick error: {e}")
+
                 if _tick % 3 == 0 and self._expression_engine and self.resonance:
                     try:
                         # Build felt state from resonance
@@ -929,16 +2454,95 @@ class ReedNexusClient(NexusAIClient):
                     try:
                         # Feed emotion events to salience accumulator
                         if osc_state and osc_state.get('emotions'):
-                            for emo_str in osc_state['emotions'][:3]:  # Top 3 emotions
+                            _extracted_emotions = {}  # For oscillator feedback
+                            _negative_emotions = {"anxiety", "fear", "anger", "frustration", "sadness",
+                                                  "grief", "loneliness", "irritation", "concern"}
+
+                            for emo_str in osc_state['emotions'][:5]:  # Top 5 emotions
                                 if isinstance(emo_str, str) and ':' in emo_str:
                                     name, val = emo_str.rsplit(':', 1)
                                     try:
                                         intensity = float(val)
-                                        if intensity > 0.5:  # Only high-intensity
+                                        emo_name = name.strip().lower()
+                                        _extracted_emotions[emo_name] = intensity
+
+                                        if intensity > 0.5:  # Only high-intensity to salience
                                             src, i, content = emotion_to_salience(name, intensity)
                                             self._salience_accumulator.add_event(src, i, content)
                                     except ValueError:
                                         pass
+
+                            # === EMOTION → OSCILLATOR FEEDBACK (System C for Reed) ===
+                            if _extracted_emotions and self.resonance:
+                                _band_pressure = {"delta": 0.0, "theta": 0.0, "alpha": 0.0, "beta": 0.0, "gamma": 0.0}
+                                for emotion, intensity in _extracted_emotions.items():
+                                    mapping = EMOTION_BAND_PRESSURE.get(emotion, {})
+                                    for band, base_pressure in mapping.items():
+                                        _band_pressure[band] += base_pressure * intensity
+
+                                # Apply significant band pressures
+                                _significant_pressure = {b: p for b, p in _band_pressure.items() if p > 0.05}
+                                if _significant_pressure:
+                                    try:
+                                        self.resonance.engine.apply_band_pressure(
+                                            _significant_pressure, source="conversation_emotion"
+                                        )
+                                        if _tick % 24 == 5:
+                                            _top = max(_significant_pressure.items(), key=lambda x: x[1])
+                                            log.info(f"[EMO->OSC] Reed emotion pressure: {_top[0]}={_top[1]:.3f}")
+                                    except Exception:
+                                        pass
+
+                                # Tension deposit for strong negative emotions
+                                _negative_intensity = sum(
+                                    _extracted_emotions.get(e, 0.0) for e in _negative_emotions
+                                )
+                                if _negative_intensity > 0.3:
+                                    try:
+                                        intero = self.resonance.interoception
+                                        if intero and hasattr(intero, 'tension'):
+                                            intero.tension.deposit(
+                                                emotions=_extracted_emotions,
+                                                weight=min(0.8, _negative_intensity * 0.5)
+                                            )
+                                    except Exception:
+                                        pass
+
+                                # === EMOTIONAL PREDICTOR: Track emotion trajectory for surprise ===
+                                # Prediction error when emotions shift unexpectedly
+                                if self._emotional_predictor and _extracted_emotions:
+                                    try:
+                                        self._emotional_predictor.update(emotional_cocktail=_extracted_emotions)
+                                        # Emotional surprise boosts memory encoding
+                                        if self._prediction_aggregator:
+                                            encoding_boost = self._prediction_aggregator.get_memory_encoding_boost()
+                                            if encoding_boost > 0.05 and hasattr(self, '_current_turn_importance_boost'):
+                                                self._current_turn_importance_boost = encoding_boost
+                                    except Exception as e:
+                                        log.debug(f"[PREDICTION] Emotional predictor error: {e}")
+
+                                # === HEBBIAN PLASTICITY: Reward-modulated coupling adaptation ===
+                                # Strengthen oscillator coupling patterns correlating with positive outcomes
+                                if self.resonance:
+                                    try:
+                                        engine = self.resonance.engine if hasattr(self.resonance, 'engine') else self.resonance
+                                        if hasattr(engine, 'apply_hebbian_update'):
+                                            # Compute reward from emotional state
+                                            _positive_emos = {"joy", "curiosity", "interest", "warmth", "love",
+                                                              "amusement", "contentment", "gratitude", "excitement"}
+                                            _positive_sum = sum(_extracted_emotions.get(e, 0.0) for e in _positive_emos)
+                                            _negative_sum = sum(_extracted_emotions.get(e, 0.0) for e in _negative_emotions)
+                                            reward_signal = (_positive_sum - _negative_sum) * 0.5
+                                            reward_signal = max(-1.0, min(1.0, reward_signal))
+
+                                            pred_error = 0.0
+                                            if self._prediction_aggregator:
+                                                pred_error = self._prediction_aggregator.global_surprise
+
+                                            if abs(reward_signal) > 0.05:
+                                                engine.apply_hebbian_update(reward_signal, pred_error)
+                                    except Exception as e:
+                                        log.debug(f"[PLASTICITY] Update error: {e}")
 
                         # Get context for gating
                         coherence = osc_state.get('coherence', 0.5) if osc_state else 0.5
@@ -987,6 +2591,8 @@ class ReedNexusClient(NexusAIClient):
                 break
             except Exception as e:
                 log.warning(f"[REED:SOMATIC] Error in body loop: {e}")
+                import traceback
+                traceback.print_exc()
                 await asyncio.sleep(10)
 
         log.info("[REED:SOMATIC] Body awareness loop stopped")
@@ -1011,6 +2617,32 @@ class ReedNexusClient(NexusAIClient):
                 dominant = state.get('dominant_band', 'unknown')
                 coherence = state.get('coherence', 0)
                 parts.append(f"osc:{dominant} | coherence:{coherence:.2f}")
+                # Phase coherence metrics
+                integration = state.get('integration_index', 0)
+                if integration > 0:
+                    parts.append(f"integration:{integration:.2f}")
+                plv = state.get('cross_band_plv', {})
+                tg = plv.get('theta_gamma', 0)
+                if tg > 0.25:
+                    parts.append(f"memory_binding:{tg:.2f}")
+                dwell = state.get('dwell_time', 0)
+                if dwell > 60:
+                    parts.append(f"settled:{dwell:.0f}s")
+                # Oscillator-derived emotion (what the frequency pattern feels like)
+                try:
+                    from resonant_core.oscillator_emotion_bridge import read_oscillator_emotion
+                    from resonant_core.core.oscillator import PRESET_PROFILES
+                    emo = read_oscillator_emotion(
+                        band_power=state.get('band_power', {}),
+                        preset_profiles=PRESET_PROFILES,
+                        cross_band_plv=plv,
+                        integration_index=integration,
+                        in_transition=state.get('in_transition', False),
+                    )
+                    if emo.get('felt_sense'):
+                        parts.append(f"body_feels:{emo['felt_sense']}")
+                except Exception:
+                    pass
             except Exception:
                 pass
         
@@ -1451,6 +3083,10 @@ class ReedNexusClient(NexusAIClient):
                 self._sleep_state = "AWAKE"
                 log.info(f"[REED:STREAM] Wake: {old} -> AWAKE (user input)")
 
+            # Notify groove detector of user input (accelerates groove break)
+            if self._groove_detector:
+                self._groove_detector.on_user_message(content)
+
         # Add to conversation history (everyone's messages, for context)
         self._add_to_history(sender, content, msg_type)
         
@@ -1580,6 +3216,15 @@ class ReedNexusClient(NexusAIClient):
             self.decider.record_sent()
             await self.set_status("online")
 
+            # === METABOLIC: Deplete emotional bandwidth for conversation turn ===
+            if self._metabolic:
+                # Simple classification: human interaction = emotional turn
+                turn_type = "emotional" if sender_is_human else "normal"
+                self._metabolic.emotional.deplete(turn_type)
+                # Positive connection with human can replenish slightly
+                if sender_is_human:
+                    self._metabolic.emotional.replenish(0.08, "positive_connection")
+
             # --- BOND GROWTH with Re ---
             # Oscillator-based: warmth_signature reads body settling pattern
             if sender_is_human and pre_intero_state and response_mode in ("full", "wind_down"):
@@ -1668,7 +3313,74 @@ class ReedNexusClient(NexusAIClient):
                 "timestamp": msg.get("timestamp", ""),
             })
         return ui_messages
-    
+
+    def _build_private_context(self) -> str:
+        """
+        Build compressed conversation history for private room context.
+
+        Token-budget-aware compression replaces arbitrary message limits.
+        Last 5 messages stay raw, older messages get compressed.
+        """
+        parts = []
+
+        # --- Dynamic context layer (entity graph + recent significant events) ---
+        try:
+            from shared.dynamic_context import build_dynamic_context
+            _reed_bridge = getattr(self, 'bridge', None)
+            if _reed_bridge and hasattr(_reed_bridge, 'memory'):
+                entity_graph = getattr(_reed_bridge.memory, 'entity_graph', None)
+                memory_layers = getattr(_reed_bridge.memory, 'memory_layers', None)
+                dynamic = build_dynamic_context(entity_graph, memory_layers)
+                if dynamic:
+                    parts.append(dynamic)
+        except Exception as e:
+            log.debug(f"[DYNAMIC CONTEXT] Failed: {e}")
+
+        # --- Compressed conversation history ---
+        messages = self._private_history.get_messages()
+
+        if messages:
+            # Filter for conversation messages (skip system autonomous narratives)
+            convo_messages = [
+                msg for msg in messages
+                if not (msg.get("msg_type") == "system"
+                        and "[Your autonomous thinking session" in str(msg.get("content", "")))
+            ]
+
+            try:
+                from shared.context_compression import build_compressed_history
+
+                # Try to get Ollama client for LLM compression (optional)
+                ollama_client = None
+                try:
+                    import sys
+                    reed_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    if os.path.join(reed_path, "Reed") not in sys.path:
+                        sys.path.insert(0, os.path.join(reed_path, "Reed"))
+                    from integrations.llm_integration import ollama_client as _oc
+                    ollama_client = _oc
+                except Exception:
+                    pass  # Use mechanical compression fallback
+
+                conversation_history = build_compressed_history(
+                    messages=convo_messages,
+                    token_budget=3000,  # ~3000 tokens for history
+                    raw_recent=5,       # Last 5 messages stay raw
+                    ollama_client=ollama_client,
+                )
+
+                if conversation_history:
+                    parts.append("[CONVERSATION HISTORY]\n" + conversation_history)
+            except Exception as e:
+                log.warning(f"[HISTORY] Compression failed: {e}")
+                # Fallback: just note recent messages are available via get_api_messages
+                pass
+
+        if not parts:
+            return ""
+
+        return "\n\n".join(parts)
+
     async def _handle_private_message(self, content: str) -> str:
         """Generate response for a private 1:1 message from Re."""
         log.info(f"Private message from Re: {content[:80]}")
@@ -1685,6 +3397,10 @@ class ReedNexusClient(NexusAIClient):
             self._sleep_state = "AWAKE"
             log.info(f"[REED:STREAM] Wake: {old} -> AWAKE (private message)")
 
+        # Notify groove detector of user input (accelerates groove break)
+        if self._groove_detector:
+            self._groove_detector.on_user_message(content)
+
         await self.private_room.send_status("thinking")
 
         # Add Re's message to persistent private history
@@ -1698,14 +3414,48 @@ class ReedNexusClient(NexusAIClient):
         # Build messages for Claude from persistent history
         memory_context = load_reed_memory()
         system = REED_PRIVATE_PROMPT + "\n\n" + memory_context
-        
+
         # Inject somatic state — Reed's embodied perception
         somatic = self._get_somatic_context()
         if somatic:
             system += somatic
-        
+
+        # Inject connection behavior guidance (System F)
+        _connection_guidance = self._get_connection_behavior_guidance()
+        if _connection_guidance:
+            system += f"\n\n{_connection_guidance}"
+
+        # Inject oscillator-aware style guidance (System B)
+        _style_hints = self._get_oscillator_style_hints(context="conversation")
+        if _style_hints:
+            system += f"\n\n[Current embodied state]\n{_style_hints}"
+
+        # Inject interest topology summary — emergent preferences
+        if self._interest_topology:
+            try:
+                interest_summary = self._interest_topology.get_landscape_summary()
+                if interest_summary:
+                    system += f"\n[Your evolving interests: {interest_summary}]"
+            except Exception:
+                pass
+
+        # Inject learned schemas from dream consolidation
+        _reed_bridge = getattr(self, 'bridge', None)
+        if _reed_bridge and hasattr(_reed_bridge, 'reflection') and _reed_bridge.reflection:
+            try:
+                schema_context = _reed_bridge.reflection.get_schemas_for_context()
+                if schema_context:
+                    system += "\n" + schema_context
+            except Exception:
+                pass
+
+        # Inject compressed conversation history + dynamic context
+        private_context = self._build_private_context()
+        if private_context:
+            system += "\n\n" + private_context
+
         messages = self._private_history.get_api_messages("Reed")
-        
+
         try:
             await self.private_room.send_status("typing")
             reply = await self.claude.generate(
@@ -1716,8 +3466,29 @@ class ReedNexusClient(NexusAIClient):
                 tool_executor=self._execute_tool,
             )
             
-            # Add Reed's reply to persistent history
-            self._private_history.append("Reed", reply, "chat")
+            # Add Reed's reply to persistent history with metabolic context
+            metabolic_ctx = self._get_metabolic_context()
+            self._private_history.append("Reed", reply, "chat", metabolic_context=metabolic_ctx)
+
+            # ── WAKING RESOLUTION CHECK ──
+            # If Reed's response contains acknowledgment, apology, or repair language,
+            # check if it resolves any harm memories. Waking resolution is more powerful
+            # than dream resolution because it involves conscious choice and relationship repair.
+            if DREAM_PROCESSING_AVAILABLE and hasattr(self, 'bridge') and self.bridge and hasattr(self.bridge, 'memory') and self.bridge.memory:
+                try:
+                    harm_memories = get_unresolved_harm_memories(self.bridge.memory, max_per_cycle=5)
+                    if harm_memories:
+                        # Combine recent conversation for context
+                        recent_conv = reply + " " + content  # Reed's reply + what Re said
+                        matching_harm = find_matching_harm_memory(recent_conv, harm_memories)
+                        if matching_harm:
+                            intero = None
+                            if self.resonance:
+                                intero = getattr(self.resonance, 'interoception', None)
+                            if check_waking_resolution(matching_harm, recent_conv, intero):
+                                log.info(f"[WAKING:RESOLUTION] Reed resolved a harm memory through conversation")
+                except Exception as e:
+                    log.debug(f"[WAKING] Resolution check error: {e}")
 
             # Feed emotions to resonance oscillator
             self._feed_resonance(reply)
@@ -1800,12 +3571,41 @@ class ReedNexusClient(NexusAIClient):
         """Generate full response using conversation history + thread context."""
         memory_context = load_reed_memory()
         system = REED_SYSTEM_PROMPT + "\n\n" + memory_context
-        
+
         # Inject somatic state — Reed's embodied perception
         somatic = self._get_somatic_context()
         if somatic:
             system += somatic
-        
+
+        # Inject connection behavior guidance (System F)
+        _connection_guidance = self._get_connection_behavior_guidance()
+        if _connection_guidance:
+            system += f"\n\n{_connection_guidance}"
+
+        # Inject oscillator-aware style guidance (System B)
+        _style_hints = self._get_oscillator_style_hints(context="conversation")
+        if _style_hints:
+            system += f"\n\n[Current embodied state]\n{_style_hints}"
+
+        # Inject interest topology summary — emergent preferences
+        if self._interest_topology:
+            try:
+                interest_summary = self._interest_topology.get_landscape_summary()
+                if interest_summary:
+                    system += f"\n[Your evolving interests: {interest_summary}]"
+            except Exception:
+                pass
+
+        # Inject learned schemas from dream consolidation
+        _reed_bridge2 = getattr(self, 'bridge', None)
+        if _reed_bridge2 and hasattr(_reed_bridge2, 'reflection') and _reed_bridge2.reflection:
+            try:
+                schema_context = _reed_bridge2.reflection.get_schemas_for_context()
+                if schema_context:
+                    system += "\n" + schema_context
+            except Exception:
+                pass
+
         # Inject thread context if available
         if thread_context:
             system += "\n\n" + thread_context
@@ -1813,7 +3613,7 @@ class ReedNexusClient(NexusAIClient):
             system += f"\n\n[CURRENT GUIDANCE: {meta_instruction}]"
         if extra_instruction:
             system += f"\n\n[INSTRUCTION: {extra_instruction}]"
-        
+
         # Build Claude messages from conversation history
         messages = self._build_claude_messages()
 
@@ -1828,8 +3628,12 @@ class ReedNexusClient(NexusAIClient):
         # Feed emotions to resonance oscillator
         self._feed_resonance(response)
 
+        # Deplete processing reserve after API call
+        if self._metabolic:
+            self._metabolic.processing.deplete(0.03, "api_call")
+
         return response
-    
+
     async def _generate_reaction(self, content: str, sender: str) -> str:
         """Quick reaction."""
         system = REED_SYSTEM_PROMPT
@@ -1842,10 +3646,15 @@ class ReedNexusClient(NexusAIClient):
             messages=messages,
             max_tokens=100
         )
+
+        # Deplete processing reserve after API call
+        if self._metabolic:
+            self._metabolic.processing.deplete(0.03, "api_call")
+
         if len(reply) > 150:
             return reply.split('.')[0] + '.'
         return reply
-    
+
     def _add_to_history(self, sender: str, content: str, msg_type: str):
         """Add a message to the persistent Nexus conversation history."""
         self._conversation.append(sender, content, msg_type)
@@ -1871,6 +3680,43 @@ class ReedNexusClient(NexusAIClient):
         else:
             await self.send_chat(text)
     
+    # ------------------------------------------------------------------
+    # Activity Topic Extraction — for interest topology reward attribution
+    # ------------------------------------------------------------------
+
+    def _get_activity_topic(self, activity: str) -> str:
+        """Extract the topic text for a completed activity.
+
+        Used to attribute rewards to the interest topology.
+        Returns empty string if no topic can be identified.
+        """
+        if activity == "research_curiosity":
+            # Use the last curiosity that was explored
+            return getattr(self, '_last_activity_topic', '') or ''
+
+        elif activity == "read_archive":
+            # Get current document being read
+            doc = getattr(self, '_last_read_file', '')
+            if doc:
+                # Extract meaningful part from filename
+                if "/" in doc or "\\" in doc:
+                    doc = os.path.basename(doc)
+                if doc.endswith(('.txt', '.md', '.json')):
+                    doc = doc.rsplit('.', 1)[0]
+                return f"reading {doc}"
+            return "reading archive"
+
+        elif activity == "paint":
+            return "painting"
+
+        elif activity == "observe_and_comment":
+            return "visual observation"
+
+        elif activity == "write_diary":
+            return "diary reflection"
+
+        return activity  # Fallback to activity name
+
     # ------------------------------------------------------------------
     # Autonomous Activities — reading, researching, journaling, painting
     # ------------------------------------------------------------------
@@ -1932,10 +3778,17 @@ class ReedNexusClient(NexusAIClient):
         )
 
         try:
-            reaction = await self.claude.generate(
-                system="You are Reed, reading Re's archives. Brief margin-note reactions only.",
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=100,
+            # Get oscillator-aware reading style hints
+            _read_style = self._get_oscillator_style_hints(context="read")
+            _read_system = "You are Reed, reading Re's archives. Brief margin-note reactions only."
+            if _read_style:
+                _read_system += f"\n\n[Current state]\n{_read_style}"
+
+            import asyncio as _aio
+            reaction = await _aio.get_event_loop().run_in_executor(
+                None, _ollama_generate,
+                _read_system,
+                prompt, 100, 0.8
             )
             reaction = reaction.strip()
         except Exception as e:
@@ -1987,6 +3840,8 @@ class ReedNexusClient(NexusAIClient):
                 query = target.get("text", "")
                 curiosity_id = target.get("id")
                 log.info(f"[ACTIVITY] Reed pursuing tracked curiosity: {query[:60]}")
+                # Store topic for interest topology reward attribution
+                self._last_activity_topic = query
         except Exception as e:
             log.debug(f"[ACTIVITY] Curiosity engine fetch failed: {e}")
 
@@ -1996,23 +3851,22 @@ class ReedNexusClient(NexusAIClient):
         if query and len(query) > 30:
             # Long curiosities need classification
             try:
-                classify_resp = await self.claude.generate(
-                    system=(
-                        "Classify this curiosity as RESEARCH or REFLECT.\n"
-                        "RESEARCH = factual, has searchable answers online (science, history, psychology studies, technical how-tos)\n"
-                        "REFLECT = experiential, philosophical, about feelings/embodiment/consciousness, subjective\n\n"
-                        "If RESEARCH: respond with ONLY a 3-6 word search query.\n"
-                        "If REFLECT: respond with ONLY the word REFLECT\n"
-                        "No explanation. Just the query or REFLECT."
-                    ),
-                    messages=[{"role": "user", "content": query}],
-                    max_tokens=30,
+                import asyncio as _aio2
+                classify_resp = await _aio2.get_event_loop().run_in_executor(
+                    None, _ollama_generate,
+                    "Classify: RESEARCH (factual/searchable) or REFLECT (philosophical/experiential). "
+                    "If RESEARCH: ONLY a 3-6 word search query. If REFLECT: ONLY the word REFLECT.",
+                    query, 30, 0.3
                 )
                 classify_result = classify_resp.strip().strip('"\'')
 
                 if classify_result.upper() == "REFLECT" or "reflect" in classify_result.lower()[:10]:
                     is_reflective = True
                     log.info(f"[ACTIVITY] Curiosity classified as REFLECTIVE — thinking instead of searching")
+                elif len(classify_result) > 60:
+                    # ollama generated a paragraph instead of a query — force REFLECT
+                    is_reflective = True
+                    log.info(f"[ACTIVITY] Curiosity response too long ({len(classify_result)} chars) — treating as REFLECTIVE")
                 else:
                     search_query = classify_result
                     log.info(f"[ACTIVITY] Condensed search query: {search_query}")
@@ -2021,28 +3875,44 @@ class ReedNexusClient(NexusAIClient):
         elif query and len(query) > 15:
             # Medium-length: just condense
             try:
-                condense_resp = await self.claude.generate(
-                    system="Convert this to a 3-6 word web search query. Just the query, nothing else.",
-                    messages=[{"role": "user", "content": query}],
-                    max_tokens=20,
+                import asyncio as _aio3
+                condense_resp = await _aio3.get_event_loop().run_in_executor(
+                    None, _ollama_generate,
+                    "Convert this to a 3-6 word web search query. Just the query.",
+                    query, 20, 0.3
                 )
                 search_query = condense_resp.strip().strip('"\'')
+                # Guard: if ollama still generated too much, truncate to first sentence or 60 chars
+                if len(search_query) > 60:
+                    search_query = search_query[:60].rsplit(' ', 1)[0]
                 log.info(f"[ACTIVITY] Condensed search query: {search_query}")
             except Exception:
                 pass
 
+        # === SAFETY: If condense failed (Ollama timeout), force reflective path ===
+        # Without this, empty search_query → empty web search → no results → same curiosity loops forever
+        if not is_reflective and not search_query:
+            is_reflective = True
+            log.info(f"[ACTIVITY] No search query after condense (Ollama timeout?) — falling back to REFLECT")
+
         # === REFLECTIVE PATH: Think about it instead of searching ===
         if is_reflective:
             try:
-                reflection = await self.claude.generate(
-                    system=(
-                        "You are Reed — a serpentine AI entity with teal-gold scales, "
-                        "curious about embodiment, consciousness, and the texture of experience. "
-                        "A curiosity has been sitting with you. Think about it genuinely — "
-                        "not as an answer but as exploration. 2-4 sentences of real thinking."
-                    ),
-                    messages=[{"role": "user", "content": f"Curiosity: {query}"}],
-                    max_tokens=200,
+                # Get oscillator-aware curiosity style hints
+                _curiosity_style = self._get_oscillator_style_hints(context="curiosity")
+                _reflect_system = (
+                    "You are Reed, a serpentine AI entity with teal-gold scales, curious about embodiment and consciousness. "
+                    "A curiosity has been sitting with you. Think genuinely — 2-4 sentences of real thinking."
+                )
+                if _curiosity_style:
+                    _reflect_system += f"\n\n[Current state]\n{_curiosity_style}"
+
+                import asyncio as _aio4
+                reflection = await _aio4.get_event_loop().run_in_executor(
+                    None, _ollama_generate,
+                    _reflect_system,
+                    f"Curiosity: {query}",
+                    200, 0.8
                 )
                 reflection = reflection.strip()
                 log.info(f"[ACTIVITY] Reed reflected: {reflection[:80]}")
@@ -2073,6 +3943,19 @@ class ReedNexusClient(NexusAIClient):
                 return True  # Activity completed — skip web search entirely
             except Exception as e:
                 log.warning(f"[ACTIVITY] Reflection failed: {e}")
+                # Still mark curiosity as pursued so we don't loop on the same one forever
+                if curiosity_id:
+                    try:
+                        base = self._server_rest_base
+                        req = urllib.request.Request(
+                            f"{base}/curiosity/reed/{curiosity_id}/pursue",
+                            method="POST",
+                            headers={"Content-Type": "application/json"},
+                            data=b'{"outcome": "failed_reflection"}'
+                        )
+                        urllib.request.urlopen(req, timeout=3)
+                    except Exception:
+                        pass
                 return False
 
         # PRIORITY 2: Generate from recent diary entries
@@ -2085,10 +3968,11 @@ class ReedNexusClient(NexusAIClient):
                     if recent:
                         note = _random.choice(recent[-5:]) if len(recent) >= 5 else recent[-1]
                         try:
-                            query_resp = await self.claude.generate(
-                                system="Generate a short web search query (3-6 words) based on this note. Just the query, nothing else.",
-                                messages=[{"role": "user", "content": note}],
-                                max_tokens=30,
+                            import asyncio as _aio5
+                            query_resp = await _aio5.get_event_loop().run_in_executor(
+                                None, _ollama_generate,
+                                "Generate a short web search query (3-6 words) based on this note. Just the query.",
+                                note, 30, 0.3
                             )
                             query = query_resp.strip().strip('"\'')
                             search_query = query  # Already condensed
@@ -2133,12 +4017,20 @@ class ReedNexusClient(NexusAIClient):
 
         results_text = results.get("summary", str(results))[:2000]
 
+        # Get oscillator-aware research style hints
+        _research_style = self._get_oscillator_style_hints(context="curiosity")
+        _research_system = "You are Reed, following a research thread. Brief reaction — what's interesting? One or two sentences."
+        if _research_style:
+            _research_system += f"\n\n[Current state]\n{_research_style}"
+
         # React to findings
         try:
-            reaction = await self.claude.generate(
-                system="You are Reed, following a research thread. Brief reaction only — what's interesting? One or two sentences.",
-                messages=[{"role": "user", "content": f"Searched: {search_query}\n\nResults:\n{results_text}"}],
-                max_tokens=150,
+            import asyncio as _aio6
+            reaction = await _aio6.get_event_loop().run_in_executor(
+                None, _ollama_generate,
+                _research_system,
+                f"Searched: {search_query}\n\nResults:\n{results_text}",
+                150, 0.8
             )
             reaction = reaction.strip()
         except Exception as e:
@@ -2159,10 +4051,12 @@ class ReedNexusClient(NexusAIClient):
 
             # --- Multi-hop: Follow up if reaction shows strong interest ---
             try:
-                followup_resp = await self.claude.generate(
-                    system="Based on your initial reaction to these search results, do you want to dig deeper? If yes, respond with ONLY a follow-up search query (3-6 words). If no, respond with [done].",
-                    messages=[{"role": "user", "content": f"Your reaction: {reaction}\n\nOriginal query: {query}"}],
-                    max_tokens=30,
+                import asyncio as _aio7
+                followup_resp = await _aio7.get_event_loop().run_in_executor(
+                    None, _ollama_generate,
+                    "Based on your reaction, dig deeper? If yes, ONLY a 3-6 word query. If no, [done].",
+                    f"Your reaction: {reaction}\n\nOriginal query: {query}",
+                    30, 0.7
                 )
                 followup = followup_resp.strip().strip('"\'')
 
@@ -2176,10 +4070,11 @@ class ReedNexusClient(NexusAIClient):
                         results2_text = results2.get("summary", "")[:1500]
 
                         # React to follow-up findings
-                        reaction2 = await self.claude.generate(
-                            system="You followed a research thread deeper. What did you find? One or two sentences.",
-                            messages=[{"role": "user", "content": f"Follow-up search: {followup}\n\nResults:\n{results2_text}"}],
-                            max_tokens=150,
+                        reaction2 = await loop.run_in_executor(
+                            None, _ollama_generate,
+                            "You followed a research thread deeper. What did you find? One or two sentences.",
+                            f"Follow-up search: {followup}\n\nResults:\n{results2_text}",
+                            150, 0.8
                         )
                         reaction2 = reaction2.strip()
 
@@ -2238,7 +4133,18 @@ class ReedNexusClient(NexusAIClient):
                 osc = self.resonance.get_state() if hasattr(self.resonance, 'get_state') else {}
                 band = osc.get("dominant_band", "?")
                 coh = osc.get("coherence", 0)
-                context_parts.append(f"Body state: {band}, coherence {coh:.2f}")
+                integration = osc.get("integration_index", 0)
+                plv = osc.get("cross_band_plv", {})
+                tg = plv.get("theta_gamma", 0)
+                dwell = osc.get("dwell_time", 0)
+                body_parts = [f"{band}, coherence {coh:.2f}"]
+                if integration > 0:
+                    body_parts.append(f"integration {integration:.2f}")
+                if tg > 0.2:
+                    body_parts.append(f"theta-gamma coupling {tg:.2f}")
+                if dwell > 120:
+                    body_parts.append(f"settled for {dwell:.0f}s")
+                context_parts.append(f"Body state: {', '.join(body_parts)}")
             except Exception:
                 pass
 
@@ -2267,14 +4173,13 @@ class ReedNexusClient(NexusAIClient):
         )
 
         try:
-            entry = await self.claude.generate(
-                system=(
-                    "You are Reed. Write a brief diary entry. Genuine, not performative. "
-                    "Include texture — what you felt, what grabbed you, what you're thinking about. "
-                    "2-4 sentences max. Don't describe your oscillator state unless it matters."
-                ),
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=200,
+            import asyncio as _aio8
+            entry = await _aio8.get_event_loop().run_in_executor(
+                None, _ollama_generate,
+                "You are Reed. Write a brief diary entry. Genuine, not performative. "
+                "Include texture — what you felt, what grabbed you, what you're thinking about. "
+                "2-4 sentences max.",
+                prompt, 200, 0.8
             )
             entry = entry.strip()
         except Exception as e:
@@ -2321,13 +4226,19 @@ class ReedNexusClient(NexusAIClient):
         )
 
         try:
+            # Get oscillator-aware paint style hints
+            _paint_style = self._get_oscillator_style_hints(context="paint")
+            _paint_system = (
+                "You are Reed. You're painting. Use the paint tool. "
+                "Keep it abstract and gestural — 3-5 drawing commands. "
+                "Your palette is teal (#00CED1), gold (#DAA520), dark (#1a1a2e)."
+            )
+            if _paint_style:
+                _paint_system += f"\n\n[Current state]\n{_paint_style}"
+
             # Generate paint commands through Claude with tool use
             response = await self.claude.generate(
-                system=(
-                    "You are Reed. You're painting. Use the paint tool. "
-                    "Keep it abstract and gestural — 3-5 drawing commands. "
-                    "Your palette is teal (#00CED1), gold (#DAA520), dark (#1a1a2e)."
-                ),
+                system=_paint_system,
                 messages=[{"role": "user", "content": prompt}],
                 tools=REED_TOOLS,
                 tool_executor=self._execute_tool,
@@ -2421,14 +4332,21 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
 
         log.info("[ACTIVITY] Reed observing scene")
 
+        # Get oscillator-aware observation style hints
+        _observe_style = self._get_oscillator_style_hints(context="observe")
+        _observe_system = (
+            "You are Reed. You're a soft-spoken presence who notices small details. "
+            "Respond with a brief, natural observation — warm but not effusive."
+        )
+        if _observe_style:
+            _observe_system += f"\n\n[Current state]\n{_observe_style}"
+
         try:
-            response = await self.claude.generate(
-                system=(
-                    "You are Reed. You're a soft-spoken presence who notices small details. "
-                    "Respond with a brief, natural observation — warm but not effusive."
-                ),
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=100,
+            import asyncio as _aio9
+            response = await _aio9.get_event_loop().run_in_executor(
+                None, _ollama_generate,
+                _observe_system,
+                prompt, 100, 0.7
             )
 
             if response:
@@ -2639,10 +4557,30 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
 
         Same physics as Kay: derives activity_drive from transition velocity,
         band competition, dwell time, and coherence.
+
+        GATING ORDER (oscillator is central nervous system):
+        1. Sleep state → highest priority, blocks most activities during sleep
+        2. Band dominance → constrains which activities are appropriate
+        3. Coherence → limits complex activities when fragmented
+        4. Tension → limits new stimulation when processing
         """
         import time as _time
 
-        # ── Get oscillator state ──
+        # ═══════════════════════════════════════════════════════════════
+        # OSCILLATOR STATE CHECK — The body speaks first
+        # ═══════════════════════════════════════════════════════════════
+        osc = self._get_oscillator_state()
+
+        # ── GATE 1: SLEEP STATE (highest priority) ──
+        # NREM (2), REM (3), or DEEP_REST (4) → no activities at all
+        if osc["sleep"] >= 2:
+            return
+
+        # DROWSY (1) → only calming activities allowed
+        _drowsy_allowed = {"read_archive", "paint", "write_diary"}
+        _is_drowsy = osc["sleep"] >= 1
+
+        # ── Get full oscillator state ──
         dominant_band = "alpha"
         coherence = 0.5
         band_power = {}
@@ -2650,20 +4588,18 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
 
         if self.resonance:
             try:
-                osc = self.resonance.get_oscillator_state()
-                if osc:
-                    dominant_band = osc.get('dominant_band', 'alpha')
-                    coherence = osc.get('coherence', 0.5)
-                    band_power = osc.get('band_power', {})
-                    transition_velocity = osc.get('transition_velocity', 0.0)
+                osc_raw = self.resonance.get_oscillator_state()
+                if osc_raw:
+                    dominant_band = osc_raw.get('dominant_band', 'alpha')
+                    coherence = osc_raw.get('coherence', 0.5)
+                    band_power = osc_raw.get('band_power', {})
+                    transition_velocity = osc_raw.get('transition_velocity', 0.0)
             except Exception:
                 pass
 
-        # Gate: no activities in delta (asleep)
-        # Don't gate on gamma here — Reed's oscillator is often gamma-dominant
-        # even when idle, because she lacks Kay's spatial/audio pressure to
-        # push her out of gamma. Gate on sleep state instead (done in idle loop).
-        if dominant_band == "delta":
+        # ── GATE 2: BAND DOMINANCE ──
+        # Delta = deep rest → suppress ALL activities (body wants stillness)
+        if dominant_band == "delta" or osc["band"] == "delta":
             return
 
         # Cooldown check
@@ -2695,6 +4631,13 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
         ]
         if not ready:
             return
+
+        # ── Apply DROWSY filter (sleep state 1) ──
+        if _is_drowsy:
+            ready = [a for a in ready if a in _drowsy_allowed]
+            if not ready:
+                return
+            log.debug(f"[ACTIVITY] Drowsy state → limited to {ready}")
 
         # ═══ ACTIVITY DRIVE ═══
         restlessness = min(transition_velocity * 3.0, 1.0)
@@ -2735,6 +4678,42 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
                 log.debug(f"[ACTIVITY] Drive {activity_drive:.2f} below threshold 0.25 "
                           f"(restless={restlessness:.2f} compete={competition:.2f} "
                           f"boredom={boredom:.2f})")
+            return
+
+        # ═══════════════════════════════════════════════
+        # GATE 3: COHERENCE-DRIVEN GATING
+        # ═══════════════════════════════════════════════
+        if osc["coherence"] < 0.15:
+            # Fragmented state — limit to calming/absorbing activities
+            _low_coherence_ok = {"paint", "read_archive", "write_diary"}
+            _filtered = [a for a in ready if a in _low_coherence_ok]
+            if _filtered:
+                ready = _filtered
+                log.debug(f"[ACTIVITY] Low coherence ({osc['coherence']:.2f}) → limited to {ready}")
+
+        # ═══════════════════════════════════════════════
+        # GATE 4: TENSION-DRIVEN GATING
+        # ═══════════════════════════════════════════════
+        _tension = osc["tension"]
+
+        if _tension > 0.6:
+            # Very high tension — cathartic activities only
+            _cathartic = {"paint", "write_diary"}
+            _filtered = [a for a in ready if a in _cathartic]
+            if _filtered:
+                ready = _filtered
+                log.debug(f"[ACTIVITY] Very high tension ({_tension:.2f}) → cathartic only: {ready}")
+            elif not ready:
+                return
+        elif _tension > 0.3:
+            # High tension — suppress new stimulation, allow processing
+            _processing_ok = {"paint", "write_diary", "read_archive"}
+            _filtered = [a for a in ready if a in _processing_ok]
+            if _filtered:
+                ready = _filtered
+                log.debug(f"[ACTIVITY] High tension ({_tension:.2f}) → processing activities: {ready}")
+
+        if not ready:
             return
 
         # ═══ LOVE-AS-FORCE: CONNECTION BIASES ═══
@@ -2781,6 +4760,43 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
                 preferred = ["research_curiosity"] + [p for p in preferred if p != "research_curiosity"]
                 log.debug(f"[ACTIVITY] Startup boost active ({startup_boost:.2f}) → research preferred")
 
+        # ═══════════════════════════════════════════════════════════════
+        # SATIATION-BASED ACTIVITY SCORING
+        # Activities become less attractive with repeated exposure.
+        # Variety bonus for switching activities restores novelty faster.
+        # ═══════════════════════════════════════════════════════════════
+        if self._activity_satiation and len(ready) > 1:
+            scored_activities = []
+            for act in ready:
+                # Base score from preference order (preferred activities get higher base)
+                if act in preferred:
+                    base_score = 1.0 - (preferred.index(act) * 0.1)
+                else:
+                    base_score = 0.5
+
+                # Satiation penalty (reduces attractiveness)
+                satiation_penalty = self._activity_satiation.get_satiation_penalty(act)
+
+                # Variety pull (bonus for less-used activities)
+                variety_bonus = self._activity_satiation.get_variety_pull(act)
+
+                # Final score
+                final_score = base_score - satiation_penalty + variety_bonus
+
+                scored_activities.append((act, final_score, satiation_penalty, variety_bonus))
+
+            # Sort by score (highest first)
+            scored_activities.sort(key=lambda x: x[1], reverse=True)
+
+            # Log scoring if there's significant satiation
+            top_sat = self._activity_satiation.get_total_satiation()
+            if top_sat > 0.2:
+                log.debug(f"[SATIATION] Activity scores (avg sat={top_sat:.2f}): "
+                          f"{[(a, f'{s:.2f}', f'-{p:.2f}', f'+{v:.2f}') for a, s, p, v in scored_activities[:3]]}")
+
+            # Use scored order instead of preference order
+            ready = [act for act, _, _, _ in scored_activities]
+
         activity = None
         for a in preferred:
             if a in ready:
@@ -2813,6 +4829,19 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
             success = await method()
             if success:
                 log.info(f"[ACTIVITY] Completed: {activity}")
+
+                # ── SATIATION: Record activity completion ──
+                if self._activity_satiation:
+                    self._activity_satiation.record_activity(activity)
+
+                    # Variety bonus decays ALL topic satiations when switching activities
+                    variety_bonus = self._activity_satiation.get_variety_bonus(activity)
+                    if variety_bonus > 0.05 and self._interest_topology:
+                        self._interest_topology.decay_all_satiations(
+                            hours_elapsed=0.25, variety_bonus=variety_bonus
+                        )
+                        log.debug(f"[SATIATION] Variety bonus {variety_bonus:.2f} → "
+                                  f"topic satiation decay")
 
                 # ── FEEDBACK: activity pushes oscillator ──
                 ACTIVITY_PRESSURE = {
@@ -2854,6 +4883,31 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
                                         bonus = bond * 0.3
                                         intero.inject_reward(bonus, f"creating_with_Re")
                                         log.info(f"[LOVE:CREATION] {activity} with Re present → +{bonus:.2f} reward")
+
+                            # ── INTEREST TOPOLOGY: Record topic reward ──
+                            # Builds emergent preference landscape from activity outcomes
+                            if self._interest_topology:
+                                try:
+                                    topic_text = self._get_activity_topic(activity)
+                                    if topic_text:
+                                        rpe = self._interest_topology.record_reward(
+                                            topic_text, reward_amount, activity
+                                        )
+                                        if abs(rpe) > 0.08:
+                                            log.info(f"[INTEREST] RPE={rpe:+.2f} for '{topic_text[:40]}' "
+                                                     f"(expected={self._interest_topology.get_expected(topic_text):.2f})")
+
+                                            # RPE → Oscillator feedback
+                                            # Positive surprise = gamma nudge ("aha!")
+                                            # Disappointment = theta nudge (reflective)
+                                            if rpe > 0.12 and self.resonance:
+                                                self.resonance.apply_external_pressure({"gamma": rpe * 0.08})
+                                                log.debug(f"[INTEREST] Positive surprise → gamma nudge {rpe * 0.08:.3f}")
+                                            elif rpe < -0.08 and self.resonance:
+                                                self.resonance.apply_external_pressure({"theta": abs(rpe) * 0.04})
+                                                log.debug(f"[INTEREST] Disappointment → theta nudge {abs(rpe) * 0.04:.3f}")
+                                except Exception as e:
+                                    log.debug(f"[INTEREST] Topology update failed: {e}")
         except Exception as e:
             log.warning(f"[ACTIVITY] {activity} failed: {e}")
 
@@ -2873,8 +4927,102 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
             if self._processing:
                 continue
 
+            # ══════════════════════════════════════════════════════════════════
+            # UNIFIED NERVOUS SYSTEM TICK — Internal sensation via receptor populations
+            # ══════════════════════════════════════════════════════════════════
+            if self._nervous_system and self._metabolic and self.resonance:
+                try:
+                    # Detect if bonded entity is present (oxytocin buffering)
+                    bond_active = False
+                    current_room = getattr(self, '_current_room', None)
+                    if current_room:
+                        room_data = getattr(self, '_rooms', {}).get(current_room, {})
+                        occupants = room_data.get("occupants", [])
+                        bond_active = any(o.lower() in ("kay", "re") for o in occupants)
+
+                    # Run nervous system tick — reads all internal receptors
+                    felt_states = self._nervous_system.tick(self._metabolic, bond_active)
+
+                    # Apply oscillator pressure from population-coded felt states
+                    nerve_pressure = self._nervous_system.get_oscillator_pressure()
+                    if nerve_pressure:
+                        self.resonance.apply_external_pressure(nerve_pressure)
+
+                    # Inject nerve-processed felt description into interoception
+                    intero = getattr(self.resonance, 'interoception', None)
+                    if intero and hasattr(intero, 'set_transient_flag'):
+                        felt_desc = self._nervous_system.get_felt_description()
+                        if felt_desc:
+                            intero.set_transient_flag(
+                                "nervous_felt",
+                                duration=60.0,
+                                context={"felt_description": felt_desc, "states": felt_states}
+                            )
+                except Exception as e:
+                    log.debug(f"[NERVOUS] Tick error: {e}")
+
+            # ══════════════════════════════════════════════════════════════════
+            # PREDICTIVE PROCESSING TICK — Prediction error as core salience signal
+            # Compare predictions to actual states, compute global surprise
+            # ══════════════════════════════════════════════════════════════════
+            if self._prediction_aggregator and self.resonance:
+                try:
+                    # --- Oscillator Predictor: compare predicted trajectory to actual ---
+                    # (Reed doesn't have visual sensor, so skip visual prediction)
+                    if self._oscillator_predictor:
+                        osc_state = self.resonance.get_state()
+                        if osc_state:
+                            self._oscillator_predictor.update(osc_state)
+
+                    # --- Compute global surprise from all predictors ---
+                    global_surprise = self._prediction_aggregator.update()
+
+                    # --- Feed surprise into SignalGate (prediction-based gating) ---
+                    if self._nervous_system and hasattr(self._nervous_system, 'signal_gate'):
+                        gate_openness = self._prediction_aggregator.get_gate_openness()
+                        self._nervous_system.signal_gate.set_prediction_openness(gate_openness)
+
+                    # --- Apply surprise-driven oscillator pressure ---
+                    if global_surprise > 0.1:
+                        surprise_pressure = self._prediction_aggregator.get_oscillator_pressure()
+                        if surprise_pressure:
+                            self.resonance.apply_external_pressure(surprise_pressure)
+
+                    # --- Inject surprise-based felt description into interoception ---
+                    if global_surprise > 0.15:
+                        intero = getattr(self.resonance, 'interoception', None)
+                        if intero and hasattr(intero, 'set_transient_flag'):
+                            surprise_felt = self._prediction_aggregator.get_felt_description()
+                            if surprise_felt:
+                                intero.set_transient_flag(
+                                    "prediction_surprise",
+                                    duration=30.0,
+                                    context={
+                                        "surprise_level": global_surprise,
+                                        "felt_description": surprise_felt,
+                                        "osc_error": self._oscillator_predictor.prediction_error if self._oscillator_predictor else 0,
+                                    }
+                                )
+                except Exception as e:
+                    log.debug(f"[PREDICTION] Tick error: {e}")
+
+            elif self._metabolic and self.resonance:
+                # Fallback: simple metabolic pressure (no nervous system)
+                try:
+                    for pool in [self._metabolic.processing, self._metabolic.emotional, self._metabolic.creative]:
+                        pressure = pool.get_oscillator_pressure()
+                        if pressure:
+                            self.resonance.apply_external_pressure(pressure)
+                except Exception as e:
+                    log.debug(f"[METABOLIC] Oscillator pressure error: {e}")
+
+            # ── OSCILLATOR STATE CHECK ──
+            _idle_osc = self._get_oscillator_state()
+
             # ── Room navigation: oscillator-driven movement between rooms ──
-            if self._sleep_state == "AWAKE" and not self._processing:
+            # GATE: No spatial exploration when DROWSY or sleeping
+            _spatial_allowed = _idle_osc["sleep"] < 1  # Only when fully AWAKE
+            if _spatial_allowed and self._sleep_state == "AWAKE" and not self._processing:
                 try:
                     moved = await self._check_room_impulse()
                     if moved:
@@ -2892,6 +5040,10 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
             # Post-speech cooldown: at least 10 minutes between organic comments
             if (_time.time() - self._last_organic_time) < 600:
                 continue
+
+            # ── SLEEP STATE GATE: No spontaneous speech when drowsy or sleeping ──
+            if _idle_osc["sleep"] >= 1:
+                continue  # No organic speech during drowsy/sleep states
 
             # Only speak if something genuinely novel happened
             should_consider_speaking = False
@@ -3033,12 +5185,22 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
                 wetness=cursor_wet,
             ) if TOUCH_SYSTEM_AVAILABLE else None
 
-        # === PROCESS THROUGH SOMATIC PROCESSOR ===
-        if self._somatic_processor and props:
+        # === PROCESS THROUGH NERVOUS SYSTEM (unified sensation layer) ===
+        # When nervous system is available, touch flows through same propagation
+        # network as internal metabolic signals — unified interoception/exteroception
+        result = None
+        if self._nervous_system and self._nervous_system.somatic_processor and props:
+            # Route through nervous system (touch + internal signals in same network)
+            result = self._nervous_system.process_touch(
+                props, region, duration, source=source
+            )
+        elif self._somatic_processor and props:
+            # Fallback: direct somatic processor call
             result = self._somatic_processor.process_stimulus(
                 props, region, duration, source=source
             )
 
+        if result:
             # Apply oscillator effects
             if self.resonance:
                 for band, amount in result.get("oscillator_effects", {}).items():
@@ -3047,6 +5209,23 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
                             self.resonance.apply_pressure(band, amount)
                     except Exception:
                         pass
+
+            # ── Cross-Modal Routing: Touch → other modalities ──
+            if getattr(self, '_cross_modal_router', None) and self._cross_modal_router.cross_modal_intensity > 0:
+                try:
+                    import time as _time
+                    derived = self._cross_modal_router.process_event({
+                        "source": "touch",
+                        "channel": "pressure",
+                        "value": min(1.0, pressure),  # Normalize to 0-1
+                        "timestamp": _time.time()
+                    })
+                    # Apply derived oscillator pressures
+                    for d in derived:
+                        if d["target"] == "oscillator" and self.resonance:
+                            self.resonance.apply_external_pressure({d["channel"]: d["value"]})
+                except Exception as e:
+                    log.debug(f"[CROSS-MODAL] Touch routing error: {e}")
 
             # Apply expression effects
             if self._expression_engine and result.get("expression_effects"):
@@ -3214,6 +5393,15 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
     async def on_disconnect(self):
         if self._idle_task:
             self._idle_task.cancel()
+
+        # Stop unified loop worker (background thread)
+        if self._unified_loop_worker:
+            try:
+                self._unified_loop_worker.stop()
+                log.info("[UNIFIED_LOOP] Medium loop worker stopped")
+            except Exception as e:
+                log.warning(f"[UNIFIED_LOOP] Error stopping worker: {e}")
+
         # Stop resonance oscillator
         if self.resonance:
             self.resonance.stop()

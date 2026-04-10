@@ -25,11 +25,18 @@ logger = logging.getLogger(__name__)
 
 # Try to import sentence-transformers for semantic similarity
 try:
-    from sentence_transformers import SentenceTransformer, util
-    EMBEDDINGS_AVAILABLE = True
+    from sentence_transformers import util
+    from engines.shared_embedder import get_embedder, is_embedder_available
+    EMBEDDINGS_AVAILABLE = is_embedder_available()
 except ImportError:
-    EMBEDDINGS_AVAILABLE = False
-    logger.warning("[SPIRAL] sentence-transformers not available - using fallback similarity")
+    try:
+        from sentence_transformers import SentenceTransformer, util
+        EMBEDDINGS_AVAILABLE = True
+        get_embedder = None  # Fallback to local loading
+    except ImportError:
+        EMBEDDINGS_AVAILABLE = False
+        get_embedder = None
+        logger.warning("[SPIRAL] sentence-transformers not available - using fallback similarity")
 
 # Try to import anthropic for LLM-based analysis
 try:
@@ -337,11 +344,19 @@ class ConversationMonitor:
 
     @property
     def embedding_model(self):
-        """Lazy load embedding model."""
+        """Lazy load embedding model using shared singleton."""
         if self._embedding_model is None and EMBEDDINGS_AVAILABLE:
             try:
-                self._embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
-                logger.info("[SPIRAL] Loaded embedding model: all-MiniLM-L6-v2")
+                # Use shared embedder singleton to avoid duplicate model loading
+                if get_embedder is not None:
+                    self._embedding_model = get_embedder()
+                    if self._embedding_model:
+                        logger.info("[SPIRAL] Using shared embedding model: all-MiniLM-L6-v2")
+                else:
+                    # Fallback: load directly (shouldn't happen normally)
+                    from sentence_transformers import SentenceTransformer
+                    self._embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+                    logger.info("[SPIRAL] Loaded embedding model: all-MiniLM-L6-v2")
             except Exception as e:
                 logger.error(f"[SPIRAL] Failed to load embedding model: {e}")
         return self._embedding_model

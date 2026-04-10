@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from kay_ui import KayUI
 
+from companion_tab import CompanionTabMixin
 
 # Palette definitions (copy from reed_ui.py if not accessible)
 PALETTES = {
@@ -20,7 +21,7 @@ PALETTES = {
 }
 
 
-class TabMethods:
+class TabMethods(CompanionTabMixin):
     """Mixin class containing all tab toggle methods."""
 
     def toggle_settings_tab(self):

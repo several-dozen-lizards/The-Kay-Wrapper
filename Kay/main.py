@@ -1436,7 +1436,7 @@ async def main():
                 print(f"[DOC READER] Saved reading position: {doc_reader_state['doc_name']} section {doc_reader_state['position'] + 1}/{doc_reader_state['total_chunks']}")
 
             with open("memory/state_snapshot.json", "w", encoding="utf-8") as f:
-                json.dump(snapshot_data, f, indent=2)
+                json.dump(snapshot_data, f, indent=2, default=str)
 
         except Exception as e:
             print(f"(Warning: could not save snapshot: {e})")

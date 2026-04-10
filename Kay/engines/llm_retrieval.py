@@ -24,6 +24,32 @@ from typing import List, Dict, Optional, Tuple, Any
 from datetime import datetime, timedelta
 import anthropic
 
+# Local model for retrieval classification (saves API cost)
+def _ollama_classify(prompt: str, max_tokens: int = 200, timeout: float = 30.0) -> str:
+    """Route classification tasks to local ollama (free) instead of Anthropic.
+
+    COST FIX: Increased timeout from 3s to 30s to allow Ollama to complete.
+    Ollama may be slow if busy with another task (contention), but 30s is
+    usually enough. Avoids expensive Sonnet fallback for timeouts.
+    """
+    import httpx
+    try:
+        resp = httpx.post(
+            "http://localhost:11434/v1/chat/completions",
+            json={
+                "model": "dolphin-mistral:7b",
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": max_tokens,
+                "temperature": 0.0,
+            },
+            timeout=timeout,
+        )
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"].strip()
+    except Exception as e:
+        print(f"[LLM RETRIEVAL] Ollama classify failed: {e}, falling back to Haiku")
+        return ""  # Empty = caller falls back
+
 # Entity-prefixed logging
 try:
     from shared.entity_log import etag
@@ -280,46 +306,27 @@ Examples:
 """
 
     try:
-        # Import here to avoid circular dependency
-        from integrations.llm_integration import get_client_for_model
-        
-        # Get model from environment or use default
-        model = os.getenv("ANTHROPIC_MODEL", "claude-3-haiku-20240307")
-        
-        # Get correct client for this model
-        try:
-            active_client, provider_type = get_client_for_model(model)
-        except ValueError as e:
-            print(f"{etag('INTENT CLASSIFIER ERROR')} Client routing failed: {e}")
-            return {
-                'intent': 'none',
-                'specific_document': None,
-                'confidence': 0.0,
-                'reasoning': str(e)
-            }
-
         # Sanitize prompt to prevent unicode encoding errors
         prompt = sanitize_unicode(prompt)
 
-        # Quick LLM call with cheaper model and low temperature
-        if provider_type == 'openai':
-            # OpenAI format
-            response = active_client.chat.completions.create(
-                model=model,
-                max_tokens=200,
-                temperature=0.0,
-                messages=[{"role": "user", "content": prompt}]
-            )
-            response_text = response.choices[0].message.content.strip()
-        else:
-            # Anthropic format
-            response = active_client.messages.create(
-                model=model,
-                max_tokens=200,
-                temperature=0.0,
-                messages=[{"role": "user", "content": prompt}]
-            )
-            response_text = response.content[0].text.strip()
+        # Route to local ollama (free) — falls back to Anthropic if ollama fails
+        response_text = _ollama_classify(prompt, max_tokens=200)
+        
+        if not response_text:
+            # Fallback to Anthropic Haiku (COST FIX: Always use Haiku, not ANTHROPIC_MODEL which may be Sonnet)
+            from integrations.llm_integration import get_client_for_model
+            model = "claude-haiku-4-5-20251001"  # Explicit Haiku, not env var
+            try:
+                active_client, provider_type = get_client_for_model(model)
+            except ValueError as e:
+                print(f"{etag('INTENT CLASSIFIER ERROR')} Client routing failed: {e}")
+                return {'intent': 'none', 'specific_document': None, 'confidence': 0.0, 'reasoning': str(e)}
+            if provider_type == 'openai':
+                response = active_client.chat.completions.create(model=model, max_tokens=200, temperature=0.0, messages=[{"role": "user", "content": prompt}])
+                response_text = response.choices[0].message.content.strip()
+            else:
+                response = active_client.messages.create(model=model, max_tokens=200, temperature=0.0, messages=[{"role": "user", "content": prompt}])
+                response_text = response.content[0].text.strip()
 
         # Strip markdown code blocks if present
         if response_text.startswith('```'):
@@ -399,6 +406,17 @@ def select_relevant_documents(
           f"explicit_mention={context['has_explicit_mention']}, "
           f"request_type={context['request_type']}")
 
+    # === EARLY OUT: Casual/general messages with no document signals ===
+    # If there's no implicit reference ("this", "that"), no explicit mention
+    # of a filename, and the request type is general conversation,
+    # skip the LLM call entirely. This prevents dolphin-mistral from
+    # selecting ALL documents for "Hey, how are you?" type messages.
+    if (not context['has_implicit_reference'] and 
+        not context['has_explicit_mention'] and
+        context['request_type'] == 'general'):
+        print(f"{etag('LLM RETRIEVAL')} General conversation with no document signals — skipping retrieval")
+        return []
+
     # DESIGN PRINCIPLE: "THOU SHALT SHUN ARBITRARITY"
     # ALL documents are passed to LLM for relevance evaluation
     # Age is metadata for context, NOT a filter
@@ -476,33 +494,40 @@ Relevance Evaluation Guidelines:
     prompt += f"""
 Which documents are SEMANTICALLY RELEVANT to this query?
 
+CRITICAL CONSTRAINTS:
+- You MUST select at most {max_docs} documents (usually just 1-2)
+- NEVER return all documents - if unsure, return NONE
+- Be SELECTIVE: only include documents directly relevant to the query topic
+
 Selection Guidelines:
 - RELEVANCE IS KEY: A month-old document about the exact topic is MORE relevant than a recent unrelated one
 - Age is context, not a filter: "What did that document from last month say about X?" should find old documents
 - For casual conversation ("Hey, how are you?"), return NONE unless documents are clearly relevant
 - For topic-specific queries, include ANY document that addresses that topic regardless of age
-- Return up to {max_docs} document numbers (but can return fewer if fewer are relevant)
 
 Response Format:
-- Return ONLY the numbers of relevant documents (e.g., "1,3,5")
+- Return ONLY 1-{max_docs} document numbers separated by commas (e.g., "2" or "1,5")
 - If NO documents are relevant, return "NONE"
-- Do not include any other text
+- Do NOT return all documents - if everything seems relevant, pick the TOP {max_docs} most relevant
+- Do NOT include any other text
 
-Relevant document numbers:"""
+Relevant document numbers (max {max_docs}):"""
 
-    # Call LLM
+    # Call LLM — route to local ollama (free), fallback to Anthropic
     try:
-        client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
-        # Sanitize prompt to prevent unicode encoding errors
         prompt = sanitize_unicode(prompt)
-        response = client.messages.create(
-            model="claude-haiku-4-5-20251001",  # Fast model for selection
-            max_tokens=100,
-            temperature=0,
-            messages=[{"role": "user", "content": prompt}]
-        )
-
-        response_text = response.content[0].text.strip()
+        response_text = _ollama_classify(prompt, max_tokens=100)
+        
+        if not response_text:
+            # Fallback to Anthropic Haiku
+            client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+            response = client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=100,
+                temperature=0,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            response_text = response.content[0].text.strip()
 
         print(f"{etag('LLM RETRIEVAL')} LLM response: '{response_text}'")
 
@@ -515,6 +540,14 @@ Relevant document numbers:"""
         import re
         numbers = re.findall(r'\d+', response_text)
         selected_indices = [int(n) for n in numbers]
+
+        # GUARD: If LLM selected way too many documents, it's confused
+        # (dolphin-mistral often selects everything instead of NONE)
+        # FIX: Instead of returning NONE, take the first max_docs numbers
+        # "All of them" is still better than "none of them"
+        if len(selected_indices) > max_docs + 2:
+            print(f"{etag('LLM RETRIEVAL')} ⚠ LLM selected {len(selected_indices)} docs (max={max_docs}) — taking first {max_docs}")
+            selected_indices = selected_indices[:max_docs]
 
         # Convert indices to doc_ids
         selected_doc_ids = []

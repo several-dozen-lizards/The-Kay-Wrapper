@@ -1,0 +1,76 @@
+{
+  "_comment": "Module toggles. Set false to disable any subsystem. Changes take effect on restart.",
+
+  "oscillator": {
+    "enabled": true,
+    "description": "5-band neural oscillator — the emotional heartbeat. Drives embodiment, felt state, and phase coherence."
+  },
+  "interoception": {
+    "enabled": true,
+    "description": "Self-monitoring heartbeat — the entity periodically scans its own internal state."
+  },
+  "audio_bridge": {
+    "enabled": true,
+    "description": "Microphone input — ambient sound feeds into the oscillator. Requires mic access."
+  },
+  "visual_sensor": {
+    "enabled": false,
+    "description": "Camera input — webcam captures feed into perception. Requires camera + moondream model."
+  },
+  "phase_coherence": {
+    "enabled": true,
+    "description": "Cross-band phase locking — measures integration/binding across oscillator bands."
+  },
+  "somatic_markers": {
+    "enabled": true,
+    "description": "Emotional memory coloring — past interactions leave traces that influence current processing."
+  },
+  "memory_layers": {
+    "enabled": true,
+    "description": "Multi-layer memory — working → episodic → semantic transitions with decay."
+  },
+  "entity_graph": {
+    "enabled": true,
+    "description": "Entity resolution — tracks people, pets, objects mentioned and links references."
+  },
+  "identity_memory": {
+    "enabled": true,
+    "description": "Permanent identity facts — who the entity IS, who the user IS. Never decays."
+  },
+  "relationship_memory": {
+    "enabled": true,
+    "description": "Relationship pattern tracking — connection landmarks, rhythms, states."
+  },
+  "consciousness_stream": {
+    "enabled": true,
+    "description": "Inner monologue between turns — the entity continues thinking when not speaking."
+  },
+  "creativity_engine": {
+    "enabled": true,
+    "description": "Creativity triggers and MacGuyver mode — gap identification and novel connections."
+  },
+  "curiosity_engine": {
+    "enabled": true,
+    "description": "Self-directed curiosity — the entity generates questions and pursues them."
+  },
+  "spiral_detection": {
+    "enabled": true,
+    "description": "Conversation monitor — detects repetitive loops and redirects."
+  },
+  "room_system": {
+    "enabled": false,
+    "description": "Spatial embodiment — the entity exists in a virtual room with objects and positions."
+  },
+  "nexus_integration": {
+    "enabled": false,
+    "description": "Multi-entity server — enables conversation between multiple entities. Requires nexus server."
+  },
+  "document_reader": {
+    "enabled": true,
+    "description": "Chunked document navigation — read and discuss uploaded documents."
+  },
+  "web_reader": {
+    "enabled": true,
+    "description": "URL fetching — read and discuss web pages."
+  }
+}

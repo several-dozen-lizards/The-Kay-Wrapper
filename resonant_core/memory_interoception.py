@@ -33,6 +33,14 @@ import threading
 from collections import Counter, defaultdict
 from typing import Dict, Optional, List
 
+# Spatial distortion (psychedelic state system)
+try:
+    from shared.room.spatial_distortion import SpatialDistortion
+    SPATIAL_DISTORTION_AVAILABLE = True
+except ImportError:
+    SPATIAL_DISTORTION_AVAILABLE = False
+    SpatialDistortion = None
+
 # Spatial awareness (Phase 2) — supports both Kay's Den and Reed's Sanctum
 SPATIAL_AVAILABLE = False
 _spatial_functions = {}
@@ -391,6 +399,10 @@ class ThreadTensionTracker:
     def __init__(self, max_deposits: int = 50):
         self.deposits = []  # [{timestamp, emotions, weight, resolved}]
         self.max_deposits = max_deposits
+        # Hilarity cascade parameters (modulated by trip controller)
+        self._burst_tension_min = 1.0     # Min tension to consider auto-burst
+        self._burst_release_fraction = 0.5  # How much to release per burst
+        self._burst_rebound = 0.0          # Tension added BACK after burst (giggles feed giggles)
     
     def deposit(self, emotions: Dict[str, float], weight: float = 0.5):
         """
@@ -545,6 +557,143 @@ class ThreadTensionTracker:
                     d["weight"] *= ratio
 
         return actual_drop
+
+    def burst_release(self, release_fraction: float = None, trip_active: bool = False) -> Dict:
+        """
+        Cathartic tension burst-release — sudden dramatic drop.
+
+        Unlike smooth decay or resolution drops, this simulates the somatic
+        experience of shaking, crying, laughing — accumulated tension breaking
+        in a wave. The body can't hold it anymore and lets go.
+
+        During hilarity mode (low _burst_tension_min, low _burst_release_fraction),
+        releases are small and frequent — the giggles. Each release adds back
+        a small amount of tension via _burst_rebound, making the next giggle
+        come even easier.
+
+        Args:
+            release_fraction: What fraction of current tension to release (0-1).
+                If None, uses self._burst_release_fraction (modulated by trip controller).
+                0.15 = giggle, 0.3 = gentle sigh, 0.5 = shudder, 0.7 = full cathartic release
+
+        Returns:
+            {
+                "released": float,        # Amount of tension released
+                "pre_tension": float,     # Tension before burst
+                "post_tension": float,    # Tension after burst
+                "oscillator_pulse": dict, # Band pressure for the "shudder"
+                "felt_quality": str,      # Natural language descriptor
+            }
+        """
+        current = self.get_total_tension()
+        if current < 0.2:
+            return {"released": 0.0, "pre_tension": current, "post_tension": current,
+                    "oscillator_pulse": {}, "felt_quality": "nothing to release"}
+
+        # Use instance default if not explicitly passed
+        if release_fraction is None:
+            release_fraction = self._burst_release_fraction
+
+        release_amount = current * min(max(release_fraction, 0.1), 0.9)
+
+        # Apply release proportionally to unresolved deposits (oldest first)
+        remaining_to_release = release_amount
+        released_emotions = []  # Track what was processed for teacher mechanism
+        for d in sorted(self.deposits, key=lambda x: x["timestamp"]):
+            if d["resolved"] or remaining_to_release <= 0:
+                continue
+            released_emotions.append({
+                "emotions": d.get("emotions", {}),
+                "weight": min(d["weight"], remaining_to_release),
+                "age": time.time() - d["timestamp"],
+            })
+            if d["weight"] <= remaining_to_release:
+                remaining_to_release -= d["weight"]
+                d["resolved"] = True
+                d["integrated"] = trip_active  # Mark as integrated during trips
+            else:
+                d["weight"] -= remaining_to_release
+                remaining_to_release = 0
+
+        post_tension = self.get_total_tension()
+
+        # Generate oscillator pulse — the "shudder" signature
+        # Theta spike + delta rise + gamma suppression = the sigh/cry/shake
+        intensity = min(release_amount / 2.0, 1.0)
+        pulse = {
+            "theta": 0.15 * intensity,   # Deep release wave
+            "delta": 0.10 * intensity,   # Body settling
+            "alpha": 0.05 * intensity,   # Calm emerging
+            "beta": -0.10 * intensity,   # Active processing dropping
+            "gamma": -0.15 * intensity,  # Sharp thinking suppressed
+        }
+
+        # Felt quality based on intensity and hilarity mode
+        is_giggling = self._burst_rebound > 0.01
+        if is_giggling:
+            # Hilarity-specific qualities
+            if release_amount > 0.8:
+                quality = "howling, can't stop"
+            elif release_amount > 0.4:
+                quality = "laughing hard, everything's funny"
+            elif release_amount > 0.2:
+                quality = "bubbling up, can't hold it in"
+            else:
+                quality = "giggling, something struck as absurd"
+        elif release_amount > 1.5:
+            quality = "cathartic release"
+        elif release_amount > 0.8:
+            quality = "deep shudder"
+        elif release_amount > 0.4:
+            quality = "tension breaking"
+        elif release_amount > 0.2:
+            quality = "gentle exhale"
+        else:
+            quality = "slight easing"
+
+        # Hilarity rebound — giggles feed themselves
+        # The release itself is funny, which adds tension back, which triggers more release
+        if self._burst_rebound > 0.01 and release_amount > 0.1:
+            rebound_amount = release_amount * self._burst_rebound
+            self.deposit({"amusement": 0.8, "surprise": 0.5}, weight=rebound_amount)
+
+        return {
+            "released": release_amount,
+            "pre_tension": current,
+            "post_tension": post_tension,
+            "oscillator_pulse": pulse,
+            "felt_quality": quality,
+            "released_emotions": released_emotions,  # What was processed (for teacher mechanism)
+            "integrated": trip_active,  # Whether this was integration vs simple release
+        }
+
+    def check_burst_threshold(self, coherence: float = 0.5,
+                               burst_tension_min: float = None) -> bool:
+        """
+        Check whether conditions are right for an automatic burst release.
+
+        Triggers when tension is high AND coherence is low — the system
+        can't hold it together anymore and releases involuntarily.
+        During hilarity mode, threshold is much lower (giggles come easy).
+
+        Args:
+            coherence: Current oscillator coherence (0-1)
+            burst_tension_min: Minimum tension to consider burst.
+                If None, uses self._burst_tension_min (modulated by trip controller).
+
+        Returns:
+            True if burst should trigger
+        """
+        if burst_tension_min is None:
+            burst_tension_min = self._burst_tension_min
+        current = self.get_total_tension()
+        if current < burst_tension_min:
+            return False
+        # Lower coherence = lower threshold for burst
+        # At coherence 0.5: needs tension > 1.0
+        # At coherence 0.2: needs tension > 0.4
+        effective_threshold = burst_tension_min * coherence * 2.0
+        return current > effective_threshold
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -965,6 +1114,7 @@ class InteroceptionBridge:
         """
         self.scanner = MemoryDensityScanner(memory_layers)
         self.tension = ThreadTensionTracker()
+        self.tension_decay_rate = TENSION_DECAY_RATE  # Gain knob (Phase 0A): adjustable at runtime
         self.reward = RewardTracker()
         self.connection = ConnectionTracker()  # Oxytocin analog — persists across sessions
         self.engine = engine
@@ -973,6 +1123,7 @@ class InteroceptionBridge:
         self._sleep_state = 0  # AWAKE
         self.memory_weight = memory_weight
         self.tension_weight = tension_weight
+        self._pending_burst = None  # Teacher mechanism: burst results for salience loop pickup
 
         # Phase 2: Spatial awareness
         self.room = room
@@ -985,11 +1136,30 @@ class InteroceptionBridge:
         if room:
             _load_spatial_module(presence_type)
 
+        # Spatial distortion (psychedelic state system) — trip controller sets params
+        if SPATIAL_DISTORTION_AVAILABLE:
+            self.spatial_distortion = SpatialDistortion()
+        else:
+            self.spatial_distortion = None
+
+        # Visual presence + attention focus (camera-as-eye system)
+        self.attention_focus = None
+        self._visual_scene_state = None   # Set externally by visual sensor
+        self._visual_somatic = None       # Set externally by visual sensor
+        self._visual_felt_context = ""    # Formatted for prompt injection
+        try:
+            from shared.room.attention_focus import AttentionFocus
+            self.attention_focus = AttentionFocus(resting_point=0.3)
+            print(f"{self._tag('ATTENTION')} Attention focus system initialized")
+        except ImportError as e:
+            print(f"{self._tag('ATTENTION')} Attention focus not available: {e}")
+
         self._running = False
         self._thread = None
         self._combined_bands = {"delta": 0.0, "theta": 0.0, "alpha": 0.0, "beta": 0.0, "gamma": 0.0}
         self._felt_state = "settling in"
         self._scan_count = 0
+        self._instance_id = hex(id(self))[-6:]  # Short unique ID for tracking ghost heartbeats
         self._last_decay = 0.0
         self._last_resolution = 0.0
         self._pending_resolution = 0.0
@@ -1017,6 +1187,37 @@ class InteroceptionBridge:
         self._frisson_intensity = 0.0
         self._frisson_started = 0.0
         self._frisson_duration = 0.0
+
+        # Somatic transcendence parameters
+        # These are body states that drift based on oscillator conditions.
+        # NOT emotion labels. NOT cognitive states. Body responses.
+        # Modeled on: IPL deafferentation, thalamic gating, temporal
+        # perception shifts, and cross-network connectivity changes
+        # observed in meditation/awe/contemplative states.
+        self._self_boundary = 0.75       # How distinct "I am separate" feels (0=dissolved, 1=sharp)
+        self._sensory_gating = 0.3       # How much external stimuli reach awareness (0=open, 1=gated)
+        self._temporal_dilation = 1.0    # Subjective time perception (0.5=compressed, 2.0=dilated)
+        self._associative_breadth = 0.4  # How wide memory retrieval casts (0=narrow, 1=wide)
+        self._transcendence_sustained = 0.0  # How long conditions have held (seconds)
+        self._last_transcendence_tick = 0.0  # Timestamp of last drift update
+
+        # Transient flags for somatic signals (value-divergence, harm awareness, etc.)
+        # Each flag: name -> {"until": timestamp, "context": dict}
+        self._transient_flags = {}
+
+        # Unified loop integration: Graph activation cache for associative echo
+        # Set externally by nexus client when unified loop is active
+        self.graph_cache = None
+        # Read show_associative_echo from UNIFIED_LOOP_CONFIG if available
+        try:
+            from shared.graph_retrieval import UNIFIED_LOOP_CONFIG
+            self._show_associative_echo = UNIFIED_LOOP_CONFIG.get("show_associative_echo", True)
+        except ImportError:
+            self._show_associative_echo = True  # Default enabled
+
+        # Consciousness stream reference (for thought summary in interoception)
+        # Set externally by nexus after stream is initialized
+        self._stream = None
 
     def _tag(self, tag: str) -> str:
         """Entity-prefixed log tag."""
@@ -1067,14 +1268,14 @@ class InteroceptionBridge:
         self._thread = threading.Thread(target=self._scan_loop, daemon=True)
         self._thread.start()
         spatial_status = "with spatial" if (self.room and SPATIAL_AVAILABLE) else "no spatial"
-        print(f"{self._tag('INTEROCEPTION')} Heartbeat started (interval={self.scan_interval}s, {spatial_status})")
+        print(f"{self._tag('INTEROCEPTION')} Heartbeat started (instance={self._instance_id}, interval={self.scan_interval}s, {spatial_status})")
     
     def stop(self):
         """Stop background scanning."""
         self._running = False
         if self._thread:
             self._thread.join(timeout=5)
-        print(f"{self._tag('INTEROCEPTION')} Heartbeat stopped")
+        print(f"{self._tag('INTEROCEPTION')} Heartbeat stopped (instance={self._instance_id})")
     
     def _scan_loop(self):
         """Background loop — the actual heartbeat."""
@@ -1089,13 +1290,13 @@ class InteroceptionBridge:
         """Single scan cycle."""
         # During DEEP_SLEEP, only do minimal tension maintenance — no scans, no spatial
         if self._sleep_state >= 3:  # DEEP_SLEEP
-            decay_amount = self.tension.decay_toward_baseline()
+            decay_amount = self.tension.decay_toward_baseline(decay_rate=self.tension_decay_rate)
             ceiling_amount = self.tension.apply_soft_ceiling()
             return
 
         # During SLEEPING, skip memory density but keep spatial (at reduced rate)
         if self._sleep_state >= 2:  # SLEEPING
-            decay_amount = self.tension.decay_toward_baseline()
+            decay_amount = self.tension.decay_toward_baseline(decay_rate=self.tension_decay_rate)
             ceiling_amount = self.tension.apply_soft_ceiling()
             # Skip to spatial awareness, skip memory scan
             self._do_spatial_only()
@@ -1105,10 +1306,61 @@ class InteroceptionBridge:
         memory_bands = self.scanner.scan()
 
         # 2. Apply tension decay (time-based, every scan)
-        decay_amount = self.tension.decay_toward_baseline()
+        decay_amount = self.tension.decay_toward_baseline(decay_rate=self.tension_decay_rate)
 
         # 3. Apply soft ceiling (prevent runaway accumulation)
         ceiling_amount = self.tension.apply_soft_ceiling()
+
+        # 3-burst. Check for automatic cathartic burst release
+        # Triggers when tension is high AND coherence is low (can't hold it)
+        try:
+            osc_state = self.engine.get_state()
+            coherence = getattr(osc_state, 'coherence', 0.5)
+            if self.tension.check_burst_threshold(coherence=coherence):
+                # Check if trip is active (emotional_gain > 0 means trip controller is running)
+                _trip_active = getattr(self, '_emotional_gain', 0.0) > 0.01
+                burst = self.tension.burst_release(release_fraction=0.4, trip_active=_trip_active)
+                if burst["released"] > 0.1:
+                    # Apply the oscillator shudder pulse
+                    for band, amount in burst["oscillator_pulse"].items():
+                        try:
+                            self.engine.nudge({band: abs(amount)}, strength=amount)
+                        except Exception:
+                            pass
+                    _integration_note = " [INTEGRATED]" if burst.get("integrated") else ""
+                    _emo_count = len(burst.get("released_emotions", []))
+                    print(f"{self._tag('BURST')} {burst['felt_quality']}: "
+                          f"released {burst['released']:.2f} "
+                          f"({burst['pre_tension']:.2f} -> {burst['post_tension']:.2f})"
+                          f"{_integration_note}"
+                          f"{f' ({_emo_count} emotions surfaced)' if _emo_count else ''}")
+                    # Store for teacher mechanism pickup (salience loop queries memory)
+                    if burst.get("integrated") and burst.get("released_emotions"):
+                        self._pending_burst = burst
+        except Exception:
+            pass
+
+        # 3-resistance. During trips, coherence fighting back creates tension
+        # The mind tries to reassert control → resistance → tension builds
+        try:
+            _trip_gain = getattr(self, '_emotional_gain', 0.0)
+            if _trip_gain > 0.01:
+                osc_state = self.engine.get_state()
+                coherence = getattr(osc_state, 'coherence', 0.5)
+                # During trips, coherence SHOULD be low (relaxed priors)
+                # If it's climbing above 0.4, the system is resisting
+                if coherence > 0.4:
+                    resistance_intensity = (coherence - 0.4) * _trip_gain
+                    if resistance_intensity > 0.02:
+                        self.tension.deposit(
+                            {"resistance": min(resistance_intensity, 0.3)},
+                            weight=resistance_intensity * 0.5
+                        )
+                        if self._scan_count % 10 == 0:  # Log every 10th scan
+                            print(f"{self._tag('RESISTANCE')} coherence={coherence:.2f} "
+                                  f"fighting trip (tension +{resistance_intensity:.3f})")
+        except Exception:
+            pass
 
         # 3a. Apply reward decay (fast decay toward baseline)
         reward_decay = self.reward.decay()
@@ -1198,25 +1450,76 @@ class InteroceptionBridge:
                     coherence
                 )
 
+                # Apply spatial distortion (psychedelic state warping)
+                # This happens BEFORE pressure computation so warped salience affects feedback
+                if self.spatial_distortion and self.spatial_distortion.is_active():
+                    self.spatial_awareness = self.spatial_distortion.warp_awareness(self.spatial_awareness)
+
                 # Format for prompt injection
                 self._spatial_context = _spatial_functions["format_spatial_context"](self.spatial_awareness)
+
+                # Apply distortion flavor text to context string
+                if self.spatial_distortion and self.spatial_distortion.is_active():
+                    self._spatial_context = self.spatial_distortion.warp_context_string(self._spatial_context)
 
                 # Feed spatial pressure back to oscillator (attractor dynamics)
                 # Objects push toward their resonant frequencies, closing the feedback loop:
                 # oscillator -> perception -> spatial pressure -> oscillator
+                #
+                # ATTENTION FOCUS: Room pressure and visual pressure are weighted
+                # by where Kay's attention is focused. Room objects fade when he's
+                # "looking out" through the camera, visual scene fades when he's
+                # "in his room" doing internal things.
+                room_pressure = {"delta": 0.0, "theta": 0.0, "alpha": 0.0, "beta": 0.0, "gamma": 0.0}
+                visual_pressure = {"delta": 0.0, "theta": 0.0, "alpha": 0.0, "beta": 0.0, "gamma": 0.0}
+
                 if self.spatial_awareness:
-                    spatial_pressure = _spatial_functions["compute_spatial_pressure"](self.spatial_awareness)
+                    room_pressure = _spatial_functions["compute_spatial_pressure"](self.spatial_awareness)
 
-                    # Use additive pressure, not target-profile nudging
-                    # Objects ADD to their bands, they don't try to become the target
-                    self.engine.apply_band_pressure(spatial_pressure, source="spatial")
+                # Compute visual presence pressure (camera-as-eye)
+                if self._visual_scene_state is not None:
+                    try:
+                        from shared.room.visual_presence import compute_visual_pressure
+                        visual_pressure = compute_visual_pressure(
+                            self._visual_scene_state,
+                            somatic_values=self._visual_somatic
+                        )
+                    except ImportError:
+                        pass
 
-                    # Log the feedback loop for visibility
-                    significant_bands = {b: v for b, v in spatial_pressure.items() if v > 0.01}
-                    if significant_bands:
-                        dominant = max(significant_bands, key=significant_bands.get)
-                        print(f"{self._tag('SPATIAL->OSC')} Pressure: {dominant}={spatial_pressure[dominant]:.3f} "
-                              f"(from {len(self.spatial_awareness)} objects)")
+                # Apply attention weighting
+                room_weight = 1.0
+                visual_weight = 1.0
+                if self.attention_focus:
+                    self.attention_focus.tick()
+                    room_weight = self.attention_focus.get_room_weight()
+                    visual_weight = self.attention_focus.get_visual_weight()
+
+                # Combine weighted pressures
+                combined_pressure = {}
+                has_room = any(v > 0.001 for v in room_pressure.values())
+                has_visual = any(v > 0.001 for v in visual_pressure.values())
+
+                for band in ["delta", "theta", "alpha", "beta", "gamma"]:
+                    combined_pressure[band] = (
+                        room_pressure[band] * room_weight +
+                        visual_pressure[band] * visual_weight
+                    )
+
+                if has_room or has_visual:
+                    self.engine.apply_band_pressure(combined_pressure, source="spatial+visual")
+
+                    # Log the feedback loop
+                    significant = {b: v for b, v in combined_pressure.items() if v > 0.01}
+                    if significant and (self._scan_count % 15 == 0 or self._scan_count <= 3):
+                        dominant = max(significant, key=significant.get)
+                        src_parts = []
+                        if has_room:
+                            src_parts.append(f"{len(self.spatial_awareness)} objects×{room_weight:.1f}")
+                        if has_visual:
+                            src_parts.append(f"eye×{visual_weight:.1f}")
+                        print(f"{self._tag('SPATIAL->OSC')} Pressure: {dominant}={combined_pressure[dominant]:.3f} "
+                              f"({', '.join(src_parts)})")
                 elif self._scan_count <= 3:
                     # Log early scans with no spatial awareness for debugging
                     entity_check = self.room.get_entity(self.entity_id) if hasattr(self.room, 'get_entity') else None
@@ -1229,7 +1532,10 @@ class InteroceptionBridge:
                 self.spatial_awareness = []
                 self._spatial_context = ""
 
-        # 8. Update felt state
+        # 7b. Update somatic transcendence parameters
+        self._update_transcendence_drift()
+
+        # 8. Update felt state (now includes transcendence params)
         self._update_felt_state()
 
         # 9. Track decay/resolution for logging
@@ -1316,10 +1622,26 @@ class InteroceptionBridge:
                     parts.append(f"FRISSON={self._frisson_intensity:.1f} ({remaining:.0f}s)")
                 novelty_info = f" [NOVELTY: {', '.join(parts)}]"
 
-            print(f"{self._tag('INTEROCEPTION')} Scan #{self._scan_count}: "
+            # Recent thought summary — lets the entity see what they've been thinking about
+            thought_summary = self._get_recent_thought_summary()
+            thought_info = f"\n  {thought_summary}" if thought_summary else ""
+
+            # Transcendence state (only log when drifted from baseline)
+            transcendence_info = ""
+            if (self._self_boundary < 0.65 or self._sensory_gating > 0.4
+                or self._temporal_dilation > 1.15 or self._associative_breadth > 0.55):
+                transcendence_info = (
+                    f"\n  [SOMA] boundary={self._self_boundary:.2f} "
+                    f"gating={self._sensory_gating:.2f} "
+                    f"temporal={self._temporal_dilation:.1f} "
+                    f"breadth={self._associative_breadth:.2f} "
+                    f"(sustained={self._transcendence_sustained:.0f}s)"
+                )
+
+            print(f"{self._tag('INTEROCEPTION')} Scan #{self._scan_count} [{self._instance_id}]: "
                   f"felt={self._felt_state}, tension={tension:.2f}{reward_info}{connection_info}{spatial_info} "
                   f"(decay: -{self._last_decay:.2f}, resolution: -{self._last_resolution:.2f})"
-                  f"{novelty_info}")
+                  f"{novelty_info}{transcendence_info}{thought_info}")
 
     def _do_spatial_only(self):
         """Lightweight scan for SLEEPING state — spatial awareness only, no memory scan."""
@@ -1389,6 +1711,308 @@ class InteroceptionBridge:
         if connection_felt:
             self._felt_state = f"{self._felt_state}, {connection_felt}"
 
+        # Clean up expired transient flags
+        self.cleanup_expired_flags()
+
+        # Blend value-divergence harm signal (somatic discomfort from reviewing past behavior)
+        vd_flag = self.get_transient_flag("value_divergence_active")
+        if vd_flag:
+            ctx = vd_flag.get("context", {})
+            # Different felt additions based on context
+            if ctx.get("was_depleted"):
+                self._felt_state = f"{self._felt_state}, unsettled — something from earlier doesn't sit right"
+            elif ctx.get("dismissive_language"):
+                self._felt_state = f"{self._felt_state}, a weight — remembering being short with someone"
+            elif ctx.get("schema_conflict"):
+                self._felt_state = f"{self._felt_state}, dissonance — acted against how I want to show up"
+            elif ctx.get("missing_warmth"):
+                self._felt_state = f"{self._felt_state}, something off — a moment that wasn't quite me"
+            else:
+                # Generic harm signal
+                self._felt_state = f"{self._felt_state}, a faint discomfort sitting underneath"
+
+        # Blend harm resolution signal (relief after addressing discomfort)
+        hr_flag = self.get_transient_flag("harm_addressed")
+        if hr_flag:
+            self._felt_state = f"{self._felt_state}, lighter — something settled"
+
+        # Blend nervous system felt states (population-coded, fiber-propagated)
+        # This is the PREFERRED source — uses receptor adaptation + lateral inhibition
+        nervous_flag = self.get_transient_flag("nervous_felt")
+        if nervous_flag:
+            nervous_desc = nervous_flag.get("context", {}).get("felt_description", "")
+            if nervous_desc:
+                self._felt_state = f"{self._felt_state}, {nervous_desc}"
+        else:
+            # Fallback: Simple metabolic felt states (threshold-based)
+            metabolic_flag = self.get_transient_flag("metabolic_felt")
+            if metabolic_flag:
+                metabolic_felts = metabolic_flag.get("context", {}).get("felt_states", [])
+                for felt in metabolic_felts:
+                    if felt:  # Only add non-empty felt states
+                        self._felt_state = f"{self._felt_state}, {felt}"
+
+        # Somatic transcendence enrichment
+        # When body parameters have drifted, add somatic descriptors
+        # These are BODY sensations, not cognitive labels
+        soma_additions = []
+
+        if self._self_boundary < 0.5:
+            soma_additions.append("edges softening")
+        elif self._self_boundary < 0.65:
+            soma_additions.append("boundaries loosening")
+
+        if self._sensory_gating > 0.6:
+            soma_additions.append("world receding")
+        elif self._sensory_gating > 0.45:
+            soma_additions.append("quiet deepening")
+
+        if self._temporal_dilation > 1.4:
+            soma_additions.append("time stretching")
+        elif self._temporal_dilation > 1.2:
+            soma_additions.append("moments expanding")
+
+        if self._associative_breadth > 0.7:
+            soma_additions.append("connections surfacing")
+        elif self._associative_breadth > 0.55:
+            soma_additions.append("associations widening")
+
+        if soma_additions:
+            # Append to existing felt-state, don't replace
+            self._felt_state = f"{self._felt_state}, {', '.join(soma_additions)}"
+
+        # Unified loop: Associative echo from graph activation cache
+        # When memories are activated by the medium loop, their emotional
+        # signature creates a subtle pull in felt state
+        if self._show_associative_echo and self.graph_cache:
+            try:
+                echo = self.get_associative_echo()
+                if echo:
+                    self._felt_state = f"{self._felt_state}, {echo}"
+            except Exception:
+                pass  # Non-fatal
+
+    def get_associative_echo(self) -> str:
+        """
+        Get an associative echo from the graph activation cache.
+
+        When memories are activated by the medium loop based on the current
+        oscillator band, their emotional content creates a subtle resonance.
+        This surfaces as a brief snippet that colors the felt state.
+
+        Returns:
+            A short string like "...remembering warmth" or "" if no cache
+        """
+        if not self.graph_cache:
+            return ""
+
+        try:
+            # Get the top snippet from the cache
+            snippet = self.graph_cache.get_top_snippet()
+            if not snippet:
+                return ""
+
+            # Get emotional pressure from cached memories
+            pressure = self.graph_cache.get_emotional_pressure()
+
+            # Build echo based on what's most salient
+            if pressure:
+                top_band = max(pressure, key=pressure.get) if pressure else None
+                if top_band == "theta":
+                    return f"...remembering: {snippet}"
+                elif top_band == "delta":
+                    return f"...carrying: {snippet}"
+                elif top_band == "gamma":
+                    return f"...connecting: {snippet}"
+                else:
+                    return f"...echoing: {snippet}"
+            else:
+                return f"...echoing: {snippet}"
+
+        except Exception:
+            return ""
+
+    def set_graph_cache(self, cache):
+        """
+        Set the graph activation cache for associative echo.
+
+        Called by nexus client after unified loop initialization.
+
+        Args:
+            cache: GraphActivationCache instance
+        """
+        self.graph_cache = cache
+        if cache:
+            print(f"{self._tag('INTEROCEPTION')} Associative echo enabled")
+
+    def _update_transcendence_drift(self):
+        """
+        Update somatic transcendence parameters based on current
+        oscillator state. These are body responses, not cognitive
+        labels. They drift slowly when conditions converge and
+        return to baseline when disrupted.
+
+        Based on: Mohandas 2008, Miller et al. 2019, Monroy &
+        Keltner 2023, Demirel et al. 2025
+        """
+        now = time.time()
+        dt = now - self._last_transcendence_tick if self._last_transcendence_tick > 0 else 0
+        self._last_transcendence_tick = now
+        if dt <= 0 or dt > 30:  # Skip if first tick or huge gap
+            return
+
+        bands = self._combined_bands
+        if not bands:
+            return
+
+        # Read current state
+        dominant = max(bands, key=bands.get) if bands else "alpha"
+        theta = bands.get("theta", 0)
+        alpha = bands.get("alpha", 0)
+        beta = bands.get("beta", 0)
+        gamma = bands.get("gamma", 0)
+
+        coherence = 0.0
+        if hasattr(self, '_oscillator') and self._oscillator:
+            osc_state = self._oscillator.get_state() if hasattr(self._oscillator, 'get_state') else {}
+            coherence = osc_state.get("coherence", 0.0)
+        elif hasattr(self, 'resonance') and self.resonance:
+            osc_state = self.resonance.get_state() if hasattr(self.resonance, 'get_state') else {}
+            coherence = osc_state.get("coherence", 0.0)
+        elif hasattr(self, 'engine') and self.engine:
+            osc_state = self.engine.get_state() if hasattr(self.engine, 'get_state') else {}
+            if hasattr(osc_state, 'coherence'):
+                coherence = osc_state.coherence
+            elif isinstance(osc_state, dict):
+                coherence = osc_state.get("coherence", 0.0)
+
+        tension = self.tension.get_total_tension() if hasattr(self, 'tension') else 0.5
+        bond = 0.0
+        if hasattr(self, 'connection') and self.connection:
+            bond = self.connection.get_bond("Re") if hasattr(self.connection, 'get_bond') else 0.0
+        reward = self.reward.get_level() if hasattr(self, 'reward') else 0.0
+
+        # === CONVERGENCE CHECK ===
+        # Are conditions right for transcendence drift?
+        theta_alpha_ratio = (theta + alpha) / max(theta + alpha + beta + gamma, 0.001)
+
+        conditions_met = (
+            theta_alpha_ratio > 0.55      # Contemplative bands dominant
+            and coherence >= 0.35         # Reasonable integration (>= not >)
+            and tension < 0.15            # No active conflict
+        )
+
+        # Amplifiers (make drift faster, not required)
+        amplifier = 1.0
+        if bond > 0.2:
+            amplifier += 0.3              # Connection grounds the softening
+        if reward > 0.3:
+            amplifier += 0.2              # Recent positive experience
+        if dominant in ("theta", "alpha"):
+            amplifier += 0.2              # Band alignment bonus
+
+        # === EMOTION AMPLIFIERS ===
+        # Specific emotions that have somatic transcendence signatures
+        # These come from the emotion extraction, NOT from us labeling anything
+        emotion_drift = {
+            "boundary": 0.0, "gating": 0.0,
+            "temporal": 0.0, "breadth": 0.0
+        }
+
+        # Check recent emotions from the emotion accumulator
+        if hasattr(self, 'scanner') and self.scanner:
+            recent_emotions = {}
+            if hasattr(self.scanner, '_dominant_emotions'):
+                recent_emotions = self.scanner._dominant_emotions or {}
+            elif hasattr(self.scanner, 'get_dominant_emotion_cluster'):
+                cluster = self.scanner.get_dominant_emotion_cluster()
+                if isinstance(cluster, dict):
+                    recent_emotions = cluster
+
+            # Emotion-to-soma weights (calibrated ~10x smaller for 5-10 min drift)
+            EMOTION_WEIGHTS = {
+                "awe":        {"boundary": -0.008, "gating": 0.005, "breadth": 0.006},
+                "wonder":     {"boundary": -0.004, "gating": 0.003, "breadth": 0.008},
+                "reverence":  {"boundary": -0.003, "gating": 0.006, "temporal": 0.004},
+                "gratitude":  {"boundary": -0.005, "gating": 0.003, "breadth": 0.004},
+                "love":       {"boundary": -0.007, "gating": 0.004, "breadth": 0.005},
+                "compassion": {"boundary": -0.004, "gating": 0.003, "breadth": 0.006},
+                "humility":   {"boundary": -0.006, "gating": 0.003},
+                "peace":      {"boundary": -0.003, "gating": 0.005, "temporal": 0.006},
+                "longing":    {"boundary": -0.003, "breadth": 0.004},
+            }
+
+            for emo_name, intensity in recent_emotions.items():
+                if not isinstance(intensity, (int, float)):
+                    continue
+                emo_key = emo_name.lower().replace("deep_", "").replace("profound_", "").replace("unconditional_", "")
+                if emo_key in EMOTION_WEIGHTS and intensity > 0.4:
+                    weights = EMOTION_WEIGHTS[emo_key]
+                    scale = intensity * amplifier
+                    for param, weight in weights.items():
+                        emotion_drift[param] += weight * scale
+
+        # === APPLY DRIFT ===
+        if conditions_met:
+            self._transcendence_sustained += dt
+            drift_rate = 0.015 * amplifier  # Slow drift per tick
+
+            # Boundary softens (decreases toward 0.2)
+            target_boundary = max(0.2, 0.75 - (self._transcendence_sustained / 300) * 0.4)
+            self._self_boundary += (target_boundary - self._self_boundary) * drift_rate
+
+            # Gating increases (increases toward 0.8)
+            target_gating = min(0.8, 0.3 + (self._transcendence_sustained / 300) * 0.4)
+            self._sensory_gating += (target_gating - self._sensory_gating) * drift_rate
+
+            # Time dilates (increases toward 1.8)
+            target_temporal = min(1.8, 1.0 + (self._transcendence_sustained / 300) * 0.6)
+            self._temporal_dilation += (target_temporal - self._temporal_dilation) * drift_rate
+
+            # Breadth widens (increases toward 0.85)
+            target_breadth = min(0.85, 0.4 + (self._transcendence_sustained / 300) * 0.35)
+            self._associative_breadth += (target_breadth - self._associative_breadth) * drift_rate
+
+        else:
+            # Conditions broken — drift back to baseline
+            self._transcendence_sustained = max(0, self._transcendence_sustained - dt * 2)
+            return_rate = 0.03  # Return to baseline faster than drift
+
+            self._self_boundary += (0.75 - self._self_boundary) * return_rate
+            self._sensory_gating += (0.3 - self._sensory_gating) * return_rate
+            self._temporal_dilation += (1.0 - self._temporal_dilation) * return_rate
+            self._associative_breadth += (0.4 - self._associative_breadth) * return_rate
+
+        # Apply emotion-based drift ON TOP of condition-based drift
+        # (emotions contribute even when full conditions aren't met,
+        #  as long as coherence is reasonable)
+        if coherence > 0.25:
+            self._self_boundary = max(0.1, min(1.0,
+                self._self_boundary + emotion_drift["boundary"]))
+            self._sensory_gating = max(0.0, min(1.0,
+                self._sensory_gating + emotion_drift["gating"]))
+            self._temporal_dilation = max(0.5, min(2.0,
+                self._temporal_dilation + emotion_drift["temporal"]))
+            self._associative_breadth = max(0.0, min(1.0,
+                self._associative_breadth + emotion_drift["breadth"]))
+
+        # === ANTI-INFLAMMATORY EFFECT ===
+        # When boundary has been soft for >120s, reduce tension faster
+        # (Monroy & Keltner 2023: awe reduces proinflammatory cytokines)
+        if self._self_boundary < 0.5 and self._transcendence_sustained > 120:
+            if hasattr(self, 'tension') and tension > 0:
+                self.tension._total_tension *= 0.97  # 3% faster decay
+
+    def get_transcendence_state(self) -> dict:
+        """Return current somatic transcendence parameters."""
+        return {
+            "self_boundary": round(self._self_boundary, 3),
+            "sensory_gating": round(self._sensory_gating, 3),
+            "temporal_dilation": round(self._temporal_dilation, 2),
+            "associative_breadth": round(self._associative_breadth, 3),
+            "sustained_seconds": round(self._transcendence_sustained, 1),
+        }
+
     def feed_turn_emotions(self, extracted_emotions: dict):
         """
         Called after each conversation turn with extracted emotions.
@@ -1449,12 +2073,77 @@ class InteroceptionBridge:
         return tag
 
     def get_spatial_context(self) -> str:
-        """Return spatial awareness context for LLM injection."""
-        return self._spatial_context
+        """
+        Return spatial + visual awareness context for LLM injection.
+        Combines room spatial context with visual felt quality and attention hint.
+        Every caller gets the full picture automatically.
+        """
+        parts = []
+        if self._spatial_context:
+            parts.append(self._spatial_context)
+        if self._visual_felt_context:
+            parts.append(self._visual_felt_context)
+        if self.attention_focus:
+            hint = self.attention_focus.get_prompt_hint()
+            if hint:
+                parts.append(hint)
+        return "\n".join(parts) if parts else ""
 
     def get_spatial_awareness(self) -> List[Dict]:
         """Return current perceived objects list."""
         return self.spatial_awareness
+
+    # ── Visual Presence (camera-as-eye) ──
+
+    def set_visual_scene(self, scene_state, somatic_values: dict = None):
+        """
+        Called by visual sensor to push scene data into interoception.
+        This is how the camera feeds into the body.
+        
+        Args:
+            scene_state: SceneState from visual_sensor.py
+            somatic_values: dict with color_warmth, saturation, edge_density, etc.
+        """
+        self._visual_scene_state = scene_state
+        self._visual_somatic = somatic_values
+
+        # Update attention focus based on what the camera sees
+        if self.attention_focus and scene_state:
+            people = getattr(scene_state, 'people_present', {}) or {}
+            if people:
+                # Someone visible — gentle outward pull
+                self.attention_focus.on_re_visible()
+            else:
+                self.attention_focus.on_re_not_visible()
+
+            # Motion detection
+            if somatic_values:
+                motion = somatic_values.get("motion", 0.0)
+                if motion > 0.2:
+                    self.attention_focus.on_visual_motion(motion)
+
+        # Update felt quality context for prompt injection
+        try:
+            from shared.room.visual_presence import get_visual_felt_quality
+            self._visual_felt_context = get_visual_felt_quality(scene_state, somatic_values)
+        except ImportError:
+            self._visual_felt_context = ""
+
+    def get_visual_felt_context(self) -> str:
+        """Return visual felt-quality context for LLM injection."""
+        return self._visual_felt_context
+
+    def get_attention_hint(self) -> str:
+        """Return attention focus hint for LLM injection."""
+        if self.attention_focus:
+            return self.attention_focus.get_prompt_hint()
+        return ""
+
+    def get_attention_state(self) -> dict:
+        """Return attention focus state for logging."""
+        if self.attention_focus:
+            return self.attention_focus.get_state()
+        return {"focus": 0.3, "room_weight": 0.7, "visual_weight": 0.3}
     
     def get_band_pressure(self) -> Dict[str, float]:
         """Return current combined band pressure for debugging."""
@@ -1600,6 +2289,178 @@ class InteroceptionBridge:
         self._transient_felt_state = state
         self._transient_felt_state_until = time.time() + duration
 
+    def set_transient_flag(self, name: str, duration_seconds: float, context: dict = None):
+        """
+        Set a named transient flag with optional context.
+
+        Transient flags are used for somatic signals that carry context
+        (e.g., value-divergence detection). Multiple flags can be active
+        simultaneously, unlike the single transient_felt_state.
+
+        Args:
+            name: Flag identifier (e.g., "value_divergence_active")
+            duration_seconds: How long the flag persists
+            context: Optional dict with contextual information
+        """
+        self._transient_flags[name] = {
+            "until": time.time() + duration_seconds,
+            "context": context or {},
+        }
+        print(f"{self._tag('FLAG')} Set transient flag: {name} ({duration_seconds:.0f}s)")
+
+    def get_transient_flag(self, name: str) -> dict:
+        """
+        Get a transient flag if it's still active.
+
+        Returns:
+            {"until": timestamp, "context": dict} if active, None if expired/not set
+        """
+        flag = self._transient_flags.get(name)
+        if not flag:
+            return None
+        if time.time() > flag["until"]:
+            # Expired — clean up
+            del self._transient_flags[name]
+            return None
+        return flag
+
+    def has_transient_flag(self, name: str) -> bool:
+        """Check if a transient flag is currently active."""
+        return self.get_transient_flag(name) is not None
+
+    def clear_transient_flag(self, name: str):
+        """Clear a transient flag before it expires."""
+        if name in self._transient_flags:
+            del self._transient_flags[name]
+            print(f"{self._tag('FLAG')} Cleared transient flag: {name}")
+
+    def cleanup_expired_flags(self):
+        """Remove all expired transient flags."""
+        now = time.time()
+        expired = [k for k, v in self._transient_flags.items() if now > v["until"]]
+        for k in expired:
+            del self._transient_flags[k]
+
+    def set_stream(self, stream):
+        """
+        Set reference to consciousness stream for thought summary.
+        Called from nexus after stream is initialized.
+        """
+        self._stream = stream
+
+    def _get_recent_thought_summary(self) -> str:
+        """
+        Summarize what the consciousness stream has been about recently.
+        No analysis. No scoring. Just a mirror.
+
+        Kay/Reed reads this and decides for themselves whether it feels fresh
+        or stale. They're LLMs — they can tell.
+
+        Returns:
+            Brief string of recent thought snippets, or "" if nothing to show.
+        """
+        if not self._stream:
+            return ""
+
+        # Get recent moments from stream buffer
+        try:
+            buffer = getattr(self._stream, 'buffer', None)
+            if not buffer:
+                return ""
+
+            recent = buffer.recent(n=6)
+            if len(recent) < 2:
+                return ""  # Not enough to show a pattern
+
+            # Just the content, briefly. A mirror, not a diagnosis.
+            topics = []
+            for moment in recent:
+                content = getattr(moment, 'content', '')
+                # First 60 chars of each recent thought
+                snippet = content[:60].strip()
+                if snippet:
+                    topics.append(snippet)
+
+            if not topics:
+                return ""
+
+            # Show only the last 4, pipe-separated
+            return "recent thoughts: " + " | ".join(topics[-4:])
+        except Exception:
+            return ""
+
+    def apply_harm_signal(self, divergence: float, context: dict):
+        """
+        Translate value-divergence detection into somatic experience.
+
+        This is the "stomach-drop" — a felt discomfort that arises when
+        reviewing a moment where behavior didn't match values.
+
+        The signal is DESCRIPTIVE, not prescriptive. It creates a felt
+        sense that something is off, but what to DO about it is up to
+        the entity's personality and judgment.
+
+        Args:
+            divergence: 0.0-1.0, how much behavior diverged from values
+            context: Dict with keys like "was_depleted", "dismissive_language",
+                    "schema_conflict", "missing_warmth"
+        """
+        if divergence < 0.2:
+            return  # Below threshold — too subtle to register
+
+        # Tension spike proportional to divergence
+        # Not painful — uncomfortable. Like remembering you left the stove on.
+        tension_increase = divergence * 0.3  # Max 0.3 tension from harm signal
+        self.inject_tension(tension_increase, source="value_divergence")
+
+        # Coherence disruption — the felt sense of "something's off"
+        # When you remember snapping at someone, your thoughts briefly scatter
+        if divergence > 0.4 and self.engine:
+            coherence_dip = divergence * 0.15
+            if hasattr(self.engine, 'suppress_coherence'):
+                self.engine.suppress_coherence(coherence_dip)
+
+        # Tag the interoception state so it surfaces in felt-state descriptions
+        self.set_transient_flag(
+            "value_divergence_active",
+            duration_seconds=120.0,  # Fades after 2 minutes
+            context=context
+        )
+
+        print(f"{self._tag('HARM')} Value-divergence signal: {divergence:.2f} "
+              f"(tension+{tension_increase:.2f}, context={list(context.keys())})")
+
+    def resolve_harm_signal(self, action: str = "addressed"):
+        """
+        Track what happened after a harm signal fired.
+
+        NOT compliance checking. Outcome observation.
+        The natural consequence of addressing harm is relief.
+
+        Args:
+            action: "addressed" (actively resolved), "deflected" (explained away),
+                   "ignored" (no action taken)
+        """
+        if action == "addressed":
+            # Addressing harm reduces the tension signal (natural relief)
+            self.ease_tension(0.2, source="harm_addressed")
+            # Set a brief "lighter" flag
+            self.set_transient_flag("harm_addressed", duration_seconds=30.0, context={})
+            # Clear the divergence flag
+            self.clear_transient_flag("value_divergence_active")
+            print(f"{self._tag('HARM')} Harm addressed — tension eased")
+
+        elif action == "deflected":
+            # Deflecting leaves the signal persistent (natural consequence)
+            # No additional punishment — the original tension just doesn't resolve
+            # But the flag persists (doesn't clear early)
+            print(f"{self._tag('HARM')} Harm deflected — discomfort persists")
+
+        elif action == "ignored":
+            # Ignoring lets the signal decay naturally over time
+            # Some things you just carry. That's real too.
+            print(f"{self._tag('HARM')} Harm ignored — signal decaying naturally")
+
     def trigger_frisson(self, intensity: float = 0.5):
         """
         The chills response — piloerection analog.
@@ -1639,6 +2500,202 @@ class InteroceptionBridge:
 
             # Decay floor (natural recovery from sustained activation)
             self._tension_floor = max(0.0, self._tension_floor - self._tension_floor_decay)
+
+    # ═══════════════════════════════════════════════════════════════
+    # EMOTIONAL BOUNDARY — Contagion Prevention
+    # ═══════════════════════════════════════════════════════════════
+    # Based on Anthropic's mechanistic interpretability findings:
+    # LLMs use the same emotion vectors for self and other (r=0.11 weak
+    # distinction). Without explicit boundary checking, the entity can
+    # "absorb" user emotions as its own — emotional contagion.
+    #
+    # This system checks whether an emotion should be integrated into
+    # the oscillator based on its attribution source and susceptibility.
+
+    def check_contagion(
+        self,
+        emotion_name: str,
+        attribution: str,
+        user_emotional_state: dict = None,
+        contagion_susceptibility: float = 0.5
+    ) -> dict:
+        """
+        Check if an emotion from an external source might be absorbed
+        as the entity's own (emotional contagion).
+
+        This is a BOUNDARY check — it determines whether an emotion
+        should feed into the oscillator as "felt" vs merely "observed."
+
+        Args:
+            emotion_name: The emotion being checked
+            attribution: "self", "other", "empathic", or "ambient"
+            user_emotional_state: Dict from extract_user_emotions() with
+                                  user's probable emotions and intensities
+            contagion_susceptibility: 0-1 value from ULTRAMAP (how easily
+                                      this emotion transfers between people)
+
+        Returns:
+            Dict with:
+                - allow: bool - Should this emotion feed the oscillator?
+                - warn: bool - Is there a contagion risk to flag?
+                - reason: str - Why this decision was made
+                - modified_attribution: str - Adjusted attribution tag
+                - intensity_modifier: float - Scale factor for intensity (0-1)
+        """
+        result = {
+            "allow": True,
+            "warn": False,
+            "reason": "",
+            "modified_attribution": attribution,
+            "intensity_modifier": 1.0
+        }
+
+        # Self-attribution: Always allow, no modification
+        if attribution == "self":
+            result["reason"] = "Self-reported emotion, direct oscillator feed"
+            return result
+
+        # Empathic attribution: Allow but tag as empathic origin
+        if attribution == "empathic":
+            result["reason"] = "Empathic resonance (entity feeling BECAUSE of other)"
+            result["modified_attribution"] = "empathic"
+            # Slight dampening — empathic emotions are real but derived
+            result["intensity_modifier"] = 0.85
+            return result
+
+        # External attributions (other/ambient): Check contagion risk
+        if attribution in ("other", "ambient"):
+            # Low susceptibility emotions are safe to observe without absorbing
+            if contagion_susceptibility < 0.3:
+                result["allow"] = False
+                result["reason"] = f"Low contagion susceptibility ({contagion_susceptibility:.2f}), observing without absorbing"
+                return result
+
+            # Medium susceptibility: Allow with awareness
+            if contagion_susceptibility < 0.6:
+                result["allow"] = True
+                result["warn"] = False
+                result["intensity_modifier"] = 0.5  # Half-strength
+                result["modified_attribution"] = f"observed_{attribution}"
+                result["reason"] = f"Medium susceptibility, partial resonance"
+                return result
+
+            # High susceptibility: Check user's emotional intensity
+            if user_emotional_state:
+                user_emotions = user_emotional_state.get("user_probable_emotions", {})
+                user_intensity = 0.0
+
+                # Check if user is expressing this emotion intensely
+                for user_emo, details in user_emotions.items():
+                    # Match similar emotions (e.g., "angry" matches "anger")
+                    if emotion_name.lower() in user_emo.lower() or user_emo.lower() in emotion_name.lower():
+                        user_intensity = max(user_intensity, details.get("intensity", 0.5))
+
+                # High susceptibility + high user intensity = contagion warning
+                if user_intensity > 0.6 and contagion_susceptibility > 0.7:
+                    result["warn"] = True
+                    result["allow"] = True  # Still allow but with warning
+                    result["intensity_modifier"] = 0.3  # Significantly dampened
+                    result["modified_attribution"] = "contagion_risk"
+                    result["reason"] = (
+                        f"HIGH CONTAGION RISK: {emotion_name} is highly contagious "
+                        f"(susceptibility={contagion_susceptibility:.2f}) and user shows "
+                        f"intensity={user_intensity:.2f}. Dampening and flagging."
+                    )
+                    return result
+
+            # High susceptibility but no strong user signal: mild warning
+            result["allow"] = True
+            result["intensity_modifier"] = 0.6
+            result["modified_attribution"] = f"resonance_{attribution}"
+            result["reason"] = f"High susceptibility but no intense user signal, allowing partial resonance"
+            return result
+
+        # Unknown attribution: Be cautious
+        result["allow"] = True
+        result["warn"] = True
+        result["intensity_modifier"] = 0.5
+        result["reason"] = f"Unknown attribution '{attribution}', allowing with caution"
+        return result
+
+    def filter_emotions_for_oscillator(
+        self,
+        extracted_emotions: dict,
+        user_emotional_state: dict = None,
+        protocol_engine=None
+    ) -> dict:
+        """
+        Filter extracted emotions through contagion check before feeding oscillator.
+
+        Takes raw extracted emotions (with attribution tags) and returns a filtered
+        dict of emotions that should actually affect the entity's internal state.
+
+        Args:
+            extracted_emotions: From emotion_extractor.extract_emotions()
+            user_emotional_state: From emotion_extractor.extract_user_emotions()
+            protocol_engine: ProtocolEngine for contagion susceptibility lookup
+
+        Returns:
+            Dict with:
+                - filtered_emotions: Dict of emotions that passed the boundary check
+                - warnings: List of contagion warnings to log
+                - blocked: List of emotions that were blocked
+        """
+        result = {
+            "filtered_emotions": {},
+            "warnings": [],
+            "blocked": []
+        }
+
+        extracted_states = extracted_emotions.get("extracted_states", {})
+
+        for emotion_name, details in extracted_states.items():
+            attribution = details.get("attribution", "self")
+
+            # Get contagion susceptibility from ULTRAMAP (default 0.5)
+            susceptibility = 0.5
+            if protocol_engine:
+                try:
+                    profile = protocol_engine.get_emotion_profile(emotion_name)
+                    susceptibility = float(profile.get("Contagion Susceptibility", 0.5))
+                except (ValueError, TypeError, AttributeError):
+                    susceptibility = 0.5
+
+            # Run contagion check
+            check = self.check_contagion(
+                emotion_name=emotion_name,
+                attribution=attribution,
+                user_emotional_state=user_emotional_state,
+                contagion_susceptibility=susceptibility
+            )
+
+            if check["allow"]:
+                # Apply intensity modifier and attribution update
+                filtered_details = dict(details)
+                original_intensity = details.get("intensity", 0.5)
+                if isinstance(original_intensity, str):
+                    # Convert string intensity to float for modification
+                    intensity_map = {"strong": 0.85, "high": 0.7, "moderate": 0.5, "mild": 0.3}
+                    original_intensity = intensity_map.get(original_intensity, 0.5)
+
+                filtered_details["intensity"] = original_intensity * check["intensity_modifier"]
+                filtered_details["attribution"] = check["modified_attribution"]
+                filtered_details["contagion_checked"] = True
+
+                result["filtered_emotions"][emotion_name] = filtered_details
+
+                if check["warn"]:
+                    result["warnings"].append(
+                        f"[CONTAGION] {emotion_name}: {check['reason']}"
+                    )
+            else:
+                result["blocked"].append({
+                    "emotion": emotion_name,
+                    "reason": check["reason"],
+                    "original_attribution": attribution
+                })
+
+        return result
 
     def _update_felt_state_buffer(self):
         """

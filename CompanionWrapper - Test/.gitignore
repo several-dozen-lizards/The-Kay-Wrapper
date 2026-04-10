@@ -1,0 +1,58 @@
+# Environment and secrets
+.env
+*.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Runtime data directories
+memory/
+sessions/
+saved_sessions/
+chronicle/
+data/
+state/
+logs/
+
+# Database
+chroma_db/
+*.db
+*.sqlite
+
+# Media files (generated)
+*.mp3
+*.wav
+*.ogg
+
+# Windows artifacts
+nul
+pip
+Thumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude Code
+.claude/
+
+# Git
+.git/
+
+# Backups and temp
+*.backup*
+*.bak
+temp_*
+deprecated/
+fixes/
+
+# OS files
+.DS_Store

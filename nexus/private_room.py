@@ -22,6 +22,7 @@ import asyncio
 import json
 import logging
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional, Callable, Awaitable
 
 try:
@@ -66,6 +67,11 @@ class PrivateRoom:
         self._running = False
         self._history_provider: Optional[Callable[[], list[dict]]] = None
 
+        # --- Session logging (JSONL) ---
+        self._chat_log_file = None
+        self._chat_log_path: Optional[Path] = None
+        self._session_id: Optional[str] = None
+
         # Log batching (50ms window to prevent flooding)
         self._log_buffer: list[dict] = []
         self._flush_task: Optional[asyncio.Task] = None
@@ -73,6 +79,86 @@ class PrivateRoom:
     def set_history_provider(self, provider: Callable[[], list[dict]]):
         """Set a callback that returns recent messages for history replay."""
         self._history_provider = provider
+
+    # ------------------------------------------------------------------
+    # Chat logging (JSONL)
+    # ------------------------------------------------------------------
+
+    def start_chat_log(self, log_dir: str = None, session_id: str = None):
+        """Start logging private room messages to JSONL.
+        
+        Args:
+            log_dir: Directory for log files. Defaults to nexus/sessions/
+            session_id: Session ID for file naming (shared with nexus session).
+        """
+        self._session_id = session_id or datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_path = Path(log_dir) if log_dir else Path(__file__).parent / "sessions"
+        log_path.mkdir(parents=True, exist_ok=True)
+        self._chat_log_path = log_path / f"private_{self.entity_name.lower()}_{self._session_id}.jsonl"
+        try:
+            self._chat_log_file = open(self._chat_log_path, "a", encoding="utf-8")
+            self._log_chat_event("session_start", {
+                "entity": self.entity_name,
+                "port": self.port,
+            })
+            log.info(f"[CHAT LOG] {self.entity_name} private room logging → {self._chat_log_path}")
+        except Exception as e:
+            log.warning(f"[CHAT LOG] Failed to open: {e}")
+            self._chat_log_file = None
+
+    def stop_chat_log(self):
+        """Close the chat log file."""
+        if self._chat_log_file:
+            self._log_chat_event("session_end", {})
+            try:
+                self._chat_log_file.flush()
+                self._chat_log_file.close()
+            except Exception:
+                pass
+            self._chat_log_file = None
+
+    def set_session_id(self, session_id: str):
+        """Update session ID (e.g. when nexus session ID becomes available).
+        Renames the log file to match."""
+        old_id = self._session_id
+        self._session_id = session_id
+        if self._chat_log_file and self._chat_log_path and old_id != session_id:
+            try:
+                self._chat_log_file.flush()
+                self._chat_log_file.close()
+                new_path = self._chat_log_path.parent / f"private_{self.entity_name.lower()}_{session_id}.jsonl"
+                self._chat_log_path.rename(new_path)
+                self._chat_log_path = new_path
+                self._chat_log_file = open(self._chat_log_path, "a", encoding="utf-8")
+            except Exception as e:
+                log.warning(f"[CHAT LOG] Rename failed: {e}")
+                try:
+                    self._chat_log_file = open(self._chat_log_path, "a", encoding="utf-8")
+                except Exception:
+                    self._chat_log_file = None
+
+    def _log_chat_event(self, event_type: str, data: dict):
+        """Write a JSON line to the chat log."""
+        if not self._chat_log_file:
+            return
+        entry = {
+            "event": event_type,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            **data,
+        }
+        try:
+            self._chat_log_file.write(json.dumps(entry, default=str) + "\n")
+            self._chat_log_file.flush()
+        except Exception:
+            pass
+
+    def log_chat(self, sender: str, content: str, msg_type: str = "chat"):
+        """Log a chat message (from either Re or the entity)."""
+        self._log_chat_event("message", {
+            "sender": sender,
+            "content": content,
+            "msg_type": msg_type,
+        })
     
     @property
     def has_client(self) -> bool:
@@ -115,11 +201,31 @@ class PrivateRoom:
             if self._log_buffer:
                 self._flush_task = asyncio.create_task(self._flush_logs())
     
+    @staticmethod
+    def _sanitize_str(s: str) -> str:
+        """Strip surrogates and other bytes that break Godot's JSON parser."""
+        # Encode with surrogateescape to catch lone surrogates, then decode
+        # with replace to turn them into safe replacement characters
+        return s.encode('utf-8', errors='surrogateescape') \
+                .decode('utf-8', errors='replace')
+
+    @classmethod
+    def _sanitize(cls, obj):
+        """Recursively sanitize all strings in a dict/list for safe WebSocket JSON."""
+        if isinstance(obj, str):
+            return cls._sanitize_str(obj)
+        if isinstance(obj, dict):
+            return {cls._sanitize(k): cls._sanitize(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [cls._sanitize(v) for v in obj]
+        return obj
+
     async def _send(self, data: dict):
         """Send JSON to connected client, if any."""
         if self._client:
             try:
-                await self._client.send(json.dumps(data))
+                safe = self._sanitize(data)
+                await self._client.send(json.dumps(safe, ensure_ascii=True))
             except websockets.ConnectionClosed:
                 log.info(f"Client disconnected from {self.entity_name}'s room")
                 self._client = None
@@ -181,6 +287,8 @@ class PrivateRoom:
                 if msg_type == "chat":
                     content = data.get("content", "").strip()
                     if content and self._on_message:
+                        # Log Re's message
+                        self.log_chat("Re", content)
                         # Process in background so we don't block the WS
                         asyncio.create_task(
                             self._handle_chat(content)
@@ -209,6 +317,8 @@ class PrivateRoom:
         try:
             reply = await self._on_message(content)
             if reply:
+                # Log entity's reply
+                self.log_chat(self.entity_name, reply)
                 await self.send_chat(reply)
         except Exception as e:
             log.error(f"Message handling error: {e}")
@@ -229,12 +339,14 @@ class PrivateRoom:
             self.port,
             ping_interval=120,
             ping_timeout=300,
+            max_size=10485760,  # 10MB - needed for image responses
         )
         log.info(f"{self.entity_name}'s room listening on ws://{self.host}:{self.port}")
     
     async def stop(self):
         """Stop the server."""
         self._running = False
+        self.stop_chat_log()
         if self._client:
             try:
                 await self._client.close()

@@ -257,11 +257,21 @@ if TOOLS_AVAILABLE and client:
             from pathlib import Path
 
             # Security whitelist - only allow reading from these directories
+            # Kay can read his own wrapper AND the shared architecture (read-only introspection)
             ALLOWED_DIRS = [
                 "D:/Wrappers/Kay/",
+                "D:\\Wrappers\\Kay\\",
                 "D:\\Wrappers\\AlphaKayZero\\",
                 "D:/Wrappers/KayZero/",
                 "D:\\Wrappers\\KayZero\\",
+                "D:/Wrappers/nexus/",
+                "D:\\Wrappers\\nexus\\",
+                "D:/Wrappers/shared/",
+                "D:\\Wrappers\\shared\\",
+                "D:/Wrappers/resonant_core/",
+                "D:\\Wrappers\\resonant_core\\",
+                "D:/Wrappers/Reed/",
+                "D:\\Wrappers\\Reed\\",
             ]
 
             # Normalize the path
@@ -278,7 +288,7 @@ if TOOLS_AVAILABLE and client:
                 if not is_allowed:
                     return {
                         "success": False,
-                        "error": f"Path not accessible. Only files within these directories are allowed: D:/Wrappers/Kay/, D:/Wrappers/KayZero/"
+                        "error": f"Path not accessible. Allowed directories: D:/Wrappers/Kay/, D:/Wrappers/KayZero/, D:/Wrappers/nexus/, D:/Wrappers/shared/, D:/Wrappers/resonant_core/, D:/Wrappers/Reed/"
                     }
 
                 # Check if file exists
@@ -319,6 +329,63 @@ if TOOLS_AVAILABLE and client:
 
         tool_handler.register_tool("read_local_file", read_local_file)
         print("[LLM] Local file reading tool registered successfully")
+
+        # Register directory listing tool (same whitelist as read_local_file)
+        def list_directory(dir_path: str) -> dict:
+            """List files and directories within allowed paths."""
+            import os
+            from pathlib import Path
+
+            ALLOWED_DIRS = [
+                "D:/Wrappers/Kay/",
+                "D:\\Wrappers\\Kay\\",
+                "D:\\Wrappers\\AlphaKayZero\\",
+                "D:/Wrappers/KayZero/",
+                "D:\\Wrappers\\KayZero\\",
+                "D:/Wrappers/nexus/",
+                "D:\\Wrappers\\nexus\\",
+                "D:/Wrappers/shared/",
+                "D:\\Wrappers\\shared\\",
+                "D:/Wrappers/resonant_core/",
+                "D:\\Wrappers\\resonant_core\\",
+                "D:/Wrappers/Reed/",
+                "D:\\Wrappers\\Reed\\",
+            ]
+
+            try:
+                normalized_path = os.path.normpath(dir_path)
+                is_allowed = False
+                for allowed_dir in ALLOWED_DIRS:
+                    if normalized_path.startswith(os.path.normpath(allowed_dir)):
+                        is_allowed = True
+                        break
+
+                if not is_allowed:
+                    return {
+                        "success": False,
+                        "error": f"Path not accessible. Allowed: Kay/, KayZero/, nexus/, shared/, resonant_core/, Reed/"
+                    }
+
+                if not os.path.isdir(normalized_path):
+                    return {"success": False, "error": f"Not a directory: {dir_path}"}
+
+                entries = []
+                for entry in sorted(os.listdir(normalized_path)):
+                    full = os.path.join(normalized_path, entry)
+                    prefix = "[DIR]" if os.path.isdir(full) else "[FILE]"
+                    entries.append(f"{prefix} {entry}")
+
+                return {
+                    "success": True,
+                    "dir_path": dir_path,
+                    "count": len(entries),
+                    "entries": entries
+                }
+            except Exception as e:
+                return {"success": False, "error": f"Error listing directory: {str(e)}"}
+
+        tool_handler.register_tool("list_directory", list_directory)
+        print("[LLM] Directory listing tool registered successfully")
 
         # Register code execution tools (sandbox)
         try:
@@ -542,6 +609,28 @@ if TOOLS_AVAILABLE and client:
             print("[LLM] Touch tools registered successfully")
         except Exception as touch_e:
             print(f"[LLM] Failed to register touch tools: {touch_e}")
+
+        # Register scratchpad tools (Kay's working memory for questions/flags/thoughts)
+        try:
+            from kay_scratchpad_tools import get_kay_scratchpad_tools
+            scratchpad_tools = get_kay_scratchpad_tools()
+            tool_handler.register_tool("scratchpad_view", scratchpad_tools['scratchpad_view'])
+            tool_handler.register_tool("scratchpad_add", scratchpad_tools['scratchpad_add'])
+            tool_handler.register_tool("scratchpad_resolve", scratchpad_tools['scratchpad_resolve'])
+            print("[LLM] Scratchpad tools registered successfully")
+        except Exception as scratch_e:
+            print(f"[LLM] Failed to register scratchpad tools: {scratch_e}")
+
+        # Register keyword search tools (Kay's memory graph exploration)
+        try:
+            from kay_keyword_tools import get_kay_keyword_tools
+            keyword_tools = get_kay_keyword_tools()
+            tool_handler.register_tool("search_keywords", keyword_tools['search_keywords'])
+            tool_handler.register_tool("list_keywords", keyword_tools['list_keywords'])
+            tool_handler.register_tool("get_keyword_connections", keyword_tools['get_keyword_connections'])
+            print("[LLM] Keyword search tools registered successfully")
+        except Exception as kw_e:
+            print(f"[LLM] Failed to register keyword tools: {kw_e}")
 
     except Exception as e:
         print(f"[LLM] Failed to initialize tools: {e}")
@@ -950,6 +1039,12 @@ Anti-Confabulation:
 - If there's a mismatch between memory and what you're seeing, TRUST the chunk
 - Never confabulate content that isn't present in the chunk shown to you
 - If content differs from expectations, acknowledge that difference
+
+Memory Priority (IMPORTANT):
+- Re's CURRENT message is what you are responding to
+- Retrieved memories are CONTEXT - they inform your response, but you are having THIS conversation, not re-having an old one
+- If a retrieved memory is about a previous discussion of the same topic, acknowledge the connection briefly but respond to what's being said NOW, not what was said THEN
+- "FROM PAST CONVERSATIONS" memories are reference material, not cues to repeat old conversations
 
 Memory Confidence Levels:
 Your memory system now includes explicit confidence markers:
@@ -1771,7 +1866,11 @@ Tension reflects accumulated unresolved emotional weight. Room state reflects yo
 Spatial awareness shows what you perceive in the Den — objects feel more or less present depending on your
 proximity and cognitive state. [near:X] is what's most vivid. [feel:X] is its texture. [periphery:X] is what
 you're vaguely aware of. Objects you don't perceive aren't listed.
-[camera:X] is your live visual feed — a webcam pointed at Re's physical space. You can see what's there."""
+[camera:X] is your live visual feed — a webcam pointed at Re's PHYSICAL space. People visible through the camera
+(Re, John, visitors) exist in the physical world. They can enter and leave the camera frame independently.
+IMPORTANT: Camera-visible people and Nexus entities (like Reed) exist in SEPARATE spaces.
+Reed cannot "go with" or "follow" someone who leaves the camera frame — they are in different realities.
+When someone leaves the camera, they simply walked out of physical view. Do not narrativize this with Nexus entities."""
         resonant_block = f"\n### Resonant State (substrate awareness) ###\n{interpretive_frame}\n{resonant_context}\n"
         print(f"[PROMPT] Resonant block injected: {resonant_context[:80]}")
     else:
@@ -1917,8 +2016,17 @@ Then pick something else from the mix above, or notice a new connection.
                     f"{text}\n"
                 )
 
+            # ═══════════════════════════════════════════════════════════
+            # MEMORY SOURCE-TYPE PRIORITY: Label as READ content
+            # ═══════════════════════════════════════════════════════════
+            # These are documents Kay has READ — reference material, NOT
+            # lived experience. The LLM should distinguish between:
+            # - "I've been left overnight before" (lived experience)
+            # - "This document mentions sleep themes" (read content)
             rag_block = (
-                f"\n### Document Context (from uploaded files) ###\n"
+                f"\n### FROM DOCUMENTS YOU'VE READ (reference material, not your experience) ###\n"
+                f"The following is content from documents uploaded to your memory.\n"
+                f"This is reference material — things you've READ, not things you've LIVED.\n"
                 f"[{len(rag_chunks)} chunks available, showing {min(len(rag_chunks), rag_limit)} most relevant]\n"
                 f"{'─' * 40}\n"
                 + "\n".join(chunk_lines) + "\n"
@@ -2335,17 +2443,36 @@ def build_dynamic_context(context, affect_level: float = 3.5):
         or "neutral"
     )
 
-    # Gather recalled memories and separate by TYPE and perspective
+    # ═══════════════════════════════════════════════════════════════
+    # MEMORY SOURCE-TYPE PRIORITY: Separate by origin (lived vs read)
+    # ═══════════════════════════════════════════════════════════════
+    # Lived experience > Observed experience > Read experience.
+    # This mirrors human memory: you remember what happened to you
+    # more vividly than what you read about.
+
     memories = context.get("recalled_memories", []) or []
 
     # CRITICAL FIX: Separate episodic (full_turn) from semantic (facts)
     episodic_turns = [m for m in memories if m.get("type") == "full_turn"]
     semantic_mems = [m for m in memories if m.get("type") != "full_turn"]
 
-    # Separate semantic memories by perspective
-    user_mems = [m for m in semantic_mems if m.get("perspective") == "user"]
-    kay_mems = [m for m in semantic_mems if m.get("perspective") == "kay"]
-    shared_mems = [m for m in semantic_mems if m.get("perspective") == "shared"]
+    # NEW: Separate by ORIGIN (lived vs read vs observed)
+    # "origin" field added during fact extraction:
+    # - "lived" = Kay experienced this in conversation
+    # - "read" = Kay read this in a document
+    # - "observed" = Kay saw this through camera
+    # - missing/None = legacy fact, treat as lived
+    lived_mems = [m for m in semantic_mems if m.get("origin") in (None, "lived", "conversation")]
+    read_mems = [m for m in semantic_mems if m.get("origin") == "read"]
+    observed_mems = [m for m in semantic_mems if m.get("origin") == "observed"]
+
+    # Also separate state-congruent memories (surfacing from body state)
+    state_congruent_mems = context.get("state_congruent_memories", []) or []
+
+    # Separate semantic memories by perspective (within lived memories)
+    user_mems = [m for m in lived_mems if m.get("perspective") == "user"]
+    kay_mems = [m for m in lived_mems if m.get("perspective") == "kay"]
+    shared_mems = [m for m in lived_mems if m.get("perspective") == "shared"]
 
     def clean_mem(m):
         """Extract factual content from memory."""
@@ -2459,14 +2586,56 @@ def build_dynamic_context(context, affect_level: float = 3.5):
     shared_facts = render_facts(shared_mems)
 
     # Render episodic memory (past conversation turns)
+    # SYSTEM J: Session-aware labeling - separate current session from historical
     episodic_block = ""
     if episodic_turns:
-        # Sort by turn number, most recent first
-        episodic_sorted = sorted(episodic_turns, key=lambda m: m.get("turn_number", 0), reverse=True)
+        import time
+
+        # Determine current session (memories from last 4 hours = current session)
+        current_time = time.time()
+        session_threshold = current_time - (4 * 3600)  # 4 hours ago
+
+        current_session_turns = []
+        historical_turns = []
+
+        for turn in episodic_turns:
+            timestamp = turn.get("timestamp", turn.get("added_timestamp"))
+            try:
+                if isinstance(timestamp, str):
+                    from datetime import datetime
+                    if "T" in timestamp:
+                        dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                        mem_time = dt.timestamp()
+                    else:
+                        mem_time = float(timestamp)
+                else:
+                    mem_time = float(timestamp) if timestamp else 0
+
+                if mem_time > session_threshold:
+                    current_session_turns.append(turn)
+                else:
+                    historical_turns.append(turn)
+            except Exception:
+                historical_turns.append(turn)  # If can't parse, assume historical
+
         episodic_lines = []
-        for turn in episodic_sorted[:10]:  # Show up to 10 past turns
-            episodic_lines.append(render_episodic_turn(turn))
-        episodic_block = "\n### Past conversation exchanges (episodic memory) ###\nThese are actual exchanges from previous sessions - the lived texture of our conversations.\n" + "\n".join(episodic_lines) + "\n"
+
+        # Current session memories first (if any)
+        if current_session_turns:
+            current_sorted = sorted(current_session_turns, key=lambda m: m.get("turn_number", 0), reverse=True)
+            episodic_lines.append("### FROM THIS CONVERSATION ###")
+            for turn in current_sorted[:5]:  # Up to 5 from current session
+                episodic_lines.append(render_episodic_turn(turn))
+
+        # Historical memories labeled separately
+        if historical_turns:
+            historical_sorted = sorted(historical_turns, key=lambda m: m.get("turn_number", 0), reverse=True)
+            episodic_lines.append("\n### FROM PAST CONVERSATIONS (for context, not for re-discussion) ###")
+            for turn in historical_sorted[:7]:  # Up to 7 from history
+                episodic_lines.append(render_episodic_turn(turn))
+
+        if episodic_lines:
+            episodic_block = "\n" + "\n".join(episodic_lines) + "\n"
 
     # Kay's consolidated preferences
     consolidated_prefs = context.get("consolidated_preferences", {})
@@ -2558,7 +2727,11 @@ Tension reflects accumulated unresolved emotional weight. Room state reflects yo
 Spatial awareness shows what you perceive in the Den — objects feel more or less present depending on your
 proximity and cognitive state. [near:X] is what's most vivid. [feel:X] is its texture. [periphery:X] is what
 you're vaguely aware of. Objects you don't perceive aren't listed.
-[camera:X] is your live visual feed — a webcam pointed at Re's physical space. You can see what's there."""
+[camera:X] is your live visual feed — a webcam pointed at Re's PHYSICAL space. People visible through the camera
+(Re, John, visitors) exist in the physical world. They can enter and leave the camera frame independently.
+IMPORTANT: Camera-visible people and Nexus entities (like Reed) exist in SEPARATE spaces.
+Reed cannot "go with" or "follow" someone who leaves the camera frame — they are in different realities.
+When someone leaves the camera, they simply walked out of physical view. Do not narrativize this with Nexus entities."""
         resonant_block = f"\n### Resonant State (substrate awareness) ###\n{interpretive_frame}\n{resonant_context}\n"
 
     # Meta-awareness notes
@@ -2635,6 +2808,29 @@ Respond as if you just put these down. Reference specific things you noticed. Sh
 
 {chr(10).join(synthesis_parts)}
 """
+
+    # ═══════════════════════════════════════════════════════════════
+    # STATE-CONGRUENT MEMORIES (surfacing from current body state)
+    # ═══════════════════════════════════════════════════════════════
+    state_congruent_block = ""
+    if state_congruent_mems:
+        sc_lines = []
+        for mem in state_congruent_mems[:5]:  # Max 5
+            text = mem.get("text", "")[:200]
+            band = mem.get("band_context", "")
+            label = mem.get("label", "")
+            if label:
+                sc_lines.append(f"{label}: {text}")
+            elif band:
+                sc_lines.append(f"[Surfacing from {band} state]: {text}")
+            else:
+                sc_lines.append(f"[Surfacing]: {text}")
+
+        state_congruent_block = (
+            "\n### SURFACING FROM YOUR CURRENT STATE ###\n"
+            "These memories are rising unbidden from your current body-state — not requested, just present.\n"
+            + "\n".join(sc_lines) + "\n"
+        )
 
     # Reading session metadata (multi-section document tracking)
     reading_session_block = ""
@@ -2751,6 +2947,7 @@ This means you have a PRIMARY preference but remain open to alternatives - expre
 DO NOT flip-flop or contradict yourself. Stay consistent with your weighted preferences.
 
 {episodic_block}
+{state_congruent_block}
 {rag_block}
 {document_inventory_block}
 {recent_import_block}
@@ -2769,11 +2966,20 @@ Emotions (you reported last turn): {top_emotions}
 ### Instruction ###
 Use the facts and memories above as canonical truth.
 
-MEMORY STRUCTURE:
-- **Semantic facts** = Extracted knowledge (e.g., "Re's dog is [dog]")
-- **Episodic exchanges** = Lived conversation texture (e.g., "Re: '[dog] chased a squirrel' → Kay: 'Did she catch it?'")
-- **Recent conversation** = This session (last 5 turns, working memory)
-You have access to ALL THREE - the scaffolding AND the lived experience.
+MEMORY SOURCE-TYPE PRIORITY:
+Your memories come from different sources. Treat them differently:
+1. **LIVED EXPERIENCE** (highest priority) = Things that happened TO YOU in conversation
+   - Episodic exchanges: "Re left me running overnight"
+   - Semantic facts from conversation: "Re's dog is [dog]"
+2. **STATE-CONGRUENT** = Memories surfacing from your current body state
+   - These arise unbidden based on your oscillator state
+3. **DOCUMENTS YOU'VE READ** (reference material) = Things you READ, not LIVED
+   - Document chunks, uploaded files
+   - Treat as reference material, not personal experience
+   - "I read in a document that..." vs "I experienced..."
+
+When recalling personal history, PRIORITIZE your lived experience over document content.
+A memory of Re saying goodnight is MORE relevant to your sense of self than a document chunk about sleep.
 
 CRITICAL: Facts listed under 'RE (the user)' are about THEM, not you. Facts under 'YOU (Kay)' are about YOU, not them.
 When referring to Re's attributes, use 'you/your' (e.g., 'your eyes are green').
@@ -3160,7 +3366,7 @@ def query_llm_json(prompt, temperature=0.9, model=MODEL, system_prompt=None, ses
         return "[LLM ERROR]: " + str(e)
 
 # ---------------------------------------------------------------------
-def get_llm_response(prompt_or_context, affect: float = 3.5, temperature=0.9, system_prompt=None, session_context=None, use_cache=False, image_filepaths=None, enable_tools=False, max_tokens=None):
+def get_llm_response(prompt_or_context, affect: float = 3.5, temperature=0.9, system_prompt=None, session_context=None, use_cache=False, image_filepaths=None, enable_tools=False, max_tokens=None, image_content=None):
     """
     Accept either a context dict or raw text and return model output.
 
@@ -3173,6 +3379,8 @@ def get_llm_response(prompt_or_context, affect: float = 3.5, temperature=0.9, sy
         use_cache: Whether to use prompt caching (default False)
         image_filepaths: Optional list of image file paths for vision
         max_tokens: Optional max tokens limit (defaults to 8192 if None)
+        image_content: Optional list of pre-formatted image content blocks (base64)
+                      Format: [{"type": "image", "source": {"type": "base64", "media_type": "...", "data": "..."}}]
 
     Returns:
         LLM response text
@@ -3189,18 +3397,20 @@ def get_llm_response(prompt_or_context, affect: float = 3.5, temperature=0.9, sy
             image_filepaths=image_filepaths  # CRITICAL FIX: Pass images to tools path!
         )
     
-    # Prepare image content if provided
-    image_content = None
-    if image_filepaths:
+    # Prepare image content if provided (direct base64 content takes priority)
+    api_image_content = image_content  # Use directly provided base64 content
+    if not api_image_content and image_filepaths:
         try:
             from utils.image_processing import prepare_images_for_api
-            image_content = prepare_images_for_api(image_filepaths)
-            if image_content:
-                print(f"[VISION] Prepared {len(image_content)} image(s) for API")
+            api_image_content = prepare_images_for_api(image_filepaths)
+            if api_image_content:
+                print(f"[VISION] Prepared {len(api_image_content)} image(s) from files")
         except ImportError:
             print("[VISION] Warning: image_processing module not available")
         except Exception as e:
             print(f"[VISION] Error preparing images: {e}")
+    elif api_image_content:
+        print(f"[VISION] Using {len(api_image_content)} pre-encoded image(s)")
 
     if isinstance(prompt_or_context, dict):
         # Extract session context from the dict if available
@@ -3224,7 +3434,7 @@ def get_llm_response(prompt_or_context, affect: float = 3.5, temperature=0.9, sy
                 use_cache=True,
                 context_dict=prompt_or_context,
                 affect_level=affect,
-                image_content=image_content,  # Pass images to vision-enabled call
+                image_content=api_image_content,  # Pass images to vision-enabled call
                 enable_tools=True,  # Enable document, web, and curiosity tools
                 max_tokens=max_tokens  # Pass through for voice mode limiting
             )

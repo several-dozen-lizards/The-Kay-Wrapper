@@ -20,6 +20,15 @@ from typing import Dict, List, Tuple, Optional, Any
 log = logging.getLogger("curator")
 
 
+def _get_mem_type(mem: Dict) -> str:
+    """Get memory type, checking both 'type' and 'memory_type' fields.
+
+    BUGFIX: Memories are stored with 'type' but curator was looking for 'memory_type'.
+    This caused 3,521 memories to appear untyped (NONE) during curation.
+    """
+    return mem.get("type", mem.get("memory_type", "NONE"))
+
+
 # ═══════════════════════════════════════════════════════════════
 # Curation prompt — structured for ollama (dolphin-mistral:7b)
 # ═══════════════════════════════════════════════════════════════
@@ -115,7 +124,10 @@ class MemoryCurator:
         self._last_curation_time: float = 0
         self._last_contradiction_time: float = 0
         self._cycles_completed: int = 0
-        
+
+        # Oscillator state for timing curation (System G)
+        self._osc_state: dict = None
+
         # Load persisted state
         self._load_state()
         
@@ -197,7 +209,7 @@ class MemoryCurator:
             return [m for m, _ in batch], "corrected"
         
         # Priority 2: Old, low-importance facts
-        facts = [(m, mid) for m, mid in unreviewed if m.get("memory_type") == "extracted_fact"]
+        facts = [(m, mid) for m, mid in unreviewed if _get_mem_type(m) == "extracted_fact"]
         if facts:
             # Sort by age (oldest first), then importance (lowest first)
             facts.sort(key=lambda x: (
@@ -209,7 +221,7 @@ class MemoryCurator:
             return [m for m, _ in batch], f"old_facts/{cat}"
         
         # Priority 3: Old episodic turns
-        turns = [(m, mid) for m, mid in unreviewed if m.get("memory_type") == "full_turn"]
+        turns = [(m, mid) for m, mid in unreviewed if _get_mem_type(m) == "full_turn"]
         if turns:
             turns.sort(key=lambda x: x[0].get("added_timestamp", "9999"))
             batch = turns[:self.batch_size]
@@ -219,7 +231,7 @@ class MemoryCurator:
         if unreviewed:
             types_found = {}
             for m, mid in unreviewed:
-                t = m.get("memory_type", "NONE")
+                t = _get_mem_type(m)
                 types_found[t] = types_found.get(t, 0) + 1
             log.info(f"[CURATOR] No facts/turns found. Memory types present: {types_found}")
             # Just pick oldest unreviewed regardless of type
@@ -232,11 +244,49 @@ class MemoryCurator:
     # ------------------------------------------------------------------
     # Core curation cycle
     # ------------------------------------------------------------------
-    
+
+    def set_oscillator_state(self, osc_state: dict):
+        """Set oscillator state for curation timing (System G).
+
+        Args:
+            osc_state: Dict with keys: band, sleep
+        """
+        self._osc_state = osc_state
+
     def ready_for_cycle(self) -> bool:
-        """Check if enough time has passed for another curation cycle."""
-        return (time.time() - self._last_curation_time) >= self.cooldown
-    
+        """Check if enough time has passed AND oscillator state allows curation.
+
+        System G: Curation timing based on oscillator band
+        - Allow curation during alpha/theta (receptive states)
+        - Defer during beta/gamma (focused states)
+        - Minimal during delta/sleep (only if forced)
+        """
+        # Time check first
+        if (time.time() - self._last_curation_time) < self.cooldown:
+            return False
+
+        # Oscillator gating (System G)
+        if self._osc_state:
+            band = self._osc_state.get("band", "alpha")
+            sleep = self._osc_state.get("sleep", 0)
+
+            # During sleep: defer full curation
+            if sleep >= 2:  # SLEEPING or DEEP_SLEEP
+                log.debug("[CURATOR] Deferred: sleep state")
+                return False
+
+            # During beta/gamma: defer to preserve focus
+            if band in ("beta", "gamma"):
+                log.debug(f"[CURATOR] Deferred: {band} band (focused)")
+                return False
+
+            # Delta: minimal curation only (reduce batch size elsewhere)
+            # Alpha/theta: ideal curation times
+            if band in ("alpha", "theta"):
+                log.debug(f"[CURATOR] Ready: {band} band (receptive)")
+
+        return True
+
     def ready_for_contradiction_resolution(self) -> bool:
         """Check if enough time has passed for contradiction work."""
         return (time.time() - self._last_contradiction_time) >= (self.cooldown * 2)
@@ -354,16 +404,17 @@ class MemoryCurator:
         return reviewed / len(all_mems)
 
     async def run_full_sweep(self, sweep_batch_size: int = 50,
-                              progress_fn=None) -> Dict:
+                              progress_fn=None, dolphin_only: bool = False) -> Dict:
         """
         Review ALL unreviewed memories in bulk.
         
-        Uses Sonnet directly (skip_triage=True), no cooldown between batches.
-        Stops when 100% coverage reached.
+        Uses Sonnet directly (skip_triage=True) by default.
+        Set dolphin_only=True for overnight sweeps to avoid API costs.
         
         Args:
-            sweep_batch_size: Memories per Sonnet call (default 50)
+            sweep_batch_size: Memories per call (default 50)
             progress_fn: Optional async callback(msg: str) for progress updates
+            dolphin_only: If True, use Ollama/Dolphin instead of Sonnet (free, overnight mode)
             
         Returns:
             Total results across all batches.
@@ -385,8 +436,9 @@ class MemoryCurator:
         if progress_fn:
             reviewed_count = int(coverage * all_count)
             remaining = all_count - reviewed_count
+            mode = "dolphin (free)" if dolphin_only else "Sonnet"
             await progress_fn(
-                f"🧹 Starting full sweep: {remaining} unreviewed of {all_count} total "
+                f"🧹 Starting full sweep ({mode}): {remaining} unreviewed of {all_count} total "
                 f"(~{(remaining + sweep_batch_size - 1) // sweep_batch_size} batches)"
             )
         
@@ -417,7 +469,10 @@ class MemoryCurator:
                 )
                 
                 try:
-                    decisions = await self._review_fn(prompt)
+                    if dolphin_only:
+                        decisions = await self._call_ollama(prompt)
+                    else:
+                        decisions = await self._review_fn(prompt)
                     if not decisions:
                         log.warning(f"[SWEEP] Batch {total['batches']+1} got no decisions, stopping")
                         total["status"] = "llm_failed"
@@ -496,7 +551,7 @@ class MemoryCurator:
         # Determine category for logging
         types = {}
         for m, _ in batch:
-            t = m.get("memory_type", "NONE")
+            t = _get_mem_type(m)
             types[t] = types.get(t, 0) + 1
         top_type = max(types, key=types.get) if types else "unknown"
         
@@ -514,7 +569,7 @@ class MemoryCurator:
             else:
                 display = str(content)[:250]
             
-            mtype = mem.get("memory_type", "?")
+            mtype = _get_mem_type(mem) if _get_mem_type(mem) != "NONE" else "?"
             ts = mem.get("added_timestamp", "?")[:10]
             importance = mem.get("importance_score", 0)
             
@@ -553,50 +608,65 @@ class MemoryCurator:
         return overrides
 
     def _format_batch(self, batch: List[Dict]) -> str:
-        """Format a batch of memories for the curation prompt."""
+        """Format a batch of memories for the curation prompt.
+
+        COST FIX: Truncate memory content to 150 chars each to prevent
+        context overflow that causes empty LLM responses and JSON parse failures.
+        """
         lines = []
+        MAX_CONTENT = 150  # Increased from 100 for better context
+
         for i, mem in enumerate(batch):
             # Handle multiple memory formats (old and new)
             display = ""
-            
+
             # New format: content dict with user/response
             content = mem.get("content", "")
             if isinstance(content, dict):
-                user = content.get("user", "")[:200]
-                resp = content.get("response", "")[:200]
-                display = f"[Turn] Re: {user} → Kay: {resp}"
+                user = str(content.get("user", ""))[:MAX_CONTENT]
+                resp = str(content.get("response", ""))[:MAX_CONTENT]
+                if user or resp:
+                    display = f"[Turn] Re: {user} → Kay: {resp}"
             elif content and isinstance(content, str):
-                display = content[:300]
-            
-            # Old format: user_input + response at top level
+                display = content[:MAX_CONTENT]
+
+            # Try individual fields if no display yet
             if not display:
-                user_input = mem.get("user_input", "")
-                response = mem.get("response", "")
-                fact = mem.get("fact", "")
-                text = mem.get("text", "")
-                
-                if fact:
-                    display = f"[Fact] {str(fact)[:300]}"
-                elif user_input:
-                    ui = str(user_input)[:200]
-                    r = str(response)[:200] if response else "(no response stored)"
-                    display = f"[Turn] Input: {ui} → Response: {r}"
-                elif text:
-                    display = str(text)[:300]
+                for field in ["fact", "user_input", "text", "response",
+                              "compressed", "notes", "summary"]:
+                    val = mem.get(field, "")
+                    if val and isinstance(val, str) and len(val.strip()) > 5:
+                        display = f"[{field}] {val[:MAX_CONTENT]}"
+                        break
+
+            # Last resort: stringify remaining fields minus metadata
+            if not display:
+                skip_keys = {"added_timestamp", "importance_score",
+                            "memory_type", "category", "curated",
+                            "curated_at", "curation_note", "is_bedrock",
+                            "age", "access_count", "id", "doc_id"}
+                text_parts = []
+                for k, v in mem.items():
+                    if k not in skip_keys and v and isinstance(v, str):
+                        text_parts.append(f"{k}: {v[:60]}")
+                if text_parts:
+                    display = " | ".join(text_parts[:3])[:MAX_CONTENT]
                 else:
-                    display = "(empty memory)"
-            
+                    display = "(genuinely empty memory — safe to DISCARD)"
+
             # Get type from either field
-            mtype = mem.get("memory_type", mem.get("type", "?"))
+            mtype = _get_mem_type(mem) if _get_mem_type(mem) != "NONE" else "?"
             ts = mem.get("added_timestamp", "?")[:10]
             importance = mem.get("importance_score", 0)
+            if not isinstance(importance, (int, float)):
+                importance = 0
             cat = mem.get("category", "")
             bedrock = " ★BEDROCK" if mem.get("is_bedrock") else ""
-            
-            lines.append(f"[{i}] ({mtype}, {ts}, importance={importance:.2f}{bedrock}, cat={cat})")
-            lines.append(f"    {display}")
+
+            lines.append(f"[{i}] ({mtype}, {ts}, imp={importance:.2f}{bedrock}, cat={cat})")
+            lines.append(f"    Content: {display}")
             lines.append("")
-        
+
         return "\n".join(lines)
     
     async def _call_ollama(self, prompt: str) -> Optional[List[Dict]]:
@@ -668,7 +738,7 @@ class MemoryCurator:
                     
                 elif action == "COMPRESS":
                     compressed_text = decision.get("compressed", "")
-                    if compressed_text and mem.get("memory_type") == "extracted_fact":
+                    if compressed_text and _get_mem_type(mem) == "extracted_fact":
                         # Replace content with compressed version
                         if isinstance(mem.get("content"), str):
                             mem["content"] = compressed_text

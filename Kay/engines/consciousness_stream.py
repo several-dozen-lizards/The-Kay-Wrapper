@@ -15,9 +15,9 @@ Four tiers of awareness:
   Tier 4: CONVERSATION — existing turn loop (unchanged)
 
 Sleep state machine:
-  AWAKE → DROWSY → SLEEPING → DEEP_SLEEP
+  AWAKE → DROWSY → NREM ⇄ REM → DEEP_REST
   Any user input → AWAKE (instant)
-  Major body event → AWAKE (from SLEEPING or higher)
+  Major body event → AWAKE (from NREM or higher)
 
 Author: Re & Reed
 Date: March 2026
@@ -46,6 +46,15 @@ except ImportError:
     METACOG_AVAILABLE = False
     print(f"{etag('STREAM')} MetacognitiveMonitor not available")
 
+# Anti-rumination deduplication (optional — fails gracefully)
+try:
+    from shared.anti_rumination import deduplicate_stream_moments, extract_keywords
+    DEDUP_AVAILABLE = True
+except ImportError:
+    DEDUP_AVAILABLE = False
+    deduplicate_stream_moments = None
+    extract_keywords = None
+
 
 # ═══════════════════════════════════════════════════════════════
 # STREAM STATE — Sleep/Wake Machine
@@ -53,13 +62,18 @@ except ImportError:
 
 class StreamState(IntEnum):
     """
-    Sleep states. Higher = deeper sleep.
-    Comparisons like `state >= SLEEPING` work naturally.
+    Sleep states with NREM/REM cycling.
+
+    AWAKE → DROWSY → NREM ↔ REM → DEEP_REST
+
+    The system cycles between NREM (consolidation) and REM (association)
+    driven by pressure accumulators, not fixed timers.
     """
-    AWAKE = 0       # All tiers active
-    DROWSY = 1      # Tier 1+2 only, no reflections
-    SLEEPING = 2    # Tier 1 only, longer intervals
-    DEEP_SLEEP = 3  # Body only, no generation
+    AWAKE = 0       # All tiers active, full responsiveness
+    DROWSY = 1      # Winding down, activity reduced, transition state
+    NREM = 2        # Consolidation phase: curation, schemas, memory organization
+    REM = 3         # Associative phase: cross-referencing, emotional integration, dreams
+    DEEP_REST = 4   # Minimal processing, very long idle (replaces DEEP_SLEEP)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -134,15 +148,32 @@ class StreamBuffer:
         with self._lock:
             return len(self._moments)
 
-    def get_summary(self, max_moments: int = 8, since: float = None) -> str:
+    def get_summary(
+        self,
+        max_moments: int = 8,
+        since: float = None,
+        dedup_threshold: float = 0.6
+    ) -> str:
         """
         Format stream moments for injection into LLM context.
 
         Returns a human-readable summary of recent inner experience.
         Prioritizes higher tiers and more recent moments.
+
+        Args:
+            max_moments: Maximum moments to include
+            since: Only include moments after this timestamp
+            dedup_threshold: Keyword overlap threshold for deduplication (0.1-0.6)
+                            Lower = more aggressive dedup (used by groove detector)
+                            Get from groove_detector.get_stream_suppression_strength()
         """
         with self._lock:
             candidates = list(self._moments)
+
+        # BUGFIX: Filter out moments older than 30 minutes to prevent stale content
+        # Old moments like "lemon and steel" were persisting across sessions
+        cutoff = time.time() - 1800  # 30 minutes
+        candidates = [m for m in candidates if m.timestamp > cutoff]
 
         if since:
             candidates = [m for m in candidates if m.timestamp > since]
@@ -152,7 +183,18 @@ class StreamBuffer:
 
         # Sort: higher tier first, then most recent
         candidates.sort(key=lambda m: (m.tier, m.timestamp), reverse=True)
-        selected = candidates[:max_moments]
+
+        # Apply groove-driven deduplication if available
+        if DEDUP_AVAILABLE and deduplicate_stream_moments is not None:
+            selected = deduplicate_stream_moments(
+                moments=candidates,
+                content_extractor=lambda m: m.content,
+                max_moments=max_moments,
+                overlap_threshold=dedup_threshold
+            )
+        else:
+            selected = candidates[:max_moments]
+
         # Re-sort chronologically for display
         selected.sort(key=lambda m: m.timestamp)
 
@@ -201,15 +243,16 @@ class ConsciousnessStream:
 
     # ── Sleep transition timers (seconds) ──
     DROWSY_AFTER = 1800.0               # 30 min no input → DROWSY
-    SLEEP_AFTER = 3600.0                # 1 hr no input → SLEEPING
-    DEEP_SLEEP_AFTER = 10800.0          # 3 hr no input → DEEP_SLEEP
+    NREM_AFTER = 3600.0                 # 1 hr no input → NREM (first sleep cycle entry)
+    DEEP_REST_AFTER = 10800.0           # 3 hr no input → DEEP_REST
 
     # ── Interval multipliers per sleep state ──
     INTERVAL_SCALE = {
         StreamState.AWAKE: 1.0,
         StreamState.DROWSY: 2.0,
-        StreamState.SLEEPING: 4.0,
-        StreamState.DEEP_SLEEP: float('inf'),  # No generation
+        StreamState.NREM: 4.0,
+        StreamState.REM: 3.0,       # REM is slightly more active than NREM
+        StreamState.DEEP_REST: float('inf'),  # No generation
     }
 
     # ── Change detection thresholds ──
@@ -256,6 +299,20 @@ class ConsciousnessStream:
         self._last_body: Optional[Dict] = None
         self._accumulated_changes: List[BodyChange] = []
 
+        # ══════════════════════════════════════════════════════════════
+        # SLEEP PRESSURE ACCUMULATORS (build during AWAKE, drain during sleep)
+        # ══════════════════════════════════════════════════════════════
+        # consolidation_pressure: stuff that needs organizing (new memories, facts)
+        self._consolidation_pressure = 0.0
+        # associative_pressure: stuff that needs connecting (unlinked memories, emotions)
+        self._associative_pressure = 0.0
+        # emotional_pressure: feelings that need processing (accumulated intensity)
+        self._emotional_pressure = 0.0
+
+        # Cycle tracking
+        self._sleep_cycle_count = 0
+        self._current_phase_start = 0.0  # When current NREM/REM phase began
+
         # Interest accumulator — drives organic initiation
         # Builds from real events, decays over time
         self._interest = 0.0
@@ -280,6 +337,10 @@ class ConsciousnessStream:
                 entity_name=entity_name,
                 memory_path=memory_dir,
             )
+
+        # Groove detector reference (for dynamic dedup threshold)
+        # Set via set_groove_detector() from nexus
+        self._groove_detector = None
 
         print(f"{etag('STREAM')} Consciousness stream created for {entity_name}")
 
@@ -310,6 +371,13 @@ class ConsciousnessStream:
         """
         self._reflection_fn = fn
 
+    def set_groove_detector(self, detector):
+        """
+        Set the groove detector reference for dynamic dedup threshold.
+        Called from nexus after both stream and groove detector are initialized.
+        """
+        self._groove_detector = detector
+
     def inject_experience(self, content: str, source: str = "external"):
         """
         Inject an external experience into the stream buffer.
@@ -335,36 +403,80 @@ class ConsciousnessStream:
         if self.state != StreamState.AWAKE:
             prev = self.state
             self.state = StreamState.AWAKE
-            self._apply_throttle(0)  # Reset all sensors to full speed
+            self._current_phase_start = 0  # Reset phase tracking
+            self._apply_throttle(StreamState.AWAKE)  # Reset all sensors to full speed
             print(f"{etag('STREAM')} Wake: {prev.name} -> AWAKE (user input)")
 
-    def notify_external_event(self, event_type: str, detail: str = ""):
+    def notify_external_event(self, event_type: str, detail: str = "", importance: float = 0.5):
         """
         Call on significant external events (nexus message, room change, etc.)
-        Wakes from SLEEPING or lighter. Does NOT wake from DEEP_SLEEP.
+
+        SLEEP-AWARE GATING:
+        - Spatial events (room_change, spatial_move, spatial_explore) NEVER wake from sleep
+        - During DEEP_REST: ONLY user_input wakes
+        - During NREM/REM: only user_input and nexus_message wake
+        - DROWSY or AWAKE: any event can shift state
         """
-        if self.state <= StreamState.SLEEPING:
+        # Spatial events NEVER wake from sleep — don't add stimulation to rest
+        if event_type in ("room_change", "spatial_move", "spatial_explore"):
+            if self.state >= StreamState.DROWSY:
+                return  # Don't wake for spatial events during rest
+
+        # During DEEP_REST: ONLY user_input wakes
+        if self.state >= StreamState.DEEP_REST:
+            if event_type != "user_input":
+                return
+
+        # During NREM/REM: only user_input and nexus_message wake
+        if self.state >= StreamState.NREM:
+            if event_type not in ("user_input", "nexus_message"):
+                return
+
+        # DROWSY or AWAKE: wake from any remaining event types
+        if self.state <= StreamState.REM:
             if self.state > StreamState.AWAKE:
                 prev = self.state
                 self.state = StreamState.AWAKE
-                self._apply_throttle(0)  # Reset all sensors to full speed
+                self._current_phase_start = 0  # Reset phase tracking
+                self._apply_throttle(StreamState.AWAKE)  # Reset all sensors to full speed
                 print(f"{etag('STREAM')} Wake: {prev.name} -> AWAKE ({event_type})")
         self._last_significant_change = time.time()
 
-    def get_injection_context(self, since_timestamp: float = None) -> str:
+    def get_injection_context(
+        self,
+        since_timestamp: float = None,
+        dedup_threshold: float = None
+    ) -> str:
         """
         Get stream context for injection into the next LLM turn.
 
         Args:
             since_timestamp: Only include moments after this time.
                              If None, uses last 8 moments.
+            dedup_threshold: Keyword overlap threshold for deduplication (0.1-0.6)
+                            If None, auto-fetches from groove detector when available.
+                            Lower = more aggressive dedup when groove detected.
 
         Returns:
             Formatted string for prompt injection, or "" if nothing to report.
         """
+        # Auto-fetch threshold from groove detector when available
+        if dedup_threshold is None:
+            if self._groove_detector is not None:
+                try:
+                    dedup_threshold = self._groove_detector.get_stream_suppression_strength()
+                except Exception:
+                    dedup_threshold = 0.6
+            else:
+                dedup_threshold = 0.6  # Normal threshold
+
         if since_timestamp:
-            return self.buffer.get_summary(max_moments=8, since=since_timestamp)
-        return self.buffer.get_summary(max_moments=8)
+            return self.buffer.get_summary(
+                max_moments=8,
+                since=since_timestamp,
+                dedup_threshold=dedup_threshold
+            )
+        return self.buffer.get_summary(max_moments=8, dedup_threshold=dedup_threshold)
 
     # ── Interest tracking (drives organic speech) ──
 
@@ -387,7 +499,7 @@ class ConsciousnessStream:
         Called by the idle loop. Returns True if Kay has enough
         accumulated interest to speak, and enough time has passed
         since his last organic comment.
-        
+
         Consuming: resets interest on True so he doesn't repeat.
         """
         now = time.time()
@@ -401,6 +513,59 @@ class ConsciousnessStream:
             self._last_organic_speech = now
             return True
 
+    # ── Sleep pressure accumulators ──
+
+    def feed_consolidation_pressure(self, amount: float, source: str = ""):
+        """
+        Called when new memories/facts are stored.
+        Builds during AWAKE/DROWSY, drives NREM processing.
+        ~50 memories = pressure at 1.0
+        """
+        self._consolidation_pressure = min(1.0, self._consolidation_pressure + amount)
+        if source:
+            print(f"{etag('PRESSURE')} consolidation +{amount:.3f} ({source}) -> {self._consolidation_pressure:.2f}")
+
+    def feed_associative_pressure(self, amount: float, source: str = ""):
+        """
+        Called when memories lack cross-references, or emotions need integration.
+        Memories without co-activation links add pressure.
+        High-emotion memories that haven't been replayed add pressure.
+        """
+        self._associative_pressure = min(1.0, self._associative_pressure + amount)
+        if source:
+            print(f"{etag('PRESSURE')} associative +{amount:.3f} ({source}) -> {self._associative_pressure:.2f}")
+
+    def feed_emotional_pressure(self, amount: float, source: str = ""):
+        """
+        Called from emotion accumulator when emotional intensity is high.
+        High-valence conversations leave residue that needs integration.
+        """
+        self._emotional_pressure = min(1.0, self._emotional_pressure + amount)
+        if source:
+            print(f"{etag('PRESSURE')} emotional +{amount:.3f} ({source}) -> {self._emotional_pressure:.2f}")
+
+    def drain_consolidation(self, amount: float, source: str = ""):
+        """Drain consolidation pressure during NREM processing."""
+        self._consolidation_pressure = max(0.0, self._consolidation_pressure - amount)
+
+    def drain_associative(self, amount: float, source: str = ""):
+        """Drain associative pressure during REM processing."""
+        self._associative_pressure = max(0.0, self._associative_pressure - amount)
+
+    def drain_emotional(self, amount: float, source: str = ""):
+        """Drain emotional pressure during REM processing."""
+        self._emotional_pressure = max(0.0, self._emotional_pressure - amount)
+
+    def get_sleep_pressures(self) -> Dict[str, float]:
+        """Get current sleep pressure values for debugging/UI."""
+        return {
+            "consolidation": self._consolidation_pressure,
+            "associative": self._associative_pressure,
+            "emotional": self._emotional_pressure,
+            "cycle": self._sleep_cycle_count,
+            "phase_duration": time.time() - self._current_phase_start if self._current_phase_start else 0,
+        }
+
     # ── Main loop ──
 
     def _stream_loop(self):
@@ -412,11 +577,13 @@ class ConsciousnessStream:
                 print(f"{etag('STREAM')} Tick error: {e}")
 
             # Sleep interval scales with sleep state
-            if self.state >= StreamState.DEEP_SLEEP:
-                time.sleep(30.0)  # 30s ticks in deep sleep
-            elif self.state >= StreamState.SLEEPING:
-                time.sleep(15.0)  # 15s ticks while sleeping
-            elif self.state >= StreamState.DROWSY:
+            if self.state == StreamState.DEEP_REST:
+                time.sleep(30.0)  # 30s ticks in deep rest
+            elif self.state == StreamState.NREM:
+                time.sleep(15.0)  # 15s ticks during NREM
+            elif self.state == StreamState.REM:
+                time.sleep(10.0)  # 10s ticks during REM (more active)
+            elif self.state == StreamState.DROWSY:
                 time.sleep(10.0)  # 10s ticks while drowsy
             else:
                 time.sleep(self.DEFAULT_TICK_INTERVAL)  # Normal speed when awake
@@ -523,7 +690,7 @@ class ConsciousnessStream:
 
                 # Apply protective amplification to disruption values
                 if protective_multiplier > 1.0 and protected_entity:
-                    print(f"[CONNECTION:PROTECT] Threat involving {protected_entity} "
+                    print(f"[CONNECTION:ATTUNE] Heightened awareness: {protected_entity} involved "
                           f"(bond={conn.get_connection(protected_entity):.2f}) "
                           f"→ {protective_multiplier:.1f}x response")
 
@@ -638,11 +805,11 @@ class ConsciousnessStream:
             except Exception:
                 pass  # Non-fatal, don't spam logs
 
-        # If deep sleep and nothing changed, skip entirely
-        if self.state >= StreamState.DEEP_SLEEP:
+        # If deep rest and nothing changed, skip entirely
+        if self.state >= StreamState.DEEP_REST:
             return
 
-        if not changes and self.state >= StreamState.SLEEPING:
+        if not changes and self.state >= StreamState.NREM:
             return  # Nothing happening, stay quiet
 
         # ── Interest decay (every tick) ──
@@ -718,48 +885,125 @@ class ConsciousnessStream:
                     ))
                     self._last_reflection = now
 
-    # ── Sleep state machine ──
+    # ── Sleep state machine with NREM/REM cycling ──
 
     def _update_sleep_state(self, now: float):
-        """Transition sleep states based on inactivity."""
+        """
+        Transition sleep states with NREM/REM cycling.
+
+        AWAKE → DROWSY: 30 min idle (unchanged)
+        DROWSY → NREM: 1 hr idle, begins cycling
+        NREM ↔ REM: Driven by pressure accumulators, not timers
+        → DEEP_REST: 6+ hours idle AND all pressures low
+        """
         idle = now - self._last_user_input
         change_idle = now - self._last_significant_change
+        phase_duration = now - self._current_phase_start if self._current_phase_start else 0
 
         if self.state == StreamState.AWAKE:
             if idle > self.DROWSY_AFTER and change_idle > self.DROWSY_AFTER / 2:
                 self.state = StreamState.DROWSY
-                self._apply_throttle(1)
+                self._current_phase_start = now
+                self._apply_throttle(StreamState.DROWSY)
                 print(f"{etag('STREAM')} {self.entity} -> DROWSY ({idle/60:.0f}min idle)")
 
         elif self.state == StreamState.DROWSY:
-            if idle > self.SLEEP_AFTER:
-                self.state = StreamState.SLEEPING
-                self._apply_throttle(2)
-                print(f"{etag('STREAM')} {self.entity} -> SLEEPING ({idle/60:.0f}min idle)")
+            if idle > self.NREM_AFTER:
+                # Enter first NREM phase
+                self.state = StreamState.NREM
+                self._current_phase_start = now
+                self._sleep_cycle_count = 1
+                self._apply_throttle(StreamState.NREM)
+                print(f"{etag('STREAM')} {self.entity} -> NREM cycle 1 "
+                      f"(consolidation={self._consolidation_pressure:.2f}, "
+                      f"associative={self._associative_pressure:.2f})")
 
-        elif self.state == StreamState.SLEEPING:
-            if idle > self.DEEP_SLEEP_AFTER:
-                self.state = StreamState.DEEP_SLEEP
-                self._apply_throttle(3)
-                print(f"{etag('STREAM')} {self.entity} -> DEEP_SLEEP ({idle/3600:.1f}hr idle)")
+        elif self.state == StreamState.NREM:
+            # Transition to REM when consolidation pressure is low
+            # AND associative pressure is high enough to warrant it
+            should_flip = (
+                (self._consolidation_pressure < 0.3 and self._associative_pressure > 0.2)
+                or phase_duration > 1200  # Fallback: 20 min max in NREM
+            )
+            if should_flip:
+                self.state = StreamState.REM
+                self._current_phase_start = now
+                self._apply_throttle(StreamState.REM)
+                print(f"{etag('STREAM')} {self.entity} -> REM cycle {self._sleep_cycle_count} "
+                      f"(associative={self._associative_pressure:.2f}, "
+                      f"emotional={self._emotional_pressure:.2f})")
 
-    def _apply_throttle(self, sleep_state: int):
-        """Apply throttle settings to sensors based on sleep state."""
-        # Interoception throttle
-        intero_interval = {0: 4, 1: 8, 2: 16, 3: 30}.get(sleep_state, 4)
+        elif self.state == StreamState.REM:
+            # Transition to DEEP_REST if very long idle AND all pressures low
+            if (idle > 21600 and
+                self._consolidation_pressure < 0.1 and
+                self._associative_pressure < 0.1):
+                self.state = StreamState.DEEP_REST
+                self._apply_throttle(StreamState.DEEP_REST)
+                print(f"{etag('STREAM')} {self.entity} -> DEEP_REST "
+                      f"({idle/3600:.1f}hr idle, all pressures low)")
+            else:
+                # Transition back to NREM when associative pressure drained
+                # OR consolidation pressure has rebuilt
+                should_flip = (
+                    (self._associative_pressure < 0.2 and self._consolidation_pressure > 0.2)
+                    or phase_duration > 900  # Fallback: 15 min max in REM
+                )
+                if should_flip:
+                    self.state = StreamState.NREM
+                    self._current_phase_start = now
+                    self._sleep_cycle_count += 1
+                    self._apply_throttle(StreamState.NREM)
+                    print(f"{etag('STREAM')} {self.entity} -> NREM cycle {self._sleep_cycle_count} "
+                          f"(consolidation={self._consolidation_pressure:.2f})")
+
+        elif self.state == StreamState.DEEP_REST:
+            pass  # Stay here until woken by user input
+
+    def _apply_throttle(self, state: StreamState):
+        """
+        Apply throttle settings per sleep phase.
+
+        REM is slightly more active than NREM — body is active during dreams.
+        DEEP_REST is minimal processing.
+        """
+        # Convert to int for sensors that expect it
+        sleep_int = state.value
+
+        # Interoception intervals — REM is slightly more active than NREM
+        intero_interval = {
+            StreamState.AWAKE: 4,
+            StreamState.DROWSY: 8,
+            StreamState.NREM: 16,
+            StreamState.REM: 12,       # Slightly faster than NREM — body is active
+            StreamState.DEEP_REST: 30,
+        }.get(state, 4)
+
         if self.resonance and self.resonance.interoception:
-            self.resonance.interoception.set_sleep_state(sleep_state)
+            self.resonance.interoception.set_sleep_state(sleep_int)
 
-        # Visual sensor throttle
-        vis_interval = {0: 15, 1: 30, 2: 60, 3: 120}.get(sleep_state, 15)
+        # Visual sensor — mostly off during sleep, brief checks in REM
+        vis_interval = {
+            StreamState.AWAKE: 15,
+            StreamState.DROWSY: 30,
+            StreamState.NREM: 120,
+            StreamState.REM: 90,       # Slightly more visual during REM (dream imagery?)
+            StreamState.DEEP_REST: 180,
+        }.get(state, 15)
+
         if self.visual_sensor:
-            self.visual_sensor.set_sleep_state(sleep_state)
+            self.visual_sensor.set_sleep_state(sleep_int)
 
         # Tick interval (informational only — actual interval set in _stream_loop)
-        tick_interval = {0: 5, 1: 10, 2: 15, 3: 30}.get(sleep_state, 5)
+        tick_interval = {
+            StreamState.AWAKE: 5,
+            StreamState.DROWSY: 10,
+            StreamState.NREM: 15,
+            StreamState.REM: 10,       # Faster ticks during REM — more processing
+            StreamState.DEEP_REST: 30,
+        }.get(state, 5)
 
-        state_name = {0: "AWAKE", 1: "DROWSY", 2: "SLEEPING", 3: "DEEP_SLEEP"}.get(sleep_state, "?")
-        print(f"{etag('THROTTLE')} {self.entity} -> {state_name}: "
+        print(f"{etag('THROTTLE')} {self.entity} -> {state.name}: "
               f"interoception={intero_interval}s, visual={vis_interval}s, tick={tick_interval}s")
 
     # ── Body state capture ──
@@ -1122,4 +1366,10 @@ class ConsciousnessStream:
             "accumulated_changes": len(self._accumulated_changes),
             "idle_seconds": time.time() - self._last_user_input,
             "entity": self.entity,
+            # Sleep pressure accumulators
+            "consolidation_pressure": self._consolidation_pressure,
+            "associative_pressure": self._associative_pressure,
+            "emotional_pressure": self._emotional_pressure,
+            "sleep_cycle": self._sleep_cycle_count,
+            "phase_duration": time.time() - self._current_phase_start if self._current_phase_start else 0,
         }

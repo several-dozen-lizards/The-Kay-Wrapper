@@ -8,6 +8,7 @@ class_name EaselPanel
 extends MarginContainer
 
 signal clear_requested(entity: String)
+signal painting_completed(entity: String, base64_png: String)
 
 const SERVER_BASE := "http://127.0.0.1:8765"
 
@@ -219,14 +220,16 @@ func _on_load_response(result: int, code: int, _h: PackedStringArray, body: Pack
 
 func on_canvas_updated(entity: String, base64_png: String, dims: Array, iteration: int) -> void:
 	var selected = _get_selected_entity()
-	if selected.to_lower() != entity.to_lower():
-		return
-	_current_entity = entity
-	_iteration = iteration
-	_dimensions = dims
-	_display_base64(base64_png)
-	_update_info("")
-	_fetch_history(entity)
+	# Update display if this entity is selected
+	if selected.to_lower() == entity.to_lower():
+		_current_entity = entity
+		_iteration = iteration
+		_dimensions = dims
+		_display_base64(base64_png)
+		_update_info("")
+		_fetch_history(entity)
+	# Always emit signal so main.gd can display the painting in chat
+	painting_completed.emit(entity, base64_png)
 
 
 func on_canvas_cleared(entity: String) -> void:

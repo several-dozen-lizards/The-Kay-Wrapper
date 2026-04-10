@@ -122,3 +122,4 @@ screenshot.png
 
 # Godot user data
 nexus/godot-ui/*.uid
+.aider*

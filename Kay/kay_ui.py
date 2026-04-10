@@ -2230,6 +2230,7 @@ Write directly to your next instance."""
                           ("📊 Stats", self.toggle_stats_tab),
                           ("🧠 Auto", self.toggle_autonomous_tab),
                           ("📋 Curate", self.toggle_curation_tab),
+                          ("🐍 Companions", self.toggle_companions_tab),
                           ("⚙ Settings", self.toggle_settings_tab)]:
             btn = ctk.CTkButton(tabs_frame, text=text, command=cmd,
                                font=ctk.CTkFont(family="Courier", size=11),
@@ -5163,6 +5164,228 @@ Write directly to your next instance."""
                     text_color=self.palette.get("muted", "#9B7D54")
                 ).pack(pady=10)
             self.show_panel_on_right("curation", unavailable_panel)
+
+    def toggle_companions_tab(self):
+        """Show companion manager panel on right side."""
+        self.show_panel_on_right("companions", self.create_companions_panel_content)
+
+    def create_companions_panel_content(self, parent):
+        """Companion manager panel content - manage wrapper companions."""
+        from companion_tab import get_wrappers_root, scan_companions
+        import subprocess
+        import sys
+
+        scroll = ctk.CTkScrollableFrame(parent, fg_color="transparent",
+                                        scrollbar_button_color=self.palette["accent"])
+        scroll.pack(fill="both", expand=True)
+
+        wrappers_root = get_wrappers_root()
+
+        # Header
+        header = ctk.CTkLabel(scroll, text="⟨ COMPANIONS ⟩",
+                             font=ctk.CTkFont(family="Courier", size=12, weight="bold"),
+                             text_color=self.palette["accent_hi"])
+        header.pack(pady=(10, 5))
+
+        subtitle = ctk.CTkLabel(scroll,
+                               text=f"Manage wrapper companions  •  {wrappers_root}",
+                               font=ctk.CTkFont(family="Courier", size=9),
+                               text_color=self.palette["muted"])
+        subtitle.pack(pady=(0, 10))
+
+        # === CREATE NEW SECTION ===
+        create_frame = ctk.CTkFrame(scroll, fg_color=self.palette["input"],
+                                   corner_radius=0, border_width=1,
+                                   border_color=self.palette["muted"])
+        create_frame.pack(fill="x", padx=10, pady=(0, 10))
+
+        create_label = ctk.CTkLabel(create_frame, text="Create New Companion",
+                                   font=ctk.CTkFont(family="Courier", size=11, weight="bold"),
+                                   text_color=self.palette["text"])
+        create_label.pack(anchor="w", padx=10, pady=(8, 5))
+
+        # Name input row
+        input_row = ctk.CTkFrame(create_frame, fg_color="transparent")
+        input_row.pack(fill="x", padx=10, pady=(0, 8))
+
+        name_entry = ctk.CTkEntry(input_row, placeholder_text="Companion name...",
+                                 font=ctk.CTkFont(family="Courier", size=11),
+                                 height=30, width=150,
+                                 fg_color=self.palette["panel"],
+                                 border_color=self.palette["muted"])
+        name_entry.pack(side="left", padx=(0, 5))
+
+        status_label = ctk.CTkLabel(create_frame, text="",
+                                   font=ctk.CTkFont(family="Courier", size=9),
+                                   text_color=self.palette["muted"])
+        status_label.pack(anchor="w", padx=10, pady=(0, 8))
+
+        def on_create():
+            name = name_entry.get().strip()
+            if not name:
+                status_label.configure(text="Enter a name first", text_color="orange")
+                return
+            target = wrappers_root / name
+            if target.exists():
+                status_label.configure(text=f"{name} already exists!", text_color="red")
+                return
+
+            status_label.configure(text=f"Creating {name}...", text_color="yellow")
+            scroll.update()
+
+            try:
+                script = str(wrappers_root / "create_companion.py")
+                result = subprocess.run(
+                    [sys.executable, script, name],
+                    cwd=str(wrappers_root),
+                    capture_output=True, text=True, timeout=60
+                )
+                if result.returncode == 0:
+                    status_label.configure(text=f"✓ {name} created!", text_color="green")
+                    refresh_companion_list()
+                else:
+                    err = result.stderr[:100] if result.stderr else "Unknown error"
+                    status_label.configure(text=f"Error: {err}", text_color="red")
+            except Exception as e:
+                status_label.configure(text=f"Error: {str(e)[:50]}", text_color="red")
+
+        create_btn = ctk.CTkButton(input_row, text="Create", command=on_create,
+                                  font=ctk.CTkFont(family="Courier", size=11),
+                                  height=30, width=70,
+                                  fg_color=self.palette["button"],
+                                  hover_color=self.palette["accent"],
+                                  corner_radius=0)
+        create_btn.pack(side="left")
+
+        # === COMPANION LIST ===
+        list_header = ctk.CTkLabel(scroll, text="Existing Companions",
+                                  font=ctk.CTkFont(family="Courier", size=11, weight="bold"),
+                                  text_color=self.palette["text"])
+        list_header.pack(anchor="w", padx=10, pady=(5, 5))
+
+        list_container = ctk.CTkFrame(scroll, fg_color="transparent")
+        list_container.pack(fill="x", padx=5, pady=(0, 5))
+
+        def build_companion_card(card_parent, info):
+            """Build a single companion card widget."""
+            card = ctk.CTkFrame(card_parent, fg_color=self.palette["input"],
+                               corner_radius=0, border_width=1,
+                               border_color=self.palette["muted"])
+            card.pack(fill="x", padx=5, pady=3)
+
+            # Top row: name + status
+            top_row = ctk.CTkFrame(card, fg_color="transparent")
+            top_row.pack(fill="x", padx=8, pady=(6, 2))
+
+            name_label = ctk.CTkLabel(top_row, text=info["display_name"],
+                                     font=ctk.CTkFont(family="Courier", size=11, weight="bold"),
+                                     text_color=self.palette["text"], anchor="w")
+            name_label.pack(side="left")
+
+            # Status indicators
+            indicators = []
+            if info["has_env"]:
+                indicators.append("🔑")
+            if info["has_persona"]:
+                indicators.append("👤")
+            if info["has_memory"]:
+                indicators.append("🧠")
+            if info["configured"]:
+                indicators.append("✓")
+
+            status_text = " ".join(indicators) if indicators else "⚠️"
+            status_lbl = ctk.CTkLabel(top_row, text=status_text,
+                                     font=ctk.CTkFont(family="Courier", size=10),
+                                     text_color=self.palette["muted"])
+            status_lbl.pack(side="right")
+
+            # Info row
+            info_text = f"{info['entity_id']}"
+            if info.get("pronouns"):
+                info_text += f"  •  {info['pronouns']}"
+            info_label = ctk.CTkLabel(card, text=info_text,
+                                     font=ctk.CTkFont(family="Courier", size=9),
+                                     text_color=self.palette["muted"], anchor="w")
+            info_label.pack(anchor="w", padx=8, pady=(0, 3))
+
+            # Button row
+            btn_row = ctk.CTkFrame(card, fg_color="transparent")
+            btn_row.pack(fill="x", padx=8, pady=(0, 6))
+
+            def launch_companion(path=info["path"]):
+                import os
+                try:
+                    launch_bat = os.path.join(path, "launch.bat")
+                    main_py = os.path.join(path, "main.py")
+                    if os.path.exists(launch_bat):
+                        subprocess.Popen(["cmd", "/c", "start", launch_bat], cwd=path)
+                    elif os.path.exists(main_py):
+                        subprocess.Popen(["cmd", "/c", "start", "cmd", "/k",
+                                         sys.executable, main_py], cwd=path)
+                except Exception as e:
+                    print(f"[COMPANIONS] Launch error: {e}")
+
+            def run_wizard(path=info["path"]):
+                import os
+                wizard = os.path.join(path, "setup_wizard.py")
+                if os.path.exists(wizard):
+                    subprocess.Popen(["cmd", "/c", "start", "cmd", "/k",
+                                     sys.executable, wizard], cwd=path)
+
+            def open_folder(path=info["path"]):
+                import os
+                os.startfile(path)
+
+            if info["configured"] and not info["is_template"]:
+                launch_btn = ctk.CTkButton(btn_row, text="▶", width=30, height=24,
+                                          font=ctk.CTkFont(family="Courier", size=10),
+                                          fg_color=self.palette["button"],
+                                          hover_color=self.palette["accent"],
+                                          corner_radius=0, command=launch_companion)
+                launch_btn.pack(side="left", padx=(0, 3))
+
+            import os
+            wizard_path = os.path.join(info["path"], "setup_wizard.py")
+            if os.path.exists(wizard_path):
+                wizard_btn = ctk.CTkButton(btn_row, text="🔧", width=30, height=24,
+                                          font=ctk.CTkFont(family="Courier", size=10),
+                                          fg_color="transparent", border_width=1,
+                                          border_color=self.palette["muted"],
+                                          corner_radius=0, command=run_wizard)
+                wizard_btn.pack(side="left", padx=(0, 3))
+
+            folder_btn = ctk.CTkButton(btn_row, text="📁", width=30, height=24,
+                                      font=ctk.CTkFont(family="Courier", size=10),
+                                      fg_color="transparent", border_width=1,
+                                      border_color=self.palette["muted"],
+                                      corner_radius=0, command=open_folder)
+            folder_btn.pack(side="left")
+
+        def refresh_companion_list():
+            for widget in list_container.winfo_children():
+                widget.destroy()
+
+            companions = scan_companions(wrappers_root)
+            if not companions:
+                empty = ctk.CTkLabel(list_container, text="No companions found",
+                                    font=ctk.CTkFont(family="Courier", size=10),
+                                    text_color=self.palette["muted"])
+                empty.pack(pady=15)
+                return
+
+            for comp in companions:
+                build_companion_card(list_container, comp)
+
+        # Initial population
+        refresh_companion_list()
+
+        # Refresh button
+        refresh_btn = ctk.CTkButton(scroll, text="↻ Refresh", width=80, height=24,
+                                   font=ctk.CTkFont(family="Courier", size=10),
+                                   fg_color="transparent", border_width=1,
+                                   border_color=self.palette["muted"],
+                                   corner_radius=0, command=refresh_companion_list)
+        refresh_btn.pack(anchor="e", padx=10, pady=(5, 10))
 
     # ========================================================================
     # UTILITY METHODS

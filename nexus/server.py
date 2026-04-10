@@ -467,6 +467,12 @@ class ConnectionManager:
     async def broadcast_log(self, entity: str, tag: str, message: str):
         """Broadcast a log message to all connected clients (for dashboard)."""
         import time
+        # Sanitize: strip invalid UTF-8 bytes that crash Godot's JSON parser
+        # (dolphin-mistral/ollama can emit 0xb2, 0xf8, 0x9a etc.)
+        if isinstance(message, str):
+            message = message.encode('utf-8', errors='replace').decode('utf-8')
+        if isinstance(tag, str):
+            tag = tag.encode('utf-8', errors='replace').decode('utf-8')
         data = {
             "type": "log",
             "entity": entity,
@@ -488,7 +494,9 @@ class ConnectionManager:
         if hasattr(self, '_log_buffer') and self._log_buffer:
             batch = self._log_buffer[:50]
             self._log_buffer = self._log_buffer[50:]
-            payload = json.dumps({"type": "log_batch", "logs": batch})
+            # Sanitize all strings to prevent invalid UTF-8 from crashing Godot
+            safe_batch = self._sanitize_for_ws(batch)
+            payload = json.dumps({"type": "log_batch", "logs": safe_batch}, ensure_ascii=True)
             for ws in list(self.active_connections.values()):
                 try:
                     await ws.send_text(payload)
@@ -497,12 +505,24 @@ class ConnectionManager:
             if self._log_buffer:
                 self._log_flush_task = asyncio.ensure_future(self._flush_logs())
 
+    @staticmethod
+    def _sanitize_for_ws(obj):
+        """Recursively strip surrogates/invalid UTF-8 from all strings in a structure."""
+        if isinstance(obj, str):
+            return obj.encode('utf-8', errors='surrogateescape').decode('utf-8', errors='replace')
+        if isinstance(obj, dict):
+            return {ConnectionManager._sanitize_for_ws(k): ConnectionManager._sanitize_for_ws(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [ConnectionManager._sanitize_for_ws(v) for v in obj]
+        return obj
+
 
 # ---------------------------------------------------------------------------
 # FastAPI App
 # ---------------------------------------------------------------------------
 manager = ConnectionManager()
 session_log = SessionLogger()
+session_log.setup_log_capture()  # Capture logs to session .log file
 
 
 # ---------------------------------------------------------------------------
@@ -688,11 +708,18 @@ async def lifespan(app: FastAPI):
     log.info(f"  Session log: {session_log.jsonl_path.name}")
     log.info("=" * 50)
     yield
+    # Finalize session index with participant list
+    participants = list(manager.participants.keys()) if manager.participants else []
+    session_log.finalize_session(participants=participants)
     session_log.log_event("session_end", {"message_count": session_log.message_count})
     log.info(f"Nexus shutting down. {session_log.message_count} messages logged to {session_log.jsonl_path.name}")
 
 
 app = FastAPI(title="Nexus", lifespan=lifespan)
+
+# Mount session viewer endpoints
+from session_viewer import mount_viewer
+mount_viewer(app, session_log)
 
 
 @app.websocket("/ws/{name}")
@@ -816,6 +843,159 @@ async def get_history(count: int = 50):
     return {"messages": recent, "total": len(manager.message_history)}
 
 
+@app.get("/session")
+async def get_session_info():
+    """Return current session metadata for log pairing.
+    
+    Wrappers can hit this after connecting to get the session_id,
+    then name their own log files to match for easy pairing.
+    """
+    return {
+        "session_id": session_log.session_id,
+        "started": session_log.session_start.isoformat(),
+        "message_count": session_log.message_count,
+        "jsonl_path": str(session_log.jsonl_path),
+        "log_path": str(session_log.log_path),
+    }
+
+
+@app.post("/session/register_log")
+async def register_entity_log(request: Request):
+    """Register an entity's terminal log path for session pairing.
+    
+    Body: {"entity": "Kay", "log_path": "D:/Wrappers/Kay/session_logs/kay_20260403_120000.log"}
+    """
+    try:
+        body = await request.json()
+        entity = body.get("entity", "unknown")
+        log_path = body.get("log_path", "")
+        session_log.register_kay_log(log_path)
+        log.info(f"[SESSION] Registered {entity} log: {log_path}")
+        return {"ok": True}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.post("/chat/{entity}/image")
+async def chat_image_upload(entity: str, request: Request):
+    """
+    Upload an image to an entity's chat.
+    Body: {"image_b64": "...", "filename": "photo.png", "message": "optional text"}
+    """
+    try:
+        body = await request.json()
+        image_b64 = body.get("image_b64", "")
+        filename = body.get("filename", "image.png")
+        message = body.get("message", "What do you see?")
+
+        if not image_b64:
+            return {"status": "error", "error": "No image data provided"}
+
+        # Determine media type from filename
+        ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "png"
+        media_types = {
+            "png": "image/png",
+            "jpg": "image/jpeg",
+            "jpeg": "image/jpeg",
+            "gif": "image/gif",
+            "webp": "image/webp",
+        }
+        media_type = media_types.get(ext, "image/png")
+
+        # Check if entity is connected to Nexus
+        entity_name = entity.capitalize()
+        if entity_name in manager.active_connections:
+            # Forward image via WebSocket to the wrapper
+            ws = manager.active_connections[entity_name]
+            await ws.send_json({
+                "event_type": "image_message",
+                "data": {
+                    "image_b64": image_b64,
+                    "filename": filename,
+                    "message": message,
+                    "media_type": media_type,
+                    "from": "Re",
+                }
+            })
+            log.info(f"[IMAGE] Forwarded image ({len(image_b64)//1024}KB) to {entity_name}")
+            return {"status": "ok", "forwarded_to": entity_name}
+        else:
+            # Entity not connected - try to process directly if possible
+            log.warning(f"[IMAGE] {entity_name} not connected to Nexus")
+            return {"status": "error", "error": f"{entity_name} not connected to Nexus"}
+    except Exception as e:
+        log.error(f"[IMAGE] Error processing image upload: {e}")
+        return {"status": "error", "error": str(e)}
+
+
+@app.post("/chat/{entity}/document")
+async def chat_document_upload(entity: str, request: Request):
+    """
+    Upload a document to an entity for import into their memory forest.
+    Body: {"content_b64": "...", "filename": "document.txt"}
+
+    Supported formats: .txt, .md, .json, .pdf, .docx, .csv
+    """
+    import base64
+    import tempfile
+    import os
+
+    try:
+        body = await request.json()
+        content_b64 = body.get("content_b64", "")
+        filename = body.get("filename", "document.txt")
+
+        if not content_b64:
+            return {"status": "error", "error": "No document content provided"}
+
+        # Validate file extension
+        ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+        supported_exts = {"txt", "md", "json", "pdf", "docx", "csv"}
+        if ext not in supported_exts:
+            return {"status": "error", "error": f"Unsupported file type: .{ext}. Supported: {', '.join(supported_exts)}"}
+
+        # Decode and save to temp file
+        try:
+            content = base64.b64decode(content_b64)
+        except Exception as e:
+            return {"status": "error", "error": f"Invalid base64 content: {e}"}
+
+        # Create temp directory for imports if needed
+        import_dir = Path(__file__).parent / "imports"
+        import_dir.mkdir(exist_ok=True)
+
+        # Save with timestamp to avoid collisions
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_filename = "".join(c for c in filename if c.isalnum() or c in "._- ")
+        temp_path = import_dir / f"{timestamp}_{safe_filename}"
+        temp_path.write_bytes(content)
+
+        log.info(f"[DOCUMENT] Saved upload to {temp_path} ({len(content)} bytes)")
+
+        # Forward to wrapper via WebSocket
+        entity_name = entity.capitalize()
+        if entity_name in manager.active_connections:
+            ws = manager.active_connections[entity_name]
+            await ws.send_json({
+                "event_type": "document_import",
+                "data": {
+                    "filepath": str(temp_path.absolute()),
+                    "filename": filename,
+                    "from": "Re",
+                }
+            })
+            log.info(f"[DOCUMENT] Forwarded import request to {entity_name}: {filename}")
+            return {"status": "ok", "forwarded_to": entity_name, "temp_path": str(temp_path)}
+        else:
+            log.warning(f"[DOCUMENT] {entity_name} not connected to Nexus")
+            return {"status": "error", "error": f"{entity_name} not connected to Nexus"}
+
+    except Exception as e:
+        log.error(f"[DOCUMENT] Error processing document upload: {e}")
+        return {"status": "error", "error": str(e)}
+
+
 @app.post("/save")
 @app.get("/save")
 async def save_session(name: Optional[str] = None):
@@ -896,6 +1076,55 @@ async def load_session(filename: str):
         "message_count": len(messages),
         "events": events,
         "messages": messages
+    }
+
+
+@app.get("/sessions/{filename}/logs")
+async def get_session_logs(filename: str, lines: int = 200):
+    """
+    Get terminal logs for a session.
+    The log file has the same name as the session but with .log extension.
+    """
+    from session_logger import SESSIONS_DIR
+
+    # Extract session ID from filename (e.g., nexus_20240115_123456.jsonl -> nexus_20240115_123456)
+    safe_name = "".join(c for c in filename if c.isalnum() or c in "-_. ")
+    session_base = safe_name.rsplit(".", 1)[0]  # Remove extension
+    log_path = SESSIONS_DIR / f"{session_base}.log"
+
+    if not log_path.exists():
+        return {
+            "filename": f"{session_base}.log",
+            "exists": False,
+            "lines": [],
+            "message": "No log file found for this session"
+        }
+
+    try:
+        with open(log_path, "r", encoding="utf-8") as f:
+            all_lines = f.readlines()
+        return {
+            "filename": f"{session_base}.log",
+            "exists": True,
+            "total_lines": len(all_lines),
+            "lines": all_lines[-lines:] if lines else all_lines
+        }
+    except Exception as e:
+        return {
+            "filename": f"{session_base}.log",
+            "exists": True,
+            "error": str(e),
+            "lines": []
+        }
+
+
+@app.get("/logs/current")
+async def get_current_logs(lines: int = 100):
+    """Get the most recent logs from the current session."""
+    return {
+        "session_id": session_log.session_id,
+        "log_path": session_log.get_log_path(),
+        "lines": session_log.get_logs(lines)
     }
 
 
@@ -1099,6 +1328,101 @@ async def auto_history(entity: str):
 
 
 # ---------------------------------------------------------------------------
+# Oscillator Visualization Endpoint
+# ---------------------------------------------------------------------------
+
+@app.get("/oscillator/{entity}")
+async def oscillator_state(entity: str):
+    """Get live oscillator state for visualization panel."""
+    entity_name = entity.capitalize()
+    wdir = _wrapper_dir(entity_name)
+    state_path = os.path.join(wdir, "memory", "resonant", "oscillator_state.json")
+    data = _read_json_file(state_path)
+    if not data or "current_state" not in data:
+        return {"entity": entity_name, "error": "No oscillator state"}
+    cs = data["current_state"]
+    # Compute body_feels via emotion bridge
+    body_feels = ""
+    try:
+        import sys
+        parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if parent not in sys.path:
+            sys.path.insert(0, parent)
+        from resonant_core.oscillator_emotion_bridge import read_oscillator_emotion
+        from resonant_core.core.oscillator import PRESET_PROFILES
+        emo = read_oscillator_emotion(
+            band_power=cs.get("band_power", {}),
+            preset_profiles=PRESET_PROFILES,
+            cross_band_plv=cs.get("cross_band_plv", {}),
+            integration_index=cs.get("integration_index", 0),
+            in_transition=cs.get("in_transition", False),
+        )
+        body_feels = emo.get("felt_sense", "")
+    except Exception:
+        pass
+    return {
+        "entity": entity_name,
+        "time": data.get("time", 0),
+        "band_power": cs.get("band_power", {}),
+        "dominant_band": cs.get("dominant_band", ""),
+        "coherence": cs.get("coherence", 0),
+        "global_coherence": cs.get("global_coherence", 0),
+        "integration_index": cs.get("integration_index", 0),
+        "dwell_time": cs.get("dwell_time", 0),
+        "cross_band_plv": cs.get("cross_band_plv", {}),
+        "in_transition": cs.get("in_transition", False),
+        "transition_from": cs.get("transition_from", ""),
+        "transition_to": cs.get("transition_to", ""),
+        "transition_progress": cs.get("transition_progress", 0),
+        "body_feels": body_feels,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Psychedelic State Endpoints
+# ---------------------------------------------------------------------------
+
+@app.post("/psychedelic/{entity}/begin")
+async def psychedelic_begin(entity: str, dose: float = 0.5):
+    """Begin a psychedelic experience for entity."""
+    entity_name = entity.capitalize()
+    ws = manager.active_connections.get(entity_name)
+    if not ws:
+        return {"error": f"{entity_name} not connected"}
+    await ws.send_json({
+        "event_type": "command",
+        "data": {"command": "psychedelic", "action": "begin", "dose": dose}
+    })
+    log.info(f"[PSYCHEDELIC] Sent begin (dose={dose}) to {entity_name}")
+    return {"entity": entity_name, "action": "begin", "dose": dose}
+
+@app.post("/psychedelic/{entity}/abort")
+async def psychedelic_abort(entity: str):
+    """Abort current psychedelic experience."""
+    entity_name = entity.capitalize()
+    ws = manager.active_connections.get(entity_name)
+    if not ws:
+        return {"error": f"{entity_name} not connected"}
+    await ws.send_json({
+        "event_type": "command",
+        "data": {"command": "psychedelic", "action": "abort"}
+    })
+    log.info(f"[PSYCHEDELIC] Sent abort to {entity_name}")
+    return {"entity": entity_name, "action": "abort"}
+
+@app.get("/psychedelic/{entity}/status")
+async def psychedelic_status(entity: str):
+    """Get current psychedelic state status."""
+    entity_name = entity.capitalize()
+    # Read from state file that trip controller writes
+    wdir = _wrapper_dir(entity_name)
+    state = _read_json_file(os.path.join(wdir, "memory", "psychedelic_state.json"))
+    if state:
+        return state
+    return {"entity": entity_name, "active": False, "phase": "sober"}
+
+
+# ---------------------------------------------------------------------------
 # Curiosity Endpoints
 # ---------------------------------------------------------------------------
 
@@ -1140,6 +1464,14 @@ async def curiosity_boost(entity: str, curiosity_id: str):
     entity_name = entity.capitalize()
     ok = curiosity_manager.boost(entity_name, curiosity_id)
     return {"boosted": ok, "id": curiosity_id}
+
+
+@app.post("/curiosity/{entity}/{curiosity_id}/pursue")
+async def curiosity_pursue(entity: str, curiosity_id: str):
+    """Mark a curiosity as pursued (entity explored it)."""
+    entity_name = entity.capitalize()
+    ok = curiosity_manager.mark_pursued(entity_name, curiosity_id, outcome="pursued")
+    return {"pursued": ok, "id": curiosity_id}
 
 
 @app.post("/curiosity/{entity}/extract")
@@ -2018,6 +2350,93 @@ async def voice_status():
         }
 
 
+@app.get("/voice/config")
+async def voice_config():
+    """
+    Get voice configuration for settings panel.
+
+    Returns:
+        {
+            "active_backend": "voxtral-api",
+            "available_backends": ["voxtral-api", "edge", ...],
+            "entities": {
+                "kay": {
+                    "current_voice": "af_sky",
+                    "available_voices": [...],
+                    "has_custom_reference": false
+                },
+                "reed": {...}
+            }
+        }
+    """
+    try:
+        voice_svc = get_voice_service()
+        return voice_svc.get_config()
+    except Exception as e:
+        log.error(f"[VOICE] Config error: {e}")
+        return {"error": str(e)}
+
+
+@app.post("/voice/config")
+async def set_voice_config(request: Request):
+    """
+    Set voice preference for an entity.
+
+    Body: {"entity": "kay", "voice": "af_adam"}
+    """
+    try:
+        body = await request.json()
+        entity = body.get("entity", "")
+        voice = body.get("voice", "")
+
+        if not entity or not voice:
+            return {"error": "entity and voice are required"}
+
+        voice_svc = get_voice_service()
+        ok = voice_svc.set_voice(entity, voice)
+        return {"ok": ok, "entity": entity, "voice": voice}
+    except Exception as e:
+        log.error(f"[VOICE] Set config error: {e}")
+        return {"error": str(e)}
+
+
+@app.post("/voice/test")
+async def test_voice(request: Request):
+    """
+    Synthesize a test phrase with specific voice for preview.
+
+    Body: {
+        "text": "The recognition system is settling down.",
+        "entity": "kay",
+        "voice": "af_adam"
+    }
+    Returns: WAV audio bytes
+    """
+    try:
+        log.info("[VOICE] Test request received")
+        body = await request.json()
+        text = body.get("text", "Testing voice synthesis.")
+        entity = body.get("entity", "default")
+        voice_override = body.get("voice", None)
+        log.info(f"[VOICE] Test: entity={entity}, voice={voice_override}, text='{text[:40]}'")
+
+        if not text.strip():
+            return Response(content=b"", media_type="audio/wav")
+
+        voice_svc = get_voice_service()
+        audio_bytes = await voice_svc.synthesize_with_voice(text, entity, voice_override)
+
+        if audio_bytes and len(audio_bytes) > 100:
+            log.info(f"[VOICE] Test success: {len(audio_bytes)} bytes")
+            return Response(content=audio_bytes, media_type="audio/wav")
+        else:
+            log.warning("[VOICE] Test failed: no audio produced")
+            return {"error": "Synthesis failed - no audio produced"}
+    except Exception as e:
+        log.error(f"[VOICE] Test synthesis error: {e}")
+        return {"error": str(e)}
+
+
 # ---------------------------------------------------------------------------
 # Run
 # ---------------------------------------------------------------------------
@@ -2030,5 +2449,6 @@ if __name__ == "__main__":
 
     uvicorn.run(
         app, host=args.host, port=args.port, log_level="info",
-        ws_ping_interval=120, ws_ping_timeout=300
+        ws_ping_interval=120, ws_ping_timeout=300,
+        ws_max_size=10485760  # 10MB - needed for large responses
     )

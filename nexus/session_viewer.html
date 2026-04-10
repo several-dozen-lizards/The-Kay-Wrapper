@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nexus Session Viewer</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
+    --border: #30363d; --text: #c9d1d9; --text2: #8b949e;
+    --accent: #58a6ff; --accent2: #3fb950; --accent3: #d2a8ff;
+    --warn: #d29922; --err: #f85149;
+    --msg-re: #58a6ff; --msg-kay: #3fb950; --msg-reed: #d2a8ff;
+    --msg-sys: #8b949e;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg); color: var(--text);
+    display: flex; height: 100vh; overflow: hidden;
+  }
+</style>
+</head>
+<body>
+<style>
+  /* Sidebar */
+  #sidebar {
+    width: 280px; min-width: 280px; background: var(--bg2);
+    border-right: 1px solid var(--border); display: flex;
+    flex-direction: column; overflow: hidden;
+  }
+  #sidebar h2 {
+    padding: 16px; font-size: 14px; color: var(--accent);
+    border-bottom: 1px solid var(--border); letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  #session-list {
+    flex: 1; overflow-y: auto; padding: 8px;
+  }
+  .session-card {
+    padding: 10px 12px; margin-bottom: 4px; border-radius: 6px;
+    cursor: pointer; border: 1px solid transparent;
+    transition: background 0.15s;
+  }
+  .session-card:hover { background: var(--bg3); }
+  .session-card.active { background: var(--bg3); border-color: var(--accent); }
+  .session-card .sid { font-family: monospace; font-size: 12px; color: var(--accent); }
+  .session-card .meta { font-size: 11px; color: var(--text2); margin-top: 4px; }
+  .session-card .meta .count { color: var(--accent2); }
+
+  /* Main area */
+  #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* Search bar */
+  #search-bar {
+    padding: 10px 16px; background: var(--bg2);
+    border-bottom: 1px solid var(--border); display: flex; gap: 10px;
+    align-items: center;
+  }
+  #search-bar input {
+    flex: 1; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 12px; color: var(--text);
+    font-size: 13px; outline: none;
+  }
+  #search-bar input:focus { border-color: var(--accent); }
+  #search-bar button {
+    background: var(--accent); color: #000; border: none;
+    padding: 8px 16px; border-radius: 6px; cursor: pointer;
+    font-weight: 600; font-size: 13px;
+  }
+  #search-bar button:hover { opacity: 0.85; }
+
+  /* Panels container */
+  #panels {
+    flex: 1; display: flex; overflow: hidden;
+  }
+  .panel {
+    flex: 1; display: flex; flex-direction: column;
+    border-right: 1px solid var(--border); overflow: hidden;
+  }
+  .panel:last-child { border-right: none; }
+  .panel-header {
+    padding: 8px 14px; background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    font-size: 12px; font-weight: 600; color: var(--text2);
+    text-transform: uppercase; letter-spacing: 0.5px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .panel-header .count { color: var(--accent2); font-weight: normal; }
+  .panel-content {
+    flex: 1; overflow-y: auto; padding: 8px 12px;
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: 12px; line-height: 1.6; white-space: pre-wrap;
+    word-break: break-word;
+  }
+  /* Message styling */
+  .msg { padding: 6px 0; border-bottom: 1px solid #1c2028; }
+  .msg .sender { font-weight: 600; margin-right: 6px; }
+  .msg .sender.Re { color: var(--msg-re); }
+  .msg .sender.Kay { color: var(--msg-kay); }
+  .msg .sender.Reed { color: var(--msg-reed); }
+  .msg .sender.Nexus { color: var(--msg-sys); }
+  .msg .ts { color: var(--text2); font-size: 10px; margin-left: 6px; }
+  .msg .source-tag { font-size: 9px; padding: 1px 5px; border-radius: 3px; margin-left: 6px; vertical-align: middle; }
+  .msg .source-tag.nexus { background: #1c3a5e; color: #58a6ff; }
+  .msg .source-tag.private_kay { background: #1a3a1a; color: #3fb950; }
+  .msg .source-tag.private_reed { background: #2a1a3a; color: #d2a8ff; }
+
+  /* Log line coloring */
+  .log-line { padding: 1px 0; }
+  .log-line.emotion { color: #f0883e; }
+  .log-line.oscillator { color: #a371f7; }
+  .log-line.interoception { color: #3fb950; }
+  .log-line.phase { color: #58a6ff; }
+  .log-line.consciousness { color: #d2a8ff; }
+  .log-line.memory { color: #79c0ff; }
+  .log-line.error { color: var(--err); }
+  .log-line.warning { color: var(--warn); }
+  .log-line.session { color: var(--accent2); }
+  .log-line.room { color: #56d4dd; }
+  .log-line.paint { color: #f778ba; }
+  .log-line.voice { color: #d29922; }
+
+  /* Search results */
+  .search-hit { background: #3d2200; border-left: 3px solid var(--warn); padding: 6px 10px; margin: 4px 0; border-radius: 3px; }
+  .search-hit .src { color: var(--accent); font-size: 11px; text-transform: uppercase; }
+  mark { background: #6e4000; color: #fff; padding: 1px 2px; border-radius: 2px; }
+
+  /* Empty state */
+  .empty { color: var(--text2); padding: 40px; text-align: center; font-size: 14px; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text2); }
+</style>
+<!-- Sidebar -->
+<div id="sidebar">
+  <h2>&#x2726; Nexus Sessions</h2>
+  <div id="session-list"><div class="empty">Loading sessions...</div></div>
+</div>
+
+<!-- Main -->
+<div id="main">
+  <div id="search-bar">
+    <input type="text" id="search-input" placeholder="Search across all logs..." />
+    <button onclick="doSearch()">Search</button>
+    <button onclick="clearSearch()" style="background:var(--bg3);color:var(--text);">Clear</button>
+    <button onclick="exportSession()" style="background:var(--accent2);color:#000;" title="Export all session files">Export</button>
+  </div>
+  <div id="panels">
+    <div class="panel" id="panel-messages">
+      <div class="panel-header">
+        <span>&#x1F4AC; Messages</span>
+        <span class="count" id="msg-count">—</span>
+      </div>
+      <div class="panel-content" id="messages-content">
+        <div class="empty">Select a session</div>
+      </div>
+    </div>
+    <div class="panel" id="panel-server">
+      <div class="panel-header">
+        <span>&#x1F5A5; Server Log</span>
+        <span class="count" id="server-count">—</span>
+      </div>
+      <div class="panel-content" id="server-content">
+        <div class="empty">Select a session</div>
+      </div>
+    </div>
+    <div class="panel" id="panel-kay">
+      <div class="panel-header">
+        <span>&#x1F9E0; Kay Terminal</span>
+        <span class="count" id="kay-count">—</span>
+      </div>
+      <div id="kay-filters" style="padding:4px 8px;background:var(--bg);border-bottom:1px solid var(--border);font-size:10px;display:flex;flex-wrap:wrap;gap:4px;">
+        <label style="color:#f0883e;cursor:pointer;"><input type="checkbox" class="kay-filter" value="emotion" checked onchange="applyKayFilter()"> Emotion</label>
+        <label style="color:#a371f7;cursor:pointer;"><input type="checkbox" class="kay-filter" value="oscillator" checked onchange="applyKayFilter()"> Oscillator</label>
+        <label style="color:#3fb950;cursor:pointer;"><input type="checkbox" class="kay-filter" value="interoception" checked onchange="applyKayFilter()"> Interoception</label>
+        <label style="color:#58a6ff;cursor:pointer;"><input type="checkbox" class="kay-filter" value="phase" checked onchange="applyKayFilter()"> Phase</label>
+        <label style="color:#d2a8ff;cursor:pointer;"><input type="checkbox" class="kay-filter" value="consciousness" checked onchange="applyKayFilter()"> Conscious</label>
+        <label style="color:#79c0ff;cursor:pointer;"><input type="checkbox" class="kay-filter" value="memory" checked onchange="applyKayFilter()"> Memory</label>
+        <label style="color:var(--err);cursor:pointer;"><input type="checkbox" class="kay-filter" value="error" checked onchange="applyKayFilter()"> Error</label>
+        <label style="color:var(--text2);cursor:pointer;"><input type="checkbox" class="kay-filter" value="" checked onchange="applyKayFilter()"> Other</label>
+      </div>
+      <div class="panel-content" id="kay-content">
+        <div class="empty">Select a session</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = window.location.origin;
+let currentSession = null;
+let kayRawLines = []; // Store for filtering
+
+// --- Load sessions ---
+async function loadSessions() {
+  try {
+    const res = await fetch(`${API}/sessions`);
+    const data = await res.json();
+    const list = document.getElementById('session-list');
+    if (!data.sessions || data.sessions.length === 0) {
+      list.innerHTML = '<div class="empty">No sessions found</div>';
+      return;
+    }
+    list.innerHTML = data.sessions.map(s => {
+      const started = s.started ? new Date(s.started).toLocaleString() : s.session_id;
+      const msgs = s.message_count || '?';
+      const parts = (s.participants || []).join(', ') || '—';
+      const hasKay = s.files && s.files.kay_log ? ' ✓Kay-term' : '';
+      const privRooms = (s.private_rooms || []).map(e => `🔒${e}`).join(' ');
+      return `<div class="session-card" onclick="loadSession('${s.session_id}')" id="sc-${s.session_id}">
+        <div class="sid">${s.session_id}</div>
+        <div class="meta">${started}</div>
+        <div class="meta"><span class="count">${msgs} msgs</span> &middot; ${parts}${hasKay} ${privRooms}</div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    document.getElementById('session-list').innerHTML = `<div class="empty">Error: ${e.message}</div>`;
+  }
+}
+
+// --- Load a session ---
+async function loadSession(sid) {
+  currentSession = sid;
+  // Highlight active card
+  document.querySelectorAll('.session-card').forEach(c => c.classList.remove('active'));
+  const card = document.getElementById(`sc-${sid}`);
+  if (card) card.classList.add('active');
+
+  // Load all three in parallel
+  const [msgs, serverLog, kayLog] = await Promise.all([
+    fetch(`${API}/sessions/${sid}/messages`).then(r => r.json()).catch(() => ({messages:[]})),
+    fetch(`${API}/sessions/${sid}/log?source=server`).then(r => r.json()).catch(() => ({lines:[]})),
+    fetch(`${API}/sessions/${sid}/log?source=kay`).then(r => r.json()).catch(() => ({lines:[]})),
+  ]);
+
+  renderMessages(msgs.messages || []);
+  renderLog('server-content', 'server-count', serverLog.lines || [], serverLog.error);
+  kayRawLines = kayLog.lines || [];
+  renderKayLog(kayRawLines, kayLog.error);
+}
+
+// --- Render messages ---
+function renderMessages(messages) {
+  const el = document.getElementById('messages-content');
+  const countEl = document.getElementById('msg-count');
+  // Filter to entries with content (skip bare events like connect/disconnect)
+  const chat = messages.filter(m => m.content && (m.sender || m.event === 'message'));
+  countEl.textContent = `${chat.length} messages`;
+  if (chat.length === 0) {
+    el.innerHTML = '<div class="empty">No messages in this session</div>';
+    return;
+  }
+  el.innerHTML = chat.map(m => {
+    const sender = m.sender || '?';
+    const cls = sender;
+    const ts = m.timestamp ? new Date(m.timestamp).toLocaleTimeString() : '';
+    const content = escapeHtml(m.content || '');
+    const msgType = m.msg_type || m.event || '';
+    const type = msgType && msgType !== 'chat' && msgType !== 'message' ? ` (${msgType})` : '';
+    const src = m._source || 'nexus';
+    const srcLabel = src === 'nexus' ? '⚡nexus' : src.startsWith('private_') ? '🔒' + src.replace('private_', '') : src;
+    const srcTag = `<span class="source-tag ${src}">${srcLabel}</span>`;
+    return `<div class="msg"><span class="sender ${cls}">${sender}</span><span class="ts">${ts}${type}</span>${srcTag}<br>${content}</div>`;
+  }).join('');
+}
+
+// --- Render log with syntax coloring ---
+function renderLog(elId, countId, lines, error) {
+  const el = document.getElementById(elId);
+  const countEl = document.getElementById(countId);
+  if (error) {
+    el.innerHTML = `<div class="empty">${escapeHtml(error)}</div>`;
+    countEl.textContent = '—';
+    return;
+  }
+  countEl.textContent = `${lines.length} lines`;
+  if (lines.length === 0) {
+    el.innerHTML = '<div class="empty">No log data</div>';
+    return;
+  }
+  el.innerHTML = lines.map(line => {
+    const s = line.trimEnd();
+    const cls = classifyLogLine(s);
+    return `<div class="log-line ${cls}">${escapeHtml(s)}</div>`;
+  }).join('');
+}
+
+function classifyLogLine(line) {
+  const l = line.toUpperCase();
+  if (l.includes('[EMOTION') || l.includes('[FELT') || l.includes('[AFFECT')) return 'emotion';
+  if (l.includes('[OSCILLAT') || l.includes('[RESONAN') || l.includes('[PLV') || l.includes('[BAND')) return 'oscillator';
+  if (l.includes('[INTEROCE') || l.includes('[SOMA') || l.includes('[RECEPTOR')) return 'interoception';
+  if (l.includes('[PHASE') || l.includes('[BIFURC') || l.includes('[COHERE')) return 'phase';
+  if (l.includes('[CONSCIOUS') || l.includes('[SACCADE') || l.includes('[DMN') || l.includes('[TPN')) return 'consciousness';
+  if (l.includes('[MEMORY') || l.includes('[CHROMA') || l.includes('[CHRONICLE')) return 'memory';
+  if (l.includes('ERROR') || l.includes('TRACEBACK') || l.includes('EXCEPTION')) return 'error';
+  if (l.includes('WARNING') || l.includes('[WARN')) return 'warning';
+  if (l.includes('[SESSION') || l.includes('[AUTO]') || l.includes('[LOG ROUTER')) return 'session';
+  if (l.includes('[ROOM') || l.includes('[SPATIAL')) return 'room';
+  if (l.includes('[PAINT') || l.includes('[CANVAS')) return 'paint';
+  if (l.includes('[VOICE') || l.includes('[TTS') || l.includes('[STT')) return 'voice';
+  return '';
+}
+
+// --- Kay terminal with filtering ---
+function renderKayLog(lines, error) {
+  const el = document.getElementById('kay-content');
+  const countEl = document.getElementById('kay-count');
+  if (error) {
+    el.innerHTML = `<div class="empty">${escapeHtml(error)}</div>`;
+    countEl.textContent = '—';
+    return;
+  }
+  // Get active filters
+  const active = getActiveKayFilters();
+  const filtered = lines.filter(line => {
+    const cls = classifyLogLine(line);
+    if (cls === '' && active.has('')) return true;  // "Other" filter
+    if (cls !== '' && active.has(cls)) return true;
+    return false;
+  });
+  countEl.textContent = `${filtered.length}/${lines.length} lines`;
+  if (filtered.length === 0) {
+    el.innerHTML = '<div class="empty">No matching log lines (adjust filters)</div>';
+    return;
+  }
+  el.innerHTML = filtered.map(line => {
+    const s = line.trimEnd();
+    const cls = classifyLogLine(s);
+    return `<div class="log-line ${cls}">${escapeHtml(s)}</div>`;
+  }).join('');
+}
+
+function getActiveKayFilters() {
+  const checks = document.querySelectorAll('.kay-filter');
+  const active = new Set();
+  checks.forEach(cb => { if (cb.checked) active.add(cb.value); });
+  return active;
+}
+
+function applyKayFilter() {
+  if (kayRawLines.length > 0) renderKayLog(kayRawLines);
+}
+
+// --- Export session ---
+async function exportSession() {
+  if (!currentSession) return;
+  // Fetch all data and bundle as a single JSON download
+  const [msgs, serverLog, kayLog] = await Promise.all([
+    fetch(`${API}/sessions/${currentSession}/messages`).then(r => r.json()).catch(() => ({})),
+    fetch(`${API}/sessions/${currentSession}/log?source=server`).then(r => r.json()).catch(() => ({})),
+    fetch(`${API}/sessions/${currentSession}/log?source=kay`).then(r => r.json()).catch(() => ({})),
+  ]);
+  const bundle = {
+    session_id: currentSession,
+    exported_at: new Date().toISOString(),
+    messages: msgs.messages || [],
+    server_log: serverLog.lines || [],
+    kay_terminal: kayLog.lines || [],
+  };
+  const blob = new Blob([JSON.stringify(bundle, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `nexus_session_${currentSession}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// --- Search ---
+async function doSearch() {
+  const q = document.getElementById('search-input').value.trim();
+  if (!q || !currentSession) return;
+  const res = await fetch(`${API}/sessions/${currentSession}/search?q=${encodeURIComponent(q)}`);
+  const data = await res.json();
+  if (!data.results || data.results.length === 0) {
+    showSearchResults([]);
+    return;
+  }
+  showSearchResults(data.results, q);
+}
+
+function showSearchResults(results, query) {
+  // Show results in the messages panel (replace temporarily)
+  const el = document.getElementById('messages-content');
+  const countEl = document.getElementById('msg-count');
+  if (results.length === 0) {
+    el.innerHTML = '<div class="empty">No results found</div>';
+    countEl.textContent = '0 results';
+    return;
+  }
+  countEl.textContent = `${results.length} results`;
+  const srcLabels = {messages: '💬 Messages', server_log: '🖥 Server', kay_log: '🧠 Kay', private_kay: '🔒 Kay Private', private_reed: '🔒 Reed Private'};
+  el.innerHTML = results.map(r => {
+    const src = srcLabels[r.source] || r.source;
+    let content = escapeHtml(r.content || '');
+    // Highlight matches
+    if (query) {
+      const re = new RegExp(`(${escapeRegex(query)})`, 'gi');
+      content = content.replace(re, '<mark>$1</mark>');
+    }
+    const sender = r.sender ? `<span class="sender ${r.sender}">${r.sender}</span> ` : '';
+    return `<div class="search-hit"><div class="src">${src} :${r.line}</div>${sender}${content}</div>`;
+  }).join('');
+}
+
+function clearSearch() {
+  document.getElementById('search-input').value = '';
+  if (currentSession) loadSession(currentSession);
+}
+
+// --- Utilities ---
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// --- Keyboard shortcuts ---
+document.getElementById('search-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doSearch();
+  if (e.key === 'Escape') clearSearch();
+});
+
+// --- Init ---
+loadSessions();
+</script>
+</body>
+</html>

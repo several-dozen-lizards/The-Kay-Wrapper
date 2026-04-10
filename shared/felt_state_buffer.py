@@ -31,6 +31,18 @@ class FeltState:
     band_weights: Dict[str, float] = field(default_factory=lambda: {
         "delta": 0.2, "theta": 0.2, "alpha": 0.2, "beta": 0.2, "gamma": 0.2
     })
+    # Phase coherence metrics (March 2026)
+    global_coherence: float = 0.0    # Kuramoto order parameter (0=fragmented, 1=integrated)
+    integration_index: float = 0.0   # coherence / (1 + transition_velocity)
+    dwell_time: float = 0.0          # Seconds in current dominant band
+    theta_gamma_plv: float = 0.0     # Memory binding coupling strength
+    beta_gamma_plv: float = 0.0      # Active integration coupling
+    # Bifurcation delay (March 2026)
+    in_transition: bool = False       # Currently in delayed state transition
+    transition_from: str = ""         # Old state (what entity still feels)
+    transition_to: str = ""           # Emerging new state (unconfirmed)
+    # Oscillator-derived emotion (March 2026)
+    oscillator_emotion: str = ""      # What the oscillator pattern "feels like"
 
     # Emotional state (updated by DMN after each turn)
     emotions: List[str] = field(default_factory=list)  # ["curiosity:0.7", "warmth:0.4"]
@@ -120,6 +132,8 @@ class FeltStateBuffer:
             f"band:{s.dominant_band}",
             f"coherence:{s.coherence:.2f}",
         ]
+        if s.oscillator_emotion:
+            parts.append(f"body_feels:{s.oscillator_emotion}")
         if s.emotions:
             # Limit to top 3 emotions
             parts.append(f"emotions:{','.join(s.emotions[:3])}")
@@ -129,6 +143,15 @@ class FeltStateBuffer:
             parts.append(f"room:{s.room_state}")
         if s.tension > 0.3:
             parts.append(f"tension:{s.tension:.1f}")
+        # Phase coherence metrics — only include when meaningful
+        if s.integration_index > 0:
+            parts.append(f"integration:{s.integration_index:.2f}")
+        if s.theta_gamma_plv > 0.25:
+            parts.append(f"memory_binding:{s.theta_gamma_plv:.2f}")
+        if s.dwell_time > 60:
+            parts.append(f"settled:{s.dwell_time:.0f}s")
+        if s.in_transition:
+            parts.append(f"shifting:{s.transition_from}→{s.transition_to}")
         if s.touch_active and s.touch_description:
             parts.append(f"touch:{s.touch_description}")
         return "[" + " | ".join(parts) + "]"
@@ -169,12 +192,26 @@ class FeltStateBuffer:
 
     # === DMN writes (called from background processing) ===
 
-    def update_oscillator(self, dominant_band: str, coherence: float, band_weights: Dict[str, float]):
+    def update_oscillator(self, dominant_band: str, coherence: float, band_weights: Dict[str, float],
+                          global_coherence: float = 0.0, integration_index: float = 0.0,
+                          dwell_time: float = 0.0, theta_gamma_plv: float = 0.0,
+                          beta_gamma_plv: float = 0.0, in_transition: bool = False,
+                          transition_from: str = "", transition_to: str = "",
+                          oscillator_emotion: str = ""):
         """Called by resonant heartbeat (every 4s)."""
         with self._lock:
             self._state.dominant_band = dominant_band
             self._state.coherence = coherence
             self._state.band_weights = dict(band_weights) if band_weights else self._state.band_weights
+            self._state.global_coherence = global_coherence
+            self._state.integration_index = integration_index
+            self._state.dwell_time = dwell_time
+            self._state.theta_gamma_plv = theta_gamma_plv
+            self._state.beta_gamma_plv = beta_gamma_plv
+            self._state.in_transition = in_transition
+            self._state.transition_from = transition_from
+            self._state.transition_to = transition_to
+            self._state.oscillator_emotion = oscillator_emotion
             self._state.updated_at = time.time()
 
     def update_emotions(self, emotions: List[str], valence: float = 0.0, arousal: float = 0.5):

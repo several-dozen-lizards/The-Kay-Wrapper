@@ -90,36 +90,37 @@ class DocumentReader:
             "total_count": len(doc_list)
         }
     
-    def read_document(self, document_name: str, max_chars: Optional[int] = None) -> Dict[str, Any]:
+    def read_document(self, document_name: str, max_chars: int = 8000, start_at: int = 0) -> Dict[str, Any]:
         """
-        Read full content of a specific document
-        
+        Read content of a specific document with pagination support.
+
         Args:
             document_name: Name of the document to read (filename)
-            max_chars: Optional limit on characters to return
-            
+            max_chars: Maximum characters to return (default 8000, ~2000 tokens)
+            start_at: Character offset to start reading from (default 0)
+
         Returns:
-            Dict with 'content' (full text), 'metadata', 'word_count'
+            Dict with 'content' (text chunk), 'metadata' (including pagination info), 'word_count'
         """
         docs = self._load_documents()
-        
+
         if not docs:
             return {
                 "content": "",
                 "error": "No documents found in documents.json"
             }
-        
+
         # Find document by filename
         target_doc = None
         target_doc_id = None
-        
+
         for doc_id, doc_data in docs.items():
             if isinstance(doc_data, dict):
                 if doc_data.get('filename', '') == document_name or doc_id == document_name:
                     target_doc = doc_data
                     target_doc_id = doc_id
                     break
-        
+
         if not target_doc:
             # Return helpful error with available documents
             available = [d.get('filename', id) for id, d in docs.items() if isinstance(d, dict)]
@@ -127,12 +128,27 @@ class DocumentReader:
                 "content": "",
                 "error": f"Document '{document_name}' not found. Available: {', '.join(available[:10])}"
             }
-        
+
         full_text = target_doc.get('full_text', '')
-        
-        if max_chars and len(full_text) > max_chars:
-            full_text = full_text[:max_chars] + f"\n\n[Content truncated at {max_chars} chars]"
-        
+        total_chars = len(full_text)
+
+        # DIAGNOSTIC: Log what we're returning
+        print(f"[READ_DOC] Document '{document_name}': "
+              f"{total_chars} chars in full_text, "
+              f"returning chars {start_at}-{start_at + max_chars}")
+        print(f"[READ_DOC] First 200 chars: {full_text[:200]}")
+
+        # Extract the requested chunk
+        chunk = full_text[start_at:start_at + max_chars]
+        has_more = (start_at + max_chars) < total_chars
+
+        # Add truncation notice if there's more content
+        if has_more:
+            chunk = chunk + (
+                f"\n\n[Showing chars {start_at}-{start_at + len(chunk)} of {total_chars}. "
+                f"Use start_at={start_at + max_chars} to continue reading, or search_document to find specific content.]"
+            )
+
         # Track exploration if in curiosity mode
         try:
             from engines.curiosity_engine import get_curiosity_status, track_explored_item
@@ -141,15 +157,18 @@ class DocumentReader:
                 track_explored_item('document', target_doc.get('filename', document_name))
         except Exception as e:
             pass  # Silently fail if curiosity engine not available
-        
+
         return {
-            "content": full_text,
+            "content": chunk,
             "metadata": {
                 'doc_id': target_doc_id,
                 'filename': target_doc.get('filename', document_name),
-                'import_date': target_doc.get('import_date', 'unknown')
+                'import_date': target_doc.get('import_date', 'unknown'),
+                'total_chars': total_chars,
+                'showing': f"chars {start_at}-{start_at + len(chunk)} of {total_chars}",
+                'has_more': has_more,
             },
-            "word_count": len(full_text.split())
+            "word_count": len(chunk.split())
         }
     
     def search_within_document(self, document_name: str, query: str, n_results: int = 5) -> Dict[str, Any]:

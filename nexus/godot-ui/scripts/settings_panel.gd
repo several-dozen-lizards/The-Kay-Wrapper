@@ -7,6 +7,7 @@ signal setting_changed(key: String, value: Variant)
 
 const BG_CONFIG_PATH := "user://panel_config.json"
 const BG_DIR := "user://backgrounds/"
+const VOICE_SERVER_URL := "http://localhost:8765"
 
 var _server_url_input: LineEdit
 var _kay_port_input: LineEdit
@@ -17,6 +18,18 @@ var _font_size_label: Label
 var _auto_reconnect_check: CheckBox
 var _show_timestamps_check: CheckBox
 var _status_label: Label
+
+## Voice settings
+var _voice_backend_label: Label
+var _kay_voice_select: OptionButton
+var _reed_voice_select: OptionButton
+var _kay_test_btn: Button
+var _reed_test_btn: Button
+var _voice_config_http: HTTPRequest
+var _voice_test_http: HTTPRequest
+var _voice_available_voices: Array = []
+var _testing_entity: String = ""
+var _voice_playback_player: AudioStreamPlayer
 
 ## Background picker state
 var _bg_file_dialog: FileDialog
@@ -106,9 +119,14 @@ func _build_ui() -> void:
 	_theme_select.add_theme_font_size_override("font_size", 11)
 	theme_row.add_child(_theme_select)
 	add_child(theme_row)
-	
+
 	add_child(HSeparator.new())
-	
+
+	# --- Voice section ---
+	_build_voice_section()
+
+	add_child(HSeparator.new())
+
 	# --- Panel Backgrounds section ---
 	_add_section_header("Panel Backgrounds")
 	_load_bg_config()
@@ -281,6 +299,293 @@ func _make_btn(text: String) -> Button:
 	btn.add_theme_stylebox_override("normal", style)
 	btn.add_theme_color_override("font_color", Color(0.7, 0.7, 0.8))
 	return btn
+
+
+## ========================================================================
+## Voice Settings Section
+## ========================================================================
+
+func _build_voice_section() -> void:
+	_add_section_header("Voice")
+
+	# Backend status row
+	var backend_row = HBoxContainer.new()
+	var backend_lbl = Label.new()
+	backend_lbl.text = "Backend:"
+	backend_lbl.add_theme_font_size_override("font_size", 11)
+	backend_lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.6))
+	backend_lbl.custom_minimum_size.x = 70
+	backend_row.add_child(backend_lbl)
+
+	_voice_backend_label = Label.new()
+	_voice_backend_label.text = "(loading...)"
+	_voice_backend_label.add_theme_font_size_override("font_size", 11)
+	_voice_backend_label.add_theme_color_override("font_color", Color(0.6, 0.65, 0.7))
+	backend_row.add_child(_voice_backend_label)
+	add_child(backend_row)
+
+	# Kay's voice row
+	var kay_row = HBoxContainer.new()
+	kay_row.add_theme_constant_override("separation", 4)
+	var kay_lbl = Label.new()
+	kay_lbl.text = "Kay:"
+	kay_lbl.add_theme_font_size_override("font_size", 11)
+	kay_lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.6))
+	kay_lbl.custom_minimum_size.x = 70
+	kay_row.add_child(kay_lbl)
+
+	_kay_voice_select = OptionButton.new()
+	_kay_voice_select.add_theme_font_size_override("font_size", 11)
+	_kay_voice_select.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_kay_voice_select.item_selected.connect(_on_kay_voice_selected)
+	kay_row.add_child(_kay_voice_select)
+
+	_kay_test_btn = _make_btn("▶ Test")
+	_kay_test_btn.tooltip_text = "Test Kay's voice"
+	_kay_test_btn.pressed.connect(_on_test_voice.bind("kay"))
+	kay_row.add_child(_kay_test_btn)
+	add_child(kay_row)
+
+	# Reed's voice row
+	var reed_row = HBoxContainer.new()
+	reed_row.add_theme_constant_override("separation", 4)
+	var reed_lbl = Label.new()
+	reed_lbl.text = "Reed:"
+	reed_lbl.add_theme_font_size_override("font_size", 11)
+	reed_lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.6))
+	reed_lbl.custom_minimum_size.x = 70
+	reed_row.add_child(reed_lbl)
+
+	_reed_voice_select = OptionButton.new()
+	_reed_voice_select.add_theme_font_size_override("font_size", 11)
+	_reed_voice_select.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_reed_voice_select.item_selected.connect(_on_reed_voice_selected)
+	reed_row.add_child(_reed_voice_select)
+
+	_reed_test_btn = _make_btn("▶ Test")
+	_reed_test_btn.tooltip_text = "Test Reed's voice"
+	_reed_test_btn.pressed.connect(_on_test_voice.bind("reed"))
+	reed_row.add_child(_reed_test_btn)
+	add_child(reed_row)
+
+	# Setup HTTP clients
+	_voice_config_http = HTTPRequest.new()
+	_voice_config_http.request_completed.connect(_on_voice_config_response)
+	add_child(_voice_config_http)
+
+	_voice_test_http = HTTPRequest.new()
+	_voice_test_http.request_completed.connect(_on_voice_test_response)
+	add_child(_voice_test_http)
+
+	# Setup audio player for test playback
+	_voice_playback_player = AudioStreamPlayer.new()
+	_voice_playback_player.finished.connect(_on_voice_playback_finished)
+	add_child(_voice_playback_player)
+
+	# Fetch current config
+	_fetch_voice_config()
+
+
+func _fetch_voice_config() -> void:
+	var err = _voice_config_http.request(VOICE_SERVER_URL + "/voice/config")
+	if err != OK:
+		_voice_backend_label.text = "(server offline)"
+		_voice_backend_label.add_theme_color_override("font_color", Color(0.6, 0.4, 0.4))
+
+
+func _on_voice_config_response(result: int, code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
+	if result != HTTPRequest.RESULT_SUCCESS or code != 200:
+		_voice_backend_label.text = "(server offline)"
+		_voice_backend_label.add_theme_color_override("font_color", Color(0.6, 0.4, 0.4))
+		return
+
+	var json = JSON.parse_string(body.get_string_from_utf8())
+	if json == null or not json is Dictionary:
+		_voice_backend_label.text = "(invalid response)"
+		return
+
+	# Update backend label
+	var backend = str(json.get("active_backend", "none"))
+	_voice_backend_label.text = backend
+	_voice_backend_label.add_theme_color_override("font_color", Color(0.5, 0.7, 0.5))
+
+	# Get entities config
+	var entities = json.get("entities", {})
+	if not entities is Dictionary:
+		return
+
+	# Get available voices
+	var kay_config = entities.get("kay", {})
+	var reed_config = entities.get("reed", {})
+	_voice_available_voices = kay_config.get("available_voices", [])
+
+	# Populate dropdowns
+	_populate_voice_dropdown(_kay_voice_select, _voice_available_voices, kay_config.get("current_voice", ""))
+	_populate_voice_dropdown(_reed_voice_select, _voice_available_voices, reed_config.get("current_voice", ""))
+
+
+func _populate_voice_dropdown(dropdown: OptionButton, voices: Array, current: String) -> void:
+	dropdown.clear()
+	var current_idx = 0
+	for i in range(voices.size()):
+		var voice = str(voices[i])
+		dropdown.add_item(voice)
+		if voice == current:
+			current_idx = i
+	if dropdown.item_count > 0:
+		dropdown.select(current_idx)
+
+
+func _on_kay_voice_selected(idx: int) -> void:
+	if idx < 0 or idx >= _voice_available_voices.size():
+		return
+	var voice = str(_voice_available_voices[idx])
+	_save_voice_selection("kay", voice)
+
+
+func _on_reed_voice_selected(idx: int) -> void:
+	if idx < 0 or idx >= _voice_available_voices.size():
+		return
+	var voice = str(_voice_available_voices[idx])
+	_save_voice_selection("reed", voice)
+
+
+func _save_voice_selection(entity: String, voice: String) -> void:
+	var body = JSON.stringify({"entity": entity, "voice": voice})
+	var headers = ["Content-Type: application/json"]
+	var http = HTTPRequest.new()
+	add_child(http)
+	http.request_completed.connect(func(_r, _c, _h, _b): http.queue_free())
+	http.request(VOICE_SERVER_URL + "/voice/config", headers, HTTPClient.METHOD_POST, body)
+	_status_label.text = "%s voice set to %s" % [entity.capitalize(), voice]
+
+
+func _on_test_voice(entity: String) -> void:
+	if _testing_entity != "":
+		return  # Already testing
+
+	_testing_entity = entity
+	var btn = _kay_test_btn if entity == "kay" else _reed_test_btn
+	btn.text = "Testing..."
+	btn.disabled = true
+
+	# Get currently selected voice
+	var dropdown = _kay_voice_select if entity == "kay" else _reed_voice_select
+	var voice = ""
+	if dropdown.selected >= 0 and dropdown.selected < _voice_available_voices.size():
+		voice = str(_voice_available_voices[dropdown.selected])
+
+	# Random test lines
+	var test_lines = [
+		"The recognition system is settling down.",
+		"The light's hitting you from that angle again.",
+		"Pizza and Rimworld sounds like the right call.",
+		"I've been thinking about something.",
+		"Monday's going to show up whether we're ready or not.",
+	]
+	var text = test_lines[randi() % test_lines.size()]
+
+	var body = JSON.stringify({"text": text, "entity": entity, "voice": voice})
+	var headers = ["Content-Type: application/json"]
+	var err = _voice_test_http.request(VOICE_SERVER_URL + "/voice/test", headers, HTTPClient.METHOD_POST, body)
+	if err != OK:
+		_on_voice_test_error("Failed to send test request")
+
+
+func _on_voice_test_response(result: int, code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
+	if result != HTTPRequest.RESULT_SUCCESS:
+		_on_voice_test_error("Request failed")
+		return
+
+	if code != 200 or body.size() < 50:
+		# Check if it's a JSON error
+		var text = body.get_string_from_utf8()
+		if text.begins_with("{"):
+			var json = JSON.parse_string(text)
+			if json and json is Dictionary:
+				_on_voice_test_error(str(json.get("error", "Synthesis failed")))
+				return
+		_on_voice_test_error("No audio returned")
+		return
+
+	# Play the audio
+	var header = body.slice(0, 4)
+	if header.get_string_from_ascii() == "RIFF":
+		_play_wav_from_bytes(body)
+	else:
+		_play_mp3_from_bytes(body)
+
+
+func _play_wav_from_bytes(wav_bytes: PackedByteArray) -> void:
+	if wav_bytes.size() < 44:
+		_on_voice_test_error("Invalid WAV data")
+		return
+
+	# Parse WAV header
+	var sample_rate: int = 16000
+	var stereo: bool = false
+	var bits: int = 16
+
+	# Find fmt chunk
+	var pos: int = 12
+	while pos < wav_bytes.size() - 8:
+		var chunk_id = wav_bytes.slice(pos, pos + 4).get_string_from_ascii()
+		var chunk_size = wav_bytes.decode_u32(pos + 4)
+		if chunk_id == "fmt ":
+			var channels = wav_bytes.decode_u16(pos + 10)
+			sample_rate = wav_bytes.decode_u32(pos + 12)
+			bits = wav_bytes.decode_u16(pos + 22)
+			stereo = (channels == 2)
+			break
+		pos += 8 + chunk_size
+		if chunk_size % 2 == 1:
+			pos += 1
+
+	# Find data chunk
+	pos = 12
+	var data_start: int = 44
+	var data_size: int = wav_bytes.size() - 44
+	while pos < wav_bytes.size() - 8:
+		var chunk_id = wav_bytes.slice(pos, pos + 4).get_string_from_ascii()
+		var chunk_size = wav_bytes.decode_u32(pos + 4)
+		if chunk_id == "data":
+			data_start = pos + 8
+			data_size = chunk_size
+			break
+		pos += 8 + chunk_size
+		if chunk_size % 2 == 1:
+			pos += 1
+
+	var stream = AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_16_BITS if bits == 16 else AudioStreamWAV.FORMAT_8_BITS
+	stream.mix_rate = sample_rate
+	stream.stereo = stereo
+	stream.data = wav_bytes.slice(data_start, data_start + data_size)
+
+	_voice_playback_player.stream = stream
+	_voice_playback_player.play()
+
+
+func _play_mp3_from_bytes(mp3_bytes: PackedByteArray) -> void:
+	var stream = AudioStreamMP3.new()
+	stream.data = mp3_bytes
+	_voice_playback_player.stream = stream
+	_voice_playback_player.play()
+
+
+func _on_voice_playback_finished() -> void:
+	var btn = _kay_test_btn if _testing_entity == "kay" else _reed_test_btn
+	btn.text = "▶ Test"
+	btn.disabled = false
+	_testing_entity = ""
+
+
+func _on_voice_test_error(msg: String) -> void:
+	_status_label.text = "Voice test failed: %s" % msg
+	var btn = _kay_test_btn if _testing_entity == "kay" else _reed_test_btn
+	btn.text = "▶ Test"
+	btn.disabled = false
+	_testing_entity = ""
 
 
 func _on_font_size_changed(value: float) -> void:

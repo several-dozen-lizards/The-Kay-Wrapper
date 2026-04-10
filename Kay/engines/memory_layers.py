@@ -7,6 +7,7 @@ Uses ULTRAMAP pressure x recursion for importance-based persistence
 
 import json
 import os
+import re
 import time
 from typing import Dict, List, Any, Optional
 from datetime import datetime, timedelta
@@ -298,7 +299,7 @@ class MemoryLayerManager:
 
         return None
 
-    def add_memory(self, memory: Dict[str, Any], layer: str = "working", session_order: Optional[int] = None, session_id: Optional[str] = None):
+    def add_memory(self, memory: Dict[str, Any], layer: str = "working", session_order: Optional[int] = None, session_id: Optional[str] = None, osc_state: Optional[Dict] = None):
         """
         Add a memory to specified layer.
 
@@ -307,6 +308,8 @@ class MemoryLayerManager:
             layer: "working" or "long_term" (NO OTHER OPTIONS)
             session_order: Sequential session number (e.g., 1, 2, 3...)
             session_id: Unique session identifier (timestamp-based)
+            osc_state: Optional oscillator state dict for state-dependent encoding (System A)
+                       Keys: band, coherence, tension, reward, felt
         """
         # Validate layer
         if layer not in ["working", "long_term"]:
@@ -332,6 +335,18 @@ class MemoryLayerManager:
             memory["session_order"] = session_order
         if "session_id" not in memory and session_id is not None:
             memory["session_id"] = session_id
+
+        # OSCILLATOR ENCODING (System A) — stamp body state at formation time
+        # This enables true state-dependent memory retrieval: memories encoded
+        # in theta will surface more readily when Kay is in theta again
+        if osc_state and "osc_encoding" not in memory:
+            memory["osc_encoding"] = {
+                "band": osc_state.get("band", "unknown"),
+                "coherence": round(osc_state.get("coherence", 0.0), 2),
+                "tension": round(osc_state.get("tension", 0.0), 2),
+                "felt": osc_state.get("felt", "unknown"),
+                "reward": round(osc_state.get("reward", 0.0), 2),
+            }
 
         # Deduplicate long-term memories before adding
         if layer == "long_term":
@@ -891,7 +906,7 @@ Output ONLY the narrative summary, no preamble."""
             context_text = (mem.get("user_input", "") + " " + mem.get("response", "")).lower()
             full_text = fact_text + " " + context_text
 
-            if wrong_value_lower in full_text:
+            if re.search(r'\b' + re.escape(wrong_value_lower) + r'\b', full_text):
                 # Check if it also contains the correct value (then it's OK)
                 if correct_value.lower() in full_text:
                     return False

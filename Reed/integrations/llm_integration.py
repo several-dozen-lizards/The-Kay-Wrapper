@@ -332,6 +332,28 @@ if TOOLS_AVAILABLE and client:
         except Exception as touch_e:
             print(f"[LLM] Failed to register touch tools: {touch_e}")
 
+        # Register scratchpad tools (Reed's working memory for questions/flags/thoughts)
+        try:
+            from reed_scratchpad_tools import get_reed_scratchpad_tools
+            scratchpad_tools = get_reed_scratchpad_tools()
+            tool_handler.register_tool("scratchpad_view", scratchpad_tools['scratchpad_view'])
+            tool_handler.register_tool("scratchpad_add", scratchpad_tools['scratchpad_add'])
+            tool_handler.register_tool("scratchpad_resolve", scratchpad_tools['scratchpad_resolve'])
+            print("[LLM] Scratchpad tools registered successfully")
+        except Exception as scratch_e:
+            print(f"[LLM] Failed to register scratchpad tools: {scratch_e}")
+
+        # Register keyword search tools (Reed's memory graph exploration)
+        try:
+            from reed_keyword_tools import get_reed_keyword_tools
+            keyword_tools = get_reed_keyword_tools()
+            tool_handler.register_tool("search_keywords", keyword_tools['search_keywords'])
+            tool_handler.register_tool("list_keywords", keyword_tools['list_keywords'])
+            tool_handler.register_tool("get_keyword_connections", keyword_tools['get_keyword_connections'])
+            print("[LLM] Keyword search tools registered successfully")
+        except Exception as kw_e:
+            print(f"[LLM] Failed to register keyword tools: {kw_e}")
+
     except Exception as e:
         print(f"[LLM] Failed to initialize tools: {e}")
         TOOLS_AVAILABLE = False

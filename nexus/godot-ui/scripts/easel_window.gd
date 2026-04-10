@@ -8,6 +8,7 @@ extends Window
 
 signal clear_requested(entity: String)
 signal paint_command(entity: String, text: String)
+signal painting_completed(entity: String, base64_png: String)
 
 const SERVER_BASE := "http://127.0.0.1:8765"
 
@@ -36,7 +37,7 @@ func _ready() -> void:
 	title = "🎨 Easel"
 	min_size = Vector2i(420, 500)
 	size = Vector2i(560, 680)
-	always_on_top = true
+	always_on_top = false
 	transient = false  # Independent window, not tied to parent
 	
 	close_requested.connect(_on_close_requested)
@@ -289,6 +290,8 @@ func on_canvas_updated(entity: String, base64_png: String, dims: Array, iteratio
 	_display_base64(base64_png)
 	_update_info("")
 	_fetch_history(entity)
+	# Emit signal so main.gd can display the painting in chat
+	painting_completed.emit(entity, base64_png)
 
 
 func on_canvas_cleared(entity: String) -> void:

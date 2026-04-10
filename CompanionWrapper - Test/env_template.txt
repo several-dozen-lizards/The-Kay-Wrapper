@@ -1,0 +1,35 @@
+# Companion Wrapper — Environment Configuration
+# Copy this to .env and fill in your API key(s).
+
+# ==================== LLM PROVIDER SELECTION ====================
+# Options: "anthropic", "openai", "google", "mistral", "cohere", "ollama"
+MODEL_PROVIDER=anthropic
+
+# ==================== ANTHROPIC (Claude) — Recommended ===========
+ANTHROPIC_API_KEY=your-anthropic-key-here
+ANTHROPIC_MODEL=claude-sonnet-4-5-20250929
+
+# ==================== OPENAI (GPT) ===============================
+# OPENAI_API_KEY=your-openai-key-here
+# OPENAI_MODEL=gpt-4o
+
+# ==================== GOOGLE (Gemini) ============================
+# GOOGLE_API_KEY=your-google-key-here
+# GOOGLE_MODEL=gemini-2.0-flash-exp
+
+# ==================== MISTRAL ====================================
+# MISTRAL_API_KEY=your-mistral-key-here
+# MISTRAL_MODEL=mistral-large-latest
+
+# ==================== OLLAMA (Local, Free) =======================
+# OLLAMA_BASE_URL=http://localhost:11434
+# OLLAMA_MODEL=dolphin-mistral:7b
+
+# ==================== PORT CONFIGURATION ==========================
+# WebSocket port for private room connection (default: 8780)
+# NOTE: Nexus uses 8765/8770/8771 - CompanionWrapper must use different ports
+PRIVATE_ROOM_PORT=8780
+HTTP_API_PORT=8785
+
+# ==================== SETTINGS ===================================
+VERBOSE_DEBUG=false

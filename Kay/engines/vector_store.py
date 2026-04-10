@@ -14,17 +14,24 @@ try:
     import chromadb
     from chromadb.config import Settings
     CHROMADB_AVAILABLE = True
-except ImportError:
+except (ImportError, Exception):
     CHROMADB_AVAILABLE = False
-    print(f"{etag('WARNING')}  ChromaDB not installed. Run: pip install chromadb")
+    print("[WARNING] ChromaDB not available. Run: pip install chromadb")
 
 try:
-    from sentence_transformers import SentenceTransformer
-    EMBEDDER_AVAILABLE = True
+    from engines.shared_embedder import get_embedder, is_embedder_available
+    EMBEDDER_AVAILABLE = is_embedder_available()
 except ImportError:
-    EMBEDDER_AVAILABLE = False
-    print(f"{etag('WARNING')}  sentence-transformers not installed. Run: pip install sentence-transformers")
-    print(f"{etag('INFO')}  Will use ChromaDB's default embeddings")
+    # Fallback for direct import
+    try:
+        from sentence_transformers import SentenceTransformer
+        EMBEDDER_AVAILABLE = True
+        get_embedder = None  # Will use local instantiation
+    except ImportError:
+        EMBEDDER_AVAILABLE = False
+        get_embedder = None
+        print("[WARNING] sentence-transformers not installed. Run: pip install sentence-transformers")
+        print("[INFO] Will use ChromaDB's default embeddings")
 
 # Entity-prefixed logging
 try:
@@ -71,10 +78,17 @@ class VectorStore:
         self.use_custom_embeddings = use_sentence_transformers and EMBEDDER_AVAILABLE
 
         if self.use_custom_embeddings:
-            print(f"{etag('VECTOR_DB')}  Loading sentence-transformer model 'all-MiniLM-L6-v2'...")
-            # Force CPU mode to avoid CUDA compatibility issues with newer GPUs
-            self.embedder = SentenceTransformer('all-MiniLM-L6-v2', device='cpu')
-            print(f"{etag('VECTOR_DB')}  Embedder loaded (CPU mode)")
+            # Use shared embedder singleton to avoid duplicate model loading
+            if get_embedder is not None:
+                print(f"{etag('VECTOR_DB')} Using shared embedder singleton...")
+                self.embedder = get_embedder()
+            else:
+                # Fallback: load directly (shouldn't happen normally)
+                print(f"{etag('VECTOR_DB')} Loading sentence-transformer model 'all-MiniLM-L6-v2'...")
+                from sentence_transformers import SentenceTransformer
+                self.embedder = SentenceTransformer('all-MiniLM-L6-v2', device='cpu')
+            if self.embedder:
+                print(f"{etag('VECTOR_DB')} Embedder ready (CPU mode)")
 
         # Initialize ChromaDB client
         self.client = chromadb.PersistentClient(

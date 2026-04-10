@@ -174,22 +174,41 @@ class SessionSummaryGenerator:
                     peripheral_summary = router.summarize_session(messages)
 
                     if peripheral_summary and len(peripheral_summary) > 50:
-                        # Use peripheral summary with session metadata
-                        session_data = {
-                            'duration': self._get_session_duration(),
-                            'topics': ", ".join(self.topics_discussed) if self.topics_discussed else "general conversation",
-                            'turns': self.turn_count,
-                            'emotions': self._format_emotional_journey()
-                        }
+                        # VALIDATION: Check that the summary actually relates to the conversation
+                        # The peripheral model sometimes hallucinates completely unrelated text.
+                        # Extract keywords from conversation and check overlap with summary.
+                        conversation_words = set()
+                        for msg in messages:
+                            content = msg.get("content", "")
+                            if isinstance(content, str):
+                                conversation_words.update(
+                                    w.lower() for w in content.split() 
+                                    if len(w) > 4  # Only meaningful words
+                                )
+                        summary_words = set(w.lower() for w in peripheral_summary.split() if len(w) > 4)
+                        overlap = conversation_words & summary_words
+                        
+                        if len(overlap) < 3:
+                            # Summary doesn't relate to the conversation — reject it
+                            print(f"[PERIPHERAL] Summary REJECTED: only {len(overlap)} word overlap with conversation "
+                                  f"(need ≥3). Hallucination detected, falling back to primary.")
+                        else:
+                            # Summary is relevant — save it
+                            session_data = {
+                                'duration': self._get_session_duration(),
+                                'topics': ", ".join(self.topics_discussed) if self.topics_discussed else "general conversation",
+                                'turns': self.turn_count,
+                                'emotions': self._format_emotional_journey()
+                            }
 
-                        # Store the summary
-                        self.summary_storage.save_summary(
-                            summary_type='conversation',
-                            content=peripheral_summary,
-                            metadata={**session_data, 'generator': 'peripheral'}
-                        )
-                        print(f"[PERIPHERAL] Session summary generated ({len(peripheral_summary)} chars)")
-                        return peripheral_summary
+                            # Store the summary
+                            self.summary_storage.save_summary(
+                                summary_type='conversation',
+                                content=peripheral_summary,
+                                metadata={**session_data, 'generator': 'peripheral'}
+                            )
+                            print(f"[PERIPHERAL] Session summary generated ({len(peripheral_summary)} chars, {len(overlap)} keyword overlap)")
+                            return peripheral_summary
             except ImportError:
                 pass  # No peripheral router, continue to primary LLM
             except Exception as e:

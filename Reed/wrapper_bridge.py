@@ -85,6 +85,16 @@ except ImportError as e:
     RESONANCE_AVAILABLE = False
     print(f"{etag('RESONANCE')} Resonant core not available: {e}")
 
+# Consciousness stream (continuous inner experience)
+try:
+    from engines.consciousness_stream import ConsciousnessStream
+    CONSCIOUSNESS_STREAM_AVAILABLE = True
+    print("[STREAM] Consciousness stream available")
+except ImportError as e:
+    CONSCIOUSNESS_STREAM_AVAILABLE = False
+    ConsciousnessStream = None
+    print(f"{etag('STREAM')} Consciousness stream not available: {e}")
+
 # Felt-state buffer for TPN/DMN architecture
 try:
     from shared.felt_state_buffer import FeltStateBuffer
@@ -214,6 +224,9 @@ class WrapperBridge:
         self.session_id = str(int(time.time()))
         self.recent_responses = []  # Last 3 for anti-repetition
         self.new_document_loaded = False
+
+        # Private room reference (set by Nexus for system messages)
+        self.private_room = None
 
         # Phase 3: Continuous session state
         self.continuous_mode = True
@@ -512,6 +525,30 @@ class WrapperBridge:
                 import traceback
                 traceback.print_exc()
                 self.resonance = None
+
+        # Consciousness stream (continuous inner experience)
+        self.consciousness_stream = None
+        if CONSCIOUSNESS_STREAM_AVAILABLE and self.resonance:
+            try:
+                self.consciousness_stream = ConsciousnessStream(
+                    resonance=self.resonance,
+                    room_bridge=self.room_bridge if hasattr(self, 'room_bridge') else None,
+                    peripheral_router=None,  # Set later if available
+                    visual_sensor=None,      # Reed uses SOMA from Kay, not own camera
+                    entity_name=self.entity_name.lower(),
+                )
+                self.consciousness_stream.start()
+                print(f"{etag('STREAM')} Consciousness stream started for {self.entity_name}")
+
+                # Wire up memory engine for sleep pressure
+                if hasattr(self, 'memory') and self.memory:
+                    self.memory.set_consciousness_stream(self.consciousness_stream)
+
+            except Exception as e:
+                print(f"{etag('STREAM')} Initialization failed: {e}")
+                import traceback
+                traceback.print_exc()
+                self.consciousness_stream = None
 
         # Phase 3: Continuous session, flagging, curation
         print(f"{etag('STARTUP')} Initializing continuous session system...")
@@ -1078,6 +1115,16 @@ class WrapperBridge:
         
         # Fact extraction & memory recall
         # In voice mode: defer entity extraction to DMN, skip RAG and peripheral updates
+        
+        # === PHASE-LOCKED MEMORY RETRIEVAL: Update current PLV before recall ===
+        if self.felt_state_buffer:
+            _fs = self.felt_state_buffer.get_snapshot()
+            self.memory.current_plv = {
+                "theta_gamma": _fs.theta_gamma_plv,
+                "beta_gamma": _fs.beta_gamma_plv,
+                "coherence": _fs.global_coherence,
+            }
+        
         if not voice_mode:
             self.memory.extract_and_store_user_facts(self.state, user_input)
             self.memory.recall(self.state, user_input)
@@ -1640,6 +1687,13 @@ class WrapperBridge:
         except Exception as e:
             print(f"(Warning: could not save forest: {e})")
 
+        # Save keyword graph (Dijkstra lazy links)
+        try:
+            if hasattr(self.memory, 'save_keyword_graph'):
+                self.memory.save_keyword_graph()
+        except Exception as e:
+            print(f"(Warning: could not save keyword graph: {e})")
+
     def set_private_room(self, private_room):
         """Connect room bridge to a PrivateRoom for WebSocket broadcasting."""
         if self.room_bridge and private_room:
@@ -1935,6 +1989,11 @@ class WrapperBridge:
         # Stop media watcher
         if self.media_watcher:
             self.media_watcher.stop()
+
+        # Stop consciousness stream
+        if self.consciousness_stream:
+            self.consciousness_stream.stop()
+            print("[STREAM] Consciousness stream stopped")
 
         # Stop resonance oscillator
         if self.resonance:

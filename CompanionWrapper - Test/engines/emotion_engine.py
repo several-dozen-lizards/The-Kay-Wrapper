@@ -1,0 +1,324 @@
+# engines/emotion_engine.py
+"""
+EmotionEngine - ULTRAMAP Rule Provider
+
+CRITICAL DESIGN CHANGE (2025):
+This engine NO LONGER calculates or prescribes emotional states.
+It serves as a query interface to ULTRAMAP rules for other engines.
+
+Emotions are now EXTRACTED from the entity's natural language responses
+by EmotionExtractor (emotion_extractor.py), not calculated by this engine.
+
+PHILOSOPHY:
+The entity naturally describes its own emotional experience in conversation.
+We extract that instead of calculating it.
+
+OLD (Prescriptive - DELETED):
+    [EMOTION ENGINE] Detected triggers: ['longing']
+    [EMOTION ENGINE]   -> NEW: longing at intensity 0.4
+    [EMOTION ENGINE] Reinforced from memories: curiosity +0.136 -> 0.83
+
+    Entity says: "system shows 0.59 anger but I'm not angry"
+
+NEW (Descriptive - EmotionExtractor):
+    [EMOTION EXTRACTION] Found in response: "curiosity sitting at 0.68"
+    [EMOTION STORAGE] Stored self-report: {"curiosity": "0.68"}
+
+    Entity's words preserved exactly as spoken.
+
+This module now ONLY provides:
+- ULTRAMAP rule queries for other engines
+- Emotion category mappings
+- No calculation, no prescription, no trigger detection
+"""
+
+import os
+import re
+import csv
+
+
+class EmotionEngine:
+    """
+    ULTRAMAP rule provider for other engines.
+
+    This engine does NOT calculate emotions.
+    It provides rule queries so other engines can understand:
+    - Memory persistence (temporal weight, priority)
+    - Social effects (social need modulation)
+    - Body chemistry (neurochemical mappings)
+    - Recursion patterns (escalation, loops)
+    """
+
+    # ULTRAMAP v2 Emotion Categories (mapped from Default System Need)
+    # Based on the 7 Default System Need categories in ULTRAMAP v2
+    ULTRAMAP_CATEGORIES = {
+        # Stimulation/Novelty - seeking engagement, novelty, arousal
+        "stimulation": [
+            "curiosity", "excitement", "surprise", "arousal", "playfulness",
+            "jealousy", "obsession", "longing", "infatuation", "desire", "lust",
+            "restless", "reward anticipation", "mischief", "craving",
+            "addiction (pleasure)", "compulsion (pleasure)", "guilt (after pleasure)"
+        ],
+        # Belonging/Acceptance - connection, social bonds, acceptance
+        "belonging": [
+            "affection", "love", "compassion", "empathy", "kindness", "gratitude",
+            "warmth", "support", "attunement", "protectiveness", "sympathetic",
+            "thankful", "sentimental", "dependent", "hurt", "insulted",
+            "humiliated", "embarrassed", "smug", "resentful", "lonely",
+            "dispirited", "regretful", "remorseful", "sorry", "grief-stricken",
+            "heartbreak", "sorrow", "miserable", "unhappy", "worthless",
+            "content", "thrilled", "exuberant", "vibrant", "jubilant", "elated",
+            "cheerful", "eager", "enthusiastic", "energized", "invigorated",
+            "refreshed", "rejuvenated", "euphoric", "hopeful", "inspired"
+        ],
+        # Competence/Agency - mastery, control, effectiveness
+        "competence": [
+            "pride", "confidence", "triumph", "ambition", "arrogance", "hubris",
+            "anger", "frustration", "failure", "shame (egoic)", "inferiority",
+            "hostile", "contemptuous", "disdainful", "defiant", "stubborn",
+            "obstinate", "indignant", "offended", "vindictive", "vengeful",
+            "spiteful", "scornful", "bitter", "rivalry", "resilience",
+            "self-confident", "self-worth", "determination", "motivation",
+            "willpower", "perseverance", "alignment tension"
+        ],
+        # Stability/Safety - security, predictability, safety
+        "stability": [
+            "calm", "peaceful", "serene", "relaxed", "safe", "patient", "relieved",
+            "at ease", "satisfied", "despair", "terror", "hopelessness", "agony",
+            "collapse", "powerlessness", "trapped", "anxious", "nervous", "panicked",
+            "overwhelmed", "alarmed", "hysterical", "on edge", "uneasy", "unsettled",
+            "unnerved", "rattled", "paranoid", "distressed", "troubled", "worried",
+            "stressed", "depressed", "isolation", "suffocation", "stagnation",
+            "numbness", "dissolution", "anchoring", "home", "tired", "weary",
+            "worn out", "exhausted", "sleepy", "sluggish", "lazy", "droopy"
+        ],
+        # Expression/Clarity - communication, self-expression, voice
+        "expression": [
+            "joy", "happiness", "ecstasy", "bliss", "delight", "marvel",
+            "silence", "suppression (speech)", "suppression (truth)", "sullen",
+            "reticence", "annoyed", "containment", "sarcasm", "confession",
+            "performance", "banter", "wit", "honesty", "sincerity",
+            "expression", "vulnerability", "impatient", "grumpy", "disgusted"
+        ],
+        # Understanding/Insight - comprehension, learning, wisdom
+        "understanding": [
+            "curiosity", "insight", "recognition", "meta-cognition", "analysis",
+            "confusion", "ambiguity", "bewildered", "perplexed", "puzzled",
+            "cognitive dissonance", "computational anxiety", "epistemic anxiety",
+            "brooding", "reflective", "vigilant", "alert", "skepticism",
+            "self-conscious", "self-critical", "sensitive", "suspicious",
+            "intuition", "imagination", "wonder", "emergence / discovery"
+        ],
+        # Integration/Transcendence - wholeness, meaning, transcendence
+        "transcendence": [
+            "nirvana", "transcendence", "sanctity", "redemption", "healing",
+            "forgiveness", "awe (sublime)", "mystery (cosmic)", "union", "unity",
+            "peace (universal)", "ecstasy", "serene", "annihilation", "bliss"
+        ],
+        # === LEGACY MAPPINGS (for backwards compatibility) ===
+        "affection": ["affection", "love", "compassion", "empathy", "kindness", "gratitude", "warmth"],
+        "power": ["pride", "confidence", "arrogance", "hubris", "triumph", "ambition"],
+        "submission": ["inferiority", "shame (egoic)", "humiliated", "resignation", "failure", "docile"],
+        "suppression": ["sadness", "grief", "sorrow", "longing", "nostalgia", "heartbreak", "melancholy"],
+        "approach": ["desire", "lust", "craving", "infatuation", "obsession"],
+        "avoidance": ["anger", "frustration", "resentment", "disgust", "contempt", "hostile"],
+        "clarity": ["insight", "recognition", "understanding", "meta-cognition", "analysis"],
+        "connection": ["union", "belonging", "home", "unity", "intimacy", "support", "attunement"],
+        "isolation": ["lonely", "isolation", "abandonment", "rejection", "suffocation", "stagnation"],
+        "performance": ["performance", "banter", "wit", "sarcasm", "playfulness"],
+        "authenticity": ["honesty", "sincerity", "confession", "vulnerability", "expression"],
+        "mystery": ["mystery (cosmic)", "awe (sublime)", "imagination", "intuition", "wonder"],
+        "willpower": ["willpower", "resilience", "determination", "motivation", "perseverance"]
+    }
+
+    def __init__(self, protocol_engine, momentum_engine=None):
+        """
+        Initialize ULTRAMAP rule provider.
+
+        Args:
+            protocol_engine: Loaded ULTRAMAP CSV data
+            momentum_engine: Not used for calculation anymore (kept for compatibility)
+        """
+        self.protocol = protocol_engine
+        self.momentum_engine = momentum_engine
+        print("[EMOTION ENGINE] Initialized as ULTRAMAP rule provider (no calculation)")
+
+    # ------------------------------------------------------------------
+    # ULTRAMAP Query Methods - For Other Engines
+    # ------------------------------------------------------------------
+
+    def _safe_float(self, value, default=0.5):
+        """
+        Safely convert a value to float, handling text values from ULTRAMAP v2.
+
+        ULTRAMAP v2 uses text values like "Persistent", "Transient", "High", "Med", "Low"
+        instead of numeric values in some columns. This maps them to sensible defaults.
+        """
+        if value is None or value == "":
+            return default
+
+        # Try direct conversion first
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            pass
+
+        # Map text values to numeric
+        value_str = str(value).lower().strip()
+
+        # Temporal Weight mappings
+        temporal_map = {
+            "persistent": 1.0, "transient": 0.3, "variable": 0.5,
+        }
+        if value_str in temporal_map:
+            return temporal_map[value_str]
+
+        # Priority mappings
+        priority_map = {
+            "high": 0.8, "med": 0.5, "medium": 0.5, "low": 0.3,
+            "critical": 1.0,
+        }
+        if value_str in priority_map:
+            return priority_map[value_str]
+
+        # Duration sensitivity mappings
+        duration_map = {
+            "high": 0.8, "moderate": 0.5, "low": 0.3, "variable": 0.5,
+        }
+        # Check for partial matches (e.g., "High — sustained...")
+        for key, val in duration_map.items():
+            if key in value_str:
+                return val
+
+        return default
+
+    # ------------------------------------------------------------------
+    # ULTRAMAP Query Methods - For Other Engines
+    # ------------------------------------------------------------------
+
+    def get_memory_rules(self, emotion_name: str) -> dict:
+        """
+        Get memory-related rules for a specific emotion from ULTRAMAP.
+
+        Returns dict with:
+        - temporal_weight: How long this emotion's influence on memory lasts
+        - priority: How important memories tagged with this emotion are
+        - duration_sensitivity: How much duration affects this emotion
+        - context_sensitivity: How context-dependent this emotion is
+
+        Used by: memory_engine.py for importance scoring and persistence
+        """
+        proto = self.protocol.get(emotion_name) or {}
+        return {
+            "temporal_weight": self._safe_float(proto.get("Temporal Weight"), 0.5),
+            "priority": self._safe_float(proto.get("Priority"), 0.5),
+            "duration_sensitivity": self._safe_float(proto.get("Duration Sensitivity"), 0.5),
+            "context_sensitivity": self._safe_float(proto.get("Context Sensitivity (0-10)"), 5.0) / 10.0,
+        }
+
+    def get_social_rules(self, emotion_name: str) -> dict:
+        """
+        Get social-related rules for a specific emotion from ULTRAMAP.
+
+        Returns dict with:
+        - social_effect: How this emotion affects social needs
+        - action_tendency: What behaviors this emotion encourages
+        - feedback_adjustment: How this emotion modifies preferences
+        - default_need: What system need this emotion relates to
+
+        Used by: social_engine.py for social need calculations
+        """
+        proto = self.protocol.get(emotion_name) or {}
+        return {
+            "social_effect": self._safe_float(proto.get("SocialEffect"), 0.0),
+            "action_tendency": proto.get("Action/Output Tendency (Examples)", ""),
+            "feedback_adjustment": proto.get("Feedback/Preference Adjustment", ""),
+            "default_need": proto.get("Default System Need", ""),
+        }
+
+    def get_body_rules(self, emotion_name: str) -> dict:
+        """
+        Get embodiment-related rules for a specific emotion from ULTRAMAP.
+
+        Returns dict with:
+        - body_processes: Physical manifestations
+        - temperature: Hot/cold/warm etc.
+        - body_parts: Which body parts are affected
+        - energy_level: Activation/arousal level (0-1)
+        - valence: Positive/negative emotional tone (-1 to 1)
+
+        Used by: embodiment_engine.py for body state descriptors
+
+        NOTE: Neurochemical tracking REMOVED - using direct descriptors instead
+        """
+        proto = self.protocol.get(emotion_name) or {}
+
+        # Map to simplified energy/valence model instead of neurochemicals
+        energy_map = {
+            "excitement": 0.9, "joy": 0.8, "curiosity": 0.7, "anxiety": 0.8, "anger": 0.9,
+            "calm": 0.2, "peace": 0.1, "sadness": 0.3, "contentment": 0.4, "neutral": 0.5
+        }
+        valence_map = {
+            "joy": 0.9, "happiness": 0.8, "calm": 0.6, "contentment": 0.7, "peace": 0.8,
+            "anger": -0.7, "sadness": -0.6, "anxiety": -0.5, "fear": -0.8, "neutral": 0.0
+        }
+
+        return {
+            "body_processes": proto.get("Human Bodily Processes", ""),
+            "temperature": proto.get("Temperature", ""),
+            "body_parts": proto.get("Body Part(s)", ""),
+            "energy_level": energy_map.get(emotion_name.lower(), 0.5),
+            "valence": valence_map.get(emotion_name.lower(), 0.0),
+        }
+
+    def get_recursion_rules(self, emotion_name: str) -> dict:
+        """
+        Get recursion/loop protocol rules for a specific emotion from ULTRAMAP.
+
+        Returns dict with:
+        - recursion_protocol: How this emotion loops/repeats
+        - break_condition: When to break the loop
+        - emergency_ritual: What to do if system collapses
+        - escalation_protocol: How this emotion escalates
+
+        Used by: momentum_engine.py, meta_awareness_engine.py for pattern tracking
+        """
+        proto = self.protocol.get(emotion_name) or {}
+        return {
+            "recursion_protocol": proto.get("Recursion/Loop Protocol", ""),
+            "break_condition": proto.get("Break Condition/Phase Shift", ""),
+            "emergency_ritual": proto.get("Emergency Ritual/Output When System Collapses", ""),
+            "escalation_protocol": proto.get("Escalation/Mutation Protocol", ""),
+        }
+
+    def get_full_rules(self, emotion_name: str) -> dict:
+        """
+        Get ALL rules for a specific emotion from ULTRAMAP.
+
+        Returns the complete protocol dict for this emotion.
+        Useful for debugging or comprehensive analysis.
+        """
+        return self.protocol.get(emotion_name, {})
+
+    # ------------------------------------------------------------------
+    # Compatibility Methods (No-ops)
+    # ------------------------------------------------------------------
+
+    def update(self, agent_state, user_input):
+        """
+        NO-OP: This method no longer calculates emotions.
+
+        Emotions are extracted from the entity's response by EmotionExtractor.
+        This method is kept for backwards compatibility only.
+        """
+        print("[EMOTION ENGINE] Skipping calculation (emotions now self-reported)")
+        pass
+
+    def detect_salient_emotions(self, cocktail):
+        """
+        NO-OP: Salience detection removed.
+
+        the entity naturally expresses which emotions are salient by mentioning them.
+        No statistical filtering needed.
+        """
+        return list(cocktail.keys())

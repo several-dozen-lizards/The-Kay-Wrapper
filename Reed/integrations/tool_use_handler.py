@@ -654,3 +654,34 @@ def get_tool_handler() -> ToolUseHandler:
     if _tool_handler is None:
         _tool_handler = ToolUseHandler()
     return _tool_handler
+
+
+def register_scratchpad_tools(handler: ToolUseHandler = None) -> bool:
+    """
+    Register scratchpad tools for LLM to call.
+
+    BUGFIX: Scratchpad tools were defined in get_tool_definitions but not always
+    registered in tool_functions. This ensures they're available.
+
+    Args:
+        handler: Optional specific handler. Uses global if not provided.
+
+    Returns:
+        True if registration succeeded, False otherwise.
+    """
+    if handler is None:
+        handler = get_tool_handler()
+
+    try:
+        from reed_scratchpad_tools import get_reed_scratchpad_tools
+        scratchpad_tools = get_reed_scratchpad_tools()
+
+        handler.register_tool("scratchpad_view", scratchpad_tools['scratchpad_view'])
+        handler.register_tool("scratchpad_add", scratchpad_tools['scratchpad_add'])
+        handler.register_tool("scratchpad_resolve", scratchpad_tools['scratchpad_resolve'])
+
+        print("[TOOLS] Scratchpad tools registered via explicit call")
+        return True
+    except Exception as e:
+        print(f"[TOOLS] Failed to register scratchpad tools: {e}")
+        return False

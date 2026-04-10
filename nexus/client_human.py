@@ -365,7 +365,7 @@ async def main(name: str, server_url: str):
     """)
     connected = asyncio.Event()
     try:
-        async with websockets.connect(ws_url) as ws:
+        async with websockets.connect(ws_url, ping_interval=30, ping_timeout=300) as ws:
             receive_task = asyncio.create_task(receive_messages(ws, name, connected))
             send_task = asyncio.create_task(send_messages(ws, name, connected))
             done, pending = await asyncio.wait(

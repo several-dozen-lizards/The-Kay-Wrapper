@@ -44,9 +44,11 @@ const THEMES = {
 
 signal voice_toggled(enabled: bool)
 signal image_requested()
+signal image_upload_requested(image_b64: String, filename: String, message: String)
 signal affect_changed(level: float)
 signal warmup_requested()
 signal nexus_toggle_requested(connect: bool)
+signal document_dropped(filepath: String, filename: String)
 
 @onready var header_bar: PanelContainer = %HeaderBar
 @onready var title_label: Label = %TitleLabel
@@ -71,9 +73,24 @@ var _embedded: bool = false  # True when inside a DockablePanel
 var _nexus_connected: bool = false  # Nexus connection state (nexus panel only)
 var _voice_active: bool = false
 var _last_input_was_voice: bool = false  # Voice input mode active
+
+## Message trimming — prevents OOM crash during long overnight sessions
+const MAX_MESSAGES := 300   # Trim when this many messages accumulated
+const TRIM_TO := 150        # Keep this many after trim
+var _message_count: int = 0
+var _face_panel: Control = null  # Embedded FacePanel
+var _face_sidebar: VBoxContainer = null  # Sidebar container
+var _face_entity: String = ""  # "kay" or "reed"
+var _face_stats_label: Label = null  # Stats display under face
+var _chat_area: HBoxContainer = null  # Wraps face sidebar + scroll container
 var _bg_texture_rect: TextureRect = null
 var _bg_overlay: ColorRect = null
 var _accent_texture_rect: TextureRect = null  # Thin header accent strip (inside layout)
+
+## Image upload state
+var _image_dialog: FileDialog = null
+var _pending_image_b64: String = ""
+var _pending_image_filename: String = ""
 
 ## Per-panel background images
 const BG_IMAGES = {
@@ -104,9 +121,13 @@ func _ready() -> void:
 	if image_button:
 		image_button.pressed.connect(_on_image_pressed)
 	if affect_slider:
-		affect_slider.value_changed.connect(_on_affect_changed)
+		affect_slider.visible = false  # Dead code — affect system gutted
+	if affect_label:
+		affect_label.visible = false
 	if warmup_button:
 		warmup_button.pressed.connect(_on_warmup_pressed)
+	# Drag-and-drop file support
+	get_viewport().files_dropped.connect(_on_files_dropped)
 
 
 func _setup_background() -> void:
@@ -388,15 +409,142 @@ func add_message(sender: String, content: String, msg_type: String = "chat",
 	# Smart scroll: only auto-scroll if user was already at the bottom
 	if was_near_bottom:
 		_scroll_to_bottom()
+	
+	# Trim old messages to prevent memory growth during long sessions
+	_message_count += 1
+	if _message_count > MAX_MESSAGES:
+		_trim_chat_history()
 
 
 func add_system_message(text: String) -> void:
 	add_message("System", text, "system")
 
 
+## ========================================================================
+## Image display in chat
+## ========================================================================
+
+func add_image_message(sender: String, image_path: String, caption: String = "") -> void:
+	"""Display an image inline in the chat with optional caption."""
+	var was_near_bottom = _is_near_bottom()
+
+	# Load the image texture
+	var tex: Texture2D = _load_texture(image_path)
+	if not tex:
+		add_system_message("Could not load image: %s" % image_path)
+		return
+
+	# Scale image to fit chat width (max ~400px wide)
+	var max_width: float = 400.0
+	var scale_factor: float = 1.0
+	if tex.get_width() > max_width:
+		scale_factor = max_width / tex.get_width()
+
+	var display_width: int = int(tex.get_width() * scale_factor)
+	var display_height: int = int(tex.get_height() * scale_factor)
+
+	# Get sender color
+	var color = COLORS.get(sender, COLORS["default"])
+
+	# Build message with BBCode
+	var ts = _format_timestamp("")
+	chat_display.append_text("[color=#666666]%s[/color] [b][color=%s]%s[/color][/b]: " % [ts, color, sender])
+
+	# Add caption if provided
+	if not caption.is_empty():
+		chat_display.append_text("%s\n" % caption)
+	else:
+		chat_display.append_text("\n")
+
+	# Add the image using RichTextLabel's add_image
+	chat_display.add_image(tex, display_width, display_height)
+	chat_display.append_text("\n\n")
+
+	# Smart scroll
+	if was_near_bottom:
+		_scroll_to_bottom()
+
+	_message_count += 1
+	if _message_count > MAX_MESSAGES:
+		_trim_chat_history()
+
+
+func add_image_from_base64(sender: String, b64_data: String, caption: String = "") -> void:
+	"""Display a base64-encoded image inline in the chat."""
+	var was_near_bottom = _is_near_bottom()
+
+	var raw = Marshalls.base64_to_raw(b64_data)
+	var img = Image.new()
+
+	# Try loading as PNG first, then JPEG, then WebP
+	var err = img.load_png_from_buffer(raw)
+	if err != OK:
+		err = img.load_jpg_from_buffer(raw)
+	if err != OK:
+		err = img.load_webp_from_buffer(raw)
+	if err != OK:
+		add_system_message("Could not decode image")
+		return
+
+	var tex = ImageTexture.create_from_image(img)
+
+	# Scale to fit chat width
+	var max_width: float = 400.0
+	var scale_factor: float = 1.0
+	if tex.get_width() > max_width:
+		scale_factor = max_width / tex.get_width()
+
+	var display_width: int = int(tex.get_width() * scale_factor)
+	var display_height: int = int(tex.get_height() * scale_factor)
+
+	# Get sender color
+	var color = COLORS.get(sender, COLORS["default"])
+
+	# Build message
+	var ts = _format_timestamp("")
+	chat_display.append_text("[color=#666666]%s[/color] [b][color=%s]%s[/color][/b]: " % [ts, color, sender])
+
+	if not caption.is_empty():
+		chat_display.append_text("%s\n" % caption)
+	else:
+		chat_display.append_text("\n")
+
+	chat_display.add_image(tex, display_width, display_height)
+	chat_display.append_text("\n\n")
+
+	# Smart scroll
+	if was_near_bottom:
+		_scroll_to_bottom()
+
+	_message_count += 1
+	if _message_count > MAX_MESSAGES:
+		_trim_chat_history()
+
+
 func clear_chat() -> void:
 	if chat_display:
 		chat_display.clear()
+	_message_count = 0
+
+
+func _trim_chat_history() -> void:
+	## Remove oldest messages from RichTextLabel to prevent memory growth.
+	## Keeps TRIM_TO most recent lines.
+	if not chat_display:
+		return
+	var text = chat_display.get_parsed_text()
+	var lines = text.split("\n")
+	if lines.size() <= TRIM_TO:
+		_message_count = lines.size()
+		return
+	chat_display.clear()
+	var keep = lines.slice(-TRIM_TO)
+	# Add a separator so user knows history was trimmed
+	chat_display.append_text("[color=#333333]--- earlier messages trimmed ---[/color]\n")
+	for line in keep:
+		if not line.is_empty():
+			chat_display.append_text(line + "\n")
+	_message_count = TRIM_TO
 
 
 func focus_input() -> void:
@@ -540,7 +688,124 @@ func show_speaking_indicator(speaking: bool) -> void:
 
 func _on_image_pressed() -> void:
 	image_requested.emit()
-	add_system_message("Image upload (placeholder - not yet implemented)")
+	# Open file dialog for image selection
+	if not _image_dialog:
+		_image_dialog = FileDialog.new()
+		_image_dialog.title = "Select Image"
+		_image_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
+		_image_dialog.access = FileDialog.ACCESS_FILESYSTEM
+		_image_dialog.filters = PackedStringArray(["*.png ; PNG", "*.jpg ; JPEG", "*.jpeg ; JPEG", "*.gif ; GIF", "*.webp ; WebP"])
+		_image_dialog.file_selected.connect(_on_image_file_selected)
+		_image_dialog.canceled.connect(_on_image_dialog_canceled)
+		add_child(_image_dialog)
+	_image_dialog.popup_centered(Vector2(600, 400))
+
+
+func _on_image_file_selected(path: String) -> void:
+	# Read file and encode to base64
+	var file = FileAccess.open(path, FileAccess.READ)
+	if not file:
+		add_system_message("Error: Could not read image file")
+		return
+
+	var data = file.get_buffer(file.get_length())
+	file.close()
+
+	# Check file size (max 5MB)
+	if data.size() > 5 * 1024 * 1024:
+		add_system_message("Error: Image too large (max 5MB)")
+		return
+
+	# Encode to base64
+	_pending_image_b64 = Marshalls.raw_to_base64(data)
+	_pending_image_filename = path.get_file()
+
+	# Show image preview in chat (not just text)
+	add_image_message("You", path, "📷 %s (%d KB) — type message and Send, or just Send" % [
+		_pending_image_filename,
+		data.size() / 1024
+	])
+
+	# Focus input for optional message
+	focus_input()
+
+
+func _on_image_dialog_canceled() -> void:
+	pass  # User canceled, do nothing
+
+
+func has_pending_image() -> bool:
+	return not _pending_image_b64.is_empty()
+
+
+func get_pending_image() -> Dictionary:
+	if _pending_image_b64.is_empty():
+		return {}
+	return {
+		"image_b64": _pending_image_b64,
+		"filename": _pending_image_filename
+	}
+
+
+func clear_pending_image() -> void:
+	_pending_image_b64 = ""
+	_pending_image_filename = ""
+
+
+## ========================================================================
+## Drag-and-drop file support
+## ========================================================================
+
+func _on_files_dropped(files: PackedStringArray) -> void:
+	"""Handle files dragged from OS into the chat panel."""
+	# Only handle if mouse is over this chat panel
+	var mouse_pos = get_viewport().get_mouse_position()
+	if not get_global_rect().has_point(mouse_pos):
+		return
+
+	for file_path in files:
+		var ext = file_path.get_extension().to_lower()
+
+		# Image files → upload as image
+		if ext in ["png", "jpg", "jpeg", "gif", "webp"]:
+			_handle_dropped_image(file_path)
+
+		# Document files → import as document
+		elif ext in ["txt", "md", "json", "pdf", "docx"]:
+			_handle_dropped_document(file_path)
+
+		else:
+			add_system_message("Unsupported file type: .%s" % ext)
+
+
+func _handle_dropped_image(path: String) -> void:
+	"""Process a dropped image file."""
+	var file = FileAccess.open(path, FileAccess.READ)
+	if not file:
+		add_system_message("Error: Could not read %s" % path.get_file())
+		return
+
+	var data = file.get_buffer(file.get_length())
+	file.close()
+
+	if data.size() > 5 * 1024 * 1024:
+		add_system_message("Error: Image too large (max 5MB)")
+		return
+
+	_pending_image_b64 = Marshalls.raw_to_base64(data)
+	_pending_image_filename = path.get_file()
+
+	# Show preview
+	add_image_message("You", path, "📷 %s (%d KB)" % [_pending_image_filename, data.size() / 1024])
+	add_system_message("Image ready — press Send (or type a message first)")
+	focus_input()
+
+
+func _handle_dropped_document(path: String) -> void:
+	"""Process a dropped document file."""
+	add_system_message("📄 Importing: %s" % path.get_file())
+	# Emit document import signal (main.gd handles the backend call)
+	document_dropped.emit(path, path.get_file())
 
 
 func _on_affect_changed(value: float) -> void:
@@ -598,8 +863,114 @@ func _submit_input() -> void:
 	if not input_field:
 		return
 	var text = input_field.text.strip_edges()
+
+	# Check for pending image upload
+	if has_pending_image():
+		var img_data = get_pending_image()
+		input_field.text = ""
+		# Emit image upload signal (message can be empty)
+		image_upload_requested.emit(img_data["image_b64"], img_data["filename"], text)
+		clear_pending_image()
+		add_message("Re", "[Image: %s]%s" % [img_data["filename"], " " + text if not text.is_empty() else ""], "chat")
+		input_field.grab_focus()
+		return
+
 	if text.is_empty():
 		return
 	input_field.text = ""
 	message_submitted.emit(text)
 	input_field.grab_focus()
+
+
+
+## ========================================================================
+## Face sidebar (embedded face panel + stats)
+## ========================================================================
+
+func embed_face(face: Control, entity: String) -> void:
+	"""Embed a FacePanel in a sidebar next to the chat display."""
+	if not scroll_container or not scroll_container.get_parent():
+		push_warning("Cannot embed face — scroll_container not ready")
+		return
+	
+	_face_panel = face
+	_face_entity = entity
+	
+	var layout = scroll_container.get_parent()  # The Layout VBoxContainer
+	var scroll_idx = scroll_container.get_index()
+	
+	# Create the chat area (HBox: sidebar + chat)
+	_chat_area = HBoxContainer.new()
+	_chat_area.name = "ChatArea"
+	_chat_area.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_chat_area.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	
+	# Remove scroll_container from Layout, insert chat_area at same position
+	layout.remove_child(scroll_container)
+	layout.add_child(_chat_area)
+	layout.move_child(_chat_area, scroll_idx)
+	
+	# Create sidebar
+	_face_sidebar = VBoxContainer.new()
+	_face_sidebar.name = "FaceSidebar"
+	_face_sidebar.custom_minimum_size = Vector2(140, 0)
+	_face_sidebar.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	_face_sidebar.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	
+	# Style the sidebar background
+	var sidebar_bg = StyleBoxFlat.new()
+	sidebar_bg.bg_color = Color(0.0, 0.0, 0.0, 0.3)
+	sidebar_bg.set_corner_radius_all(4)
+	var sidebar_panel = PanelContainer.new()
+	sidebar_panel.add_theme_stylebox_override("panel", sidebar_bg)
+	sidebar_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	
+	var sidebar_inner = VBoxContainer.new()
+	sidebar_inner.name = "SidebarInner"
+	sidebar_panel.add_child(sidebar_inner)
+	
+	# Face panel (compact size)
+	face.custom_minimum_size = Vector2(130, 150)
+	face.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sidebar_inner.add_child(face)
+	
+	# Stats label
+	_face_stats_label = Label.new()
+	_face_stats_label.name = "FaceStats"
+	_face_stats_label.text = "..."
+	_face_stats_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_face_stats_label.add_theme_font_size_override("font_size", 10)
+	_face_stats_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.7, 0.8))
+	_face_stats_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	sidebar_inner.add_child(_face_stats_label)
+	
+	_face_sidebar.add_child(sidebar_panel)
+	
+	# Add sidebar and scroll_container to chat_area
+	_chat_area.add_child(_face_sidebar)
+	_chat_area.add_child(scroll_container)
+	scroll_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+
+func toggle_face_sidebar() -> void:
+	"""Toggle face sidebar visibility."""
+	if _face_sidebar:
+		_face_sidebar.visible = not _face_sidebar.visible
+
+
+func update_face_stats(stats: Dictionary) -> void:
+	"""Update the stats display under the face. Called from main.gd."""
+	if not _face_stats_label:
+		return
+	var lines: PackedStringArray = []
+	if stats.has("band"):
+		lines.append("band: %s" % stats["band"])
+	if stats.has("coherence"):
+		lines.append("coh: %.0f%%" % (stats["coherence"] * 100))
+	if stats.has("felt"):
+		lines.append("felt: %s" % stats["felt"])
+	if stats.has("tension"):
+		lines.append("t: %.2f" % stats["tension"])
+	if stats.has("emotions"):
+		lines.append(stats["emotions"])
+	_face_stats_label.text = "\n".join(lines) if lines.size() > 0 else "..."

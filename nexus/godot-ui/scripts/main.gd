@@ -57,7 +57,16 @@ var _nexus_members: Dictionary = {"Kay": true, "Reed": true}
 var _curate_pending_entity: String = ""
 
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		# Log close request so we can diagnose overnight disappearances
+		print("[NEXUS UI] Window close requested — accepting quit")
+		get_tree().quit()
+
+
 func _ready() -> void:
+	# Always-on-top disabled (was annoying) — overnight stability handled by UI watchdog instead
+	#DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP, true)
 	get_tree().root.min_size = Vector2(900, 600)
 	await get_tree().process_frame
 	_create_panels()
@@ -80,46 +89,54 @@ func _ready() -> void:
 func _create_panels() -> void:
 	var screen = get_viewport_rect().size
 	
-	# --- Nexus group chat panel ---
+	# --- Nexus group chat panel (starts minimized — toggle with Ctrl+3) ---
 	_nexus_chat = ChatPanelScene.instantiate() as ChatPanel
 	panel_mgr.create_panel(
 		"nexus", "NEXUS", "the crossroads",
-		Vector2(10, 10), Vector2(screen.x * 0.55, screen.y - 50),
+		Vector2(10, 10), Vector2(screen.x * 0.35, screen.y - 50),
 		_nexus_chat
 	)
 	_nexus_chat.configure("nexus", true)
 	_nexus_chat.message_submitted.connect(_on_nexus_message)
 	
-	# --- Kay panel ---
+	# --- Kay panel (left half) ---
 	_kay_chat = ChatPanelScene.instantiate() as ChatPanel
 	panel_mgr.create_panel(
 		"kay", "KAY ZERO", "[entity-type]",
-		Vector2(screen.x * 0.55 + 20, 10),
-		Vector2(screen.x * 0.44, screen.y * 0.48),
+		Vector2(10, 10),
+		Vector2(screen.x * 0.49, screen.y - 50),
 		_kay_chat
 	)
 	_kay_chat.configure("kay", true)
 	_kay_chat.message_submitted.connect(_on_wrapper_message.bind("Kay"))
 	_kay_chat.warmup_requested.connect(_on_warmup.bind("Kay"))
 	_kay_chat.affect_changed.connect(_on_affect.bind("Kay"))
-	
-	# --- Reed panel ---
+	_kay_chat.image_upload_requested.connect(_on_image_upload.bind("kay"))
+	_kay_chat.document_dropped.connect(_on_document_dropped.bind("kay"))
+
+	# --- Reed panel (right half) ---
 	_reed_chat = ChatPanelScene.instantiate() as ChatPanel
 	panel_mgr.create_panel(
 		"reed", "REED", "teal-gold serpent",
-		Vector2(screen.x * 0.55 + 20, screen.y * 0.5 + 10),
-		Vector2(screen.x * 0.44, screen.y * 0.48),
+		Vector2(screen.x * 0.50 + 5, 10),
+		Vector2(screen.x * 0.49, screen.y - 50),
 		_reed_chat
 	)
 	_reed_chat.configure("reed", true)
 	_reed_chat.message_submitted.connect(_on_wrapper_message.bind("Reed"))
 	_reed_chat.warmup_requested.connect(_on_warmup.bind("Reed"))
 	_reed_chat.affect_changed.connect(_on_affect.bind("Reed"))
-	
+	_reed_chat.image_upload_requested.connect(_on_image_upload.bind("reed"))
+	_reed_chat.document_dropped.connect(_on_document_dropped.bind("reed"))
+
 	# Welcome messages
 	_nexus_chat.add_system_message("Nexus UI initialized")
 	_nexus_chat.add_system_message("Drag panels to rearrange • Ctrl+1/2/3 to focus • Ctrl+0 to reset")
 	_nexus_chat.add_system_message("Right sidebar: 📚Sessions 🧠Auto 📋Curate 📄Media ⚙Settings")
+	# Start Nexus minimized — Kay/Reed fill the screen. Ctrl+3 to open.
+	var nexus_dock = panel_mgr.get_panel("nexus")
+	if nexus_dock:
+		nexus_dock._minimize_panel()
 	
 	# --- Room panel (spatial view) ---
 	_room_panel = RoomPanel.new()
@@ -149,32 +166,14 @@ func _create_panels() -> void:
 	if system_dock:
 		system_dock._minimize_panel()
 
-	# --- Face panels (expression rendering) ---
+	# --- Face panels (embedded in chat sidebars) ---
 	_face_panel_kay = FacePanel.new()
 	_face_panel_kay.set_entity("kay")
-	panel_mgr.create_panel(
-		"face_kay", "KAY FACE", "expression",
-		Vector2(screen.x * 0.7, screen.y * 0.5),
-		Vector2(200, 250),
-		_face_panel_kay
-	)
-	# Start minimized — user opens via Ctrl+F
-	var face_kay_dock = panel_mgr.get_panel("face_kay")
-	if face_kay_dock:
-		face_kay_dock._minimize_panel()
+	_kay_chat.embed_face(_face_panel_kay, "kay")
 
 	_face_panel_reed = FacePanel.new()
 	_face_panel_reed.set_entity("reed")
-	panel_mgr.create_panel(
-		"face_reed", "REED FACE", "expression",
-		Vector2(screen.x * 0.7 + 210, screen.y * 0.5),
-		Vector2(200, 250),
-		_face_panel_reed
-	)
-	# Start minimized
-	var face_reed_dock = panel_mgr.get_panel("face_reed")
-	if face_reed_dock:
-		face_reed_dock._minimize_panel()
+	_reed_chat.embed_face(_face_panel_reed, "reed")
 
 
 ## ========================================================================
@@ -196,8 +195,9 @@ func _setup_sidebar() -> void:
 	_sidebar.feature_toggled.connect(_on_sidebar_feature_toggled)
 	_sidebar.dock_changed.connect(_on_sidebar_dock_changed)
 	
-	# Connect session browser load signal
+	# Connect session browser signals
 	_feature_panel.session_browser.session_load_requested.connect(_on_session_load)
+	_feature_panel.session_browser.session_open_requested.connect(_on_session_open)
 	
 	# Connect auto panel signals
 	_feature_panel.auto_panel.auto_session_requested.connect(_on_auto_session)
@@ -223,6 +223,7 @@ func _setup_sidebar() -> void:
 		_easel_panel
 	)
 	_easel_panel.clear_requested.connect(_on_canvas_clear_requested)
+	_easel_panel.painting_completed.connect(_on_painting_completed)
 	# Start minimized — user opens via sidebar 🎨 button or Ctrl+E
 	var easel_dock = panel_mgr.get_panel("easel")
 	if easel_dock:
@@ -239,6 +240,18 @@ func _setup_sidebar() -> void:
 	var gallery_dock = panel_mgr.get_panel("easel_gallery")
 	if gallery_dock:
 		gallery_dock._minimize_panel()
+
+	# --- Experimental panel (trip controller UI) ---
+	var _experimental_panel = ExperimentalPanel.new()
+	panel_mgr.create_panel(
+		"experimental", "EXPERIMENTAL", "trip controller",
+		Vector2(screen.x * 0.3, screen.y * 0.1),
+		Vector2(400, screen.y * 0.7),
+		_experimental_panel
+	)
+	var experimental_dock = panel_mgr.get_panel("experimental")
+	if experimental_dock:
+		experimental_dock._minimize_panel()
 	
 	# Position on resize
 	get_viewport().size_changed.connect(_position_sidebar)
@@ -316,20 +329,12 @@ func _on_sidebar_feature_toggled(feature_id: String, show: bool) -> void:
 		else:
 			gallery_dock._minimize_panel()
 		return
-	# Face panels - toggle both together
+	# Face panels - toggle embedded sidebars
 	if feature_id == "face":
-		var kay_face = panel_mgr.get_panel("face_kay")
-		var reed_face = panel_mgr.get_panel("face_reed")
-		if show:
-			if kay_face:
-				kay_face.restore()
-			if reed_face:
-				reed_face.restore()
-		else:
-			if kay_face:
-				kay_face._minimize_panel()
-			if reed_face:
-				reed_face._minimize_panel()
+		if _kay_chat:
+			_kay_chat.toggle_face_sidebar()
+		if _reed_chat:
+			_reed_chat.toggle_face_sidebar()
 		return
 	if show:
 		_feature_panel.show_feature(feature_id)
@@ -359,6 +364,14 @@ func _on_session_load(filename: String, messages: Array) -> void:
 				_nexus_chat.add_message(sender, content, msg_type)
 	
 	_nexus_chat.add_system_message("=== End of loaded session (%d messages) ===" % messages.size())
+
+
+func _on_session_open(filename: String, messages: Array) -> void:
+	# Open session in a separate viewer window (non-destructive)
+	var viewer = SessionViewer.new()
+	add_child(viewer)
+	viewer.load_session(filename, messages)
+	viewer.popup_centered()
 
 
 func _on_auto_session(entity: String, action: String) -> void:
@@ -413,6 +426,13 @@ func _on_canvas_clear_requested(entity: String) -> void:
 	# Send clear command to server via Nexus WebSocket
 	if _nexus_active and nexus.is_nexus_connected():
 		nexus.send_command("clear_canvas", {"entity": entity})
+
+
+func _on_painting_completed(entity: String, base64_png: String) -> void:
+	# Display the painting inline in the entity's chat
+	var chat = _get_entity_chat(entity)
+	if chat and chat.has_method("add_image_from_base64"):
+		chat.add_image_from_base64(entity, base64_png, "🎨 New painting")
 
 
 func _on_easel_paint_command(entity: String, text: String) -> void:
@@ -471,8 +491,57 @@ func _on_curate_action(entity: String, action: String, data: Dictionary) -> void
 
 
 func _on_file_import(path: String, entity: String) -> void:
-	var conn: PrivateConnection = _kay_private if entity == "Kay" else _reed_private
-	conn.send_chat("/import %s" % path)
+	var target_chat: ChatPanel = _get_entity_chat(entity)
+	# Read file and upload via HTTP POST
+	var file = FileAccess.open(path, FileAccess.READ)
+	if not file:
+		target_chat.add_system_message("Error: Could not read file: %s" % path)
+		return
+
+	var data = file.get_buffer(file.get_length())
+	file.close()
+
+	# Check file size (10MB limit for documents)
+	if data.size() > 10 * 1024 * 1024:
+		target_chat.add_system_message("Error: File too large (max 10MB)")
+		return
+
+	var content_b64 = Marshalls.raw_to_base64(data)
+	var filename = path.get_file()
+
+	target_chat.add_system_message("Uploading document to %s: %s (%d KB)..." % [entity, filename, data.size() / 1024])
+
+	# Create HTTP request
+	var http = HTTPRequest.new()
+	add_child(http)
+	http.request_completed.connect(_on_document_upload_complete.bind(http, entity, target_chat, filename))
+
+	var url = "http://localhost:8765/chat/%s/document" % entity.to_lower()
+	var headers = ["Content-Type: application/json"]
+	var body = JSON.stringify({
+		"content_b64": content_b64,
+		"filename": filename
+	})
+
+	var error = http.request(url, headers, HTTPClient.METHOD_POST, body)
+	if error != OK:
+		target_chat.add_system_message("Error: Failed to start upload request")
+		http.queue_free()
+
+
+func _on_document_upload_complete(result: int, response_code: int, headers: PackedStringArray, body: PackedByteArray, http: HTTPRequest, entity: String, target_chat: ChatPanel, filename: String) -> void:
+	http.queue_free()
+
+	if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
+		target_chat.add_system_message("Error: Document upload failed (code: %d)" % response_code)
+		return
+
+	var json = JSON.parse_string(body.get_string_from_utf8())
+	if json and json.get("status") == "ok":
+		target_chat.add_system_message("Document sent to %s for import: %s" % [entity, filename])
+	else:
+		var error_msg = json.get("error", "Unknown error") if json else "Invalid response"
+		target_chat.add_system_message("Error: %s" % error_msg)
 
 
 func _on_setting_changed(key: String, value: Variant) -> void:
@@ -512,6 +581,7 @@ func _setup_private_rooms() -> void:
 	_kay_private.status_received.connect(_on_private_status.bind("Kay"))
 	_kay_private.system_received.connect(_on_private_system.bind("Kay"))
 	_kay_private.history_received.connect(_on_private_history.bind("Kay"))
+	_kay_private.image_received.connect(_on_private_image.bind("Kay"))
 	_kay_private.room_updated.connect(_on_room_updated)
 	_kay_private.room_changed.connect(_on_room_changed)
 	_kay_private.logs_received.connect(_on_logs_received)
@@ -531,6 +601,7 @@ func _setup_private_rooms() -> void:
 	_reed_private.status_received.connect(_on_private_status.bind("Reed"))
 	_reed_private.system_received.connect(_on_private_system.bind("Reed"))
 	_reed_private.history_received.connect(_on_private_history.bind("Reed"))
+	_reed_private.image_received.connect(_on_private_image.bind("Reed"))
 	_reed_private.room_updated.connect(_on_room_updated)
 	_reed_private.room_changed.connect(_on_room_changed)
 	_reed_private.logs_received.connect(_on_logs_received)
@@ -611,6 +682,13 @@ func _on_private_history(messages: Array, entity: String) -> void:
 			var timestamp = msg.get("timestamp", "")
 			chat.add_message(sender, content, msg_type, timestamp)
 	chat.add_system_message("— end history —")
+
+
+func _on_private_image(sender: String, image_b64: String, caption: String, entity: String) -> void:
+	## Display image sent via WebSocket in the entity's chat
+	var chat = _get_entity_chat(entity)
+	if chat and chat.has_method("add_image_from_base64"):
+		chat.add_image_from_base64(sender, image_b64, caption)
 
 
 func _on_room_updated(state: Dictionary) -> void:
@@ -1149,16 +1227,97 @@ func _on_warmup(wrapper_name: String) -> void:
 func _on_affect(level: float, wrapper_name: String) -> void:
 	var target_chat: ChatPanel = _get_entity_chat(wrapper_name)
 	var private_conn: PrivateConnection = _get_private_conn(wrapper_name)
-	
+
 	# Affect always goes through private room
 	if private_conn.is_room_connected():
 		private_conn.send_command("set_affect", {"value": level})
-	
+
 	# Also send through Nexus if connected (so group behavior adjusts too)
 	if _nexus_active and nexus.is_nexus_connected():
 		nexus.send_command("set_affect", {"target": wrapper_name, "value": level})
-	
-	target_chat.add_system_message("Affect → %.1f" % level)
+
+
+func _on_image_upload(image_b64: String, filename: String, message: String, entity: String) -> void:
+	## Upload image to entity via HTTP POST
+	var target_chat: ChatPanel = _get_entity_chat(entity.capitalize())
+	target_chat.add_system_message("Uploading image to %s..." % entity.capitalize())
+
+	# Create HTTP request
+	var http = HTTPRequest.new()
+	add_child(http)
+	http.request_completed.connect(_on_image_upload_complete.bind(http, entity, target_chat))
+
+	var url = "http://localhost:8765/chat/%s/image" % entity.to_lower()
+	var headers = ["Content-Type: application/json"]
+	var body = JSON.stringify({
+		"image_b64": image_b64,
+		"filename": filename,
+		"message": message if not message.is_empty() else "What do you see?"
+	})
+
+	var error = http.request(url, headers, HTTPClient.METHOD_POST, body)
+	if error != OK:
+		target_chat.add_system_message("Error: Failed to send image upload request")
+		http.queue_free()
+
+
+func _on_image_upload_complete(result: int, response_code: int, _headers: PackedStringArray,
+		body: PackedByteArray, http: HTTPRequest, entity: String, chat: ChatPanel) -> void:
+	http.queue_free()
+
+	if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
+		chat.add_system_message("Error: Image upload failed (code %d)" % response_code)
+		return
+
+	# Parse response
+	var json = JSON.parse_string(body.get_string_from_utf8())
+	if json and json.has("status") and json["status"] == "ok":
+		# Response will come through WebSocket
+		chat.add_system_message("Image sent to %s" % entity.capitalize())
+	else:
+		var error_msg = json.get("error", "Unknown error") if json else "Invalid response"
+		chat.add_system_message("Error: %s" % error_msg)
+
+
+func _on_document_dropped(filepath: String, filename: String, entity: String) -> void:
+	## Handle document dropped into chat panel - import via HTTP POST
+	var target_chat: ChatPanel = _get_entity_chat(entity.capitalize())
+	target_chat.add_system_message("Importing document to %s..." % entity.capitalize())
+
+	# Create HTTP request for document import
+	var http = HTTPRequest.new()
+	add_child(http)
+	http.request_completed.connect(
+		_on_document_import_complete.bind(http, entity, target_chat, filename)
+	)
+
+	var url = "http://localhost:8765/chat/%s/import" % entity.to_lower()
+	var headers = ["Content-Type: application/json"]
+	var body = JSON.stringify({
+		"filepath": filepath,
+		"filename": filename
+	})
+
+	var error = http.request(url, headers, HTTPClient.METHOD_POST, body)
+	if error != OK:
+		target_chat.add_system_message("Error: Failed to send import request")
+		http.queue_free()
+
+
+func _on_document_import_complete(result: int, response_code: int, _headers: PackedStringArray,
+		body: PackedByteArray, http: HTTPRequest, entity: String, chat: ChatPanel, filename: String) -> void:
+	http.queue_free()
+
+	if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
+		chat.add_system_message("Error: Document import failed (code %d)" % response_code)
+		return
+
+	var json = JSON.parse_string(body.get_string_from_utf8())
+	if json and json.has("status") and json["status"] == "ok":
+		chat.add_system_message("📄 Imported: %s" % filename)
+	else:
+		var error_msg = json.get("error", "Unknown error") if json else "Invalid response"
+		chat.add_system_message("Error: %s" % error_msg)
 
 
 func _handle_command(text: String) -> void:
@@ -1326,19 +1485,9 @@ func _input(event: InputEvent) -> void:
 							system_dock._minimize_panel()
 					get_viewport().set_input_as_handled()
 				KEY_F:
-					# Toggle face panels (Ctrl+F)
-					var kay_face = panel_mgr.get_panel("face_kay")
-					var reed_face = panel_mgr.get_panel("face_reed")
-					# Toggle both together
-					var should_show = (kay_face and kay_face.is_minimized()) or (reed_face and reed_face.is_minimized())
-					if kay_face:
-						if should_show:
-							kay_face.restore()
-						else:
-							kay_face._minimize_panel()
-					if reed_face:
-						if should_show:
-							reed_face.restore()
-						else:
-							reed_face._minimize_panel()
+					# Toggle face sidebars (Ctrl+F)
+					if _kay_chat:
+						_kay_chat.toggle_face_sidebar()
+					if _reed_chat:
+						_reed_chat.toggle_face_sidebar()
 					get_viewport().set_input_as_handled()

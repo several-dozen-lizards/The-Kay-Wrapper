@@ -101,6 +101,30 @@ class NexusAIClient(ABC):
         Override in subclass to integrate autonomous session results."""
         pass
 
+    async def on_image_message(self, data: dict):
+        """Handle an image message forwarded from the server.
+        Override in subclass to process images with vision models.
+
+        data contains:
+            - image_b64: base64-encoded image data
+            - filename: original filename
+            - message: optional text message accompanying the image
+            - media_type: MIME type (image/png, image/jpeg, etc.)
+            - from: sender name
+        """
+        log.info(f"{self.name}: Received image message (not implemented in base class)")
+
+    async def on_document_import(self, data: dict):
+        """Handle a document import request forwarded from the server.
+        Override in subclass to import documents into memory forest.
+
+        data contains:
+            - filepath: path to the saved document file
+            - filename: original filename
+            - from: sender name
+        """
+        log.info(f"{self.name}: Received document import (not implemented in base class)")
+
     # --- Send methods ---
 
     async def send_chat(self, content: str, reply_to: str = None):
@@ -166,7 +190,7 @@ class NexusAIClient(ABC):
 
     async def _connect_and_listen(self):
         ws_url = f"{self.server_url}/ws/{self.name}?type={self.participant_type}"
-        async with websockets.connect(ws_url, ping_interval=20, ping_timeout=10) as ws:
+        async with websockets.connect(ws_url, ping_interval=30, ping_timeout=300, max_size=10485760) as ws:
             self.ws = ws
             self.connected.set()
             self._reconnect_count = 0  # Reset on successful connection
@@ -209,6 +233,14 @@ class NexusAIClient(ABC):
             entity = event.get("entity", "")
             if entity.lower() == self.name.lower():
                 await self.on_auto_event(event_type, entity, data)
+
+        elif event_type == "image_message":
+            # Image upload from the UI - process with vision capability
+            await self.on_image_message(data)
+
+        elif event_type == "document_import":
+            # Document upload from the UI - import into memory forest
+            await self.on_document_import(data)
 
         elif event_type == "error":
             log.error(f"{self.name}: Server error: {data.get('message', '?')}")

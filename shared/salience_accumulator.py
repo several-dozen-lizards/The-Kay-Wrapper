@@ -73,9 +73,9 @@ class SalienceAccumulator:
         self,
         entity_name: str,
         on_speak: Optional[Callable[[str], None]] = None,
-        threshold: float = 0.7,
+        threshold: float = 0.45,
         refractory_period: float = 30.0,
-        decay_rate: float = 0.015,
+        decay_rate: float = 0.008,
     ):
         """
         Initialize the salience accumulator.
@@ -93,6 +93,7 @@ class SalienceAccumulator:
         self.threshold = threshold
         self.refractory_period = refractory_period
         self.decay_rate = decay_rate
+        self.sensitivity_multiplier = 1.0  # Gain knob (Phase 0A): >1.0 = more sensitive
 
         self._events: List[SalienceEvent] = []
         self._accumulator: float = 0.0
@@ -168,38 +169,53 @@ class SalienceAccumulator:
         elapsed = now - self._last_tick_time
         self._last_tick_time = now
 
-        # Apply decay
-        self._accumulator = max(0.0, self._accumulator - self.decay_rate * elapsed)
-
         # Prune stale events (older than 5 minutes)
         self._events = [e for e in self._events if now - e.timestamp < 300]
 
-        # === GATING CHECKS ===
+        # === GATING CHECKS (before decay — don't eat signal before checking it) ===
         if sleep_state in ("SLEEPING", "DEEP_SLEEP"):
+            # Still decay even when sleeping
+            self._accumulator = max(0.0, self._accumulator - self.decay_rate * elapsed)
             return None  # Don't talk in your sleep
 
         if not anyone_present:
+            self._accumulator = max(0.0, self._accumulator - self.decay_rate * elapsed)
             return None  # Nobody to talk to
 
         if is_processing:
+            # Don't vocalize while processing — but DON'T decay the accumulator.
+            # Events added during processing should persist as charge
+            # so we can vocalize when processing finishes.
+            # (Previously decayed here, which ate all accumulated emotion signal.)
             return None  # Already responding to something
 
-        if coherence < 0.2:
-            return None  # Too scattered to form words
+        if coherence < 0.05:
+            self._accumulator = max(0.0, self._accumulator - self.decay_rate * elapsed)
+            return None  # Truly fragmented — can't form words
 
         # Check inhibition
         if self._inhibited and now < self._inhibit_until:
+            self._accumulator = max(0.0, self._accumulator - self.decay_rate * elapsed)
             return None
         self._inhibited = False
 
-        # Scale threshold with sleep pressure
-        effective_threshold = self.threshold
+        # Scale threshold with sleep pressure and sensitivity gain knob
+        effective_threshold = self.threshold / max(0.1, self.sensitivity_multiplier)
         if sleep_state == "DROWSY":
-            effective_threshold = self.threshold * 2.0  # Much harder to speak when drowsy
+            effective_threshold *= 1.3  # Slightly harder when drowsy, not impossible
 
-        # Check threshold
+        # === CHECK THRESHOLD BEFORE DECAY ===
+        # This is critical — events push accumulator above threshold at add_event() time,
+        # but if we decay first, the signal gets eaten before we check it.
         if self._accumulator < effective_threshold:
+            # Only now apply decay (signal wasn't strong enough)
+            if self._accumulator > 0.05:  # Only log if there's something to see
+                log.debug(f"[SALIENCE] {self.entity} tick: acc={self._accumulator:.3f} < threshold={effective_threshold:.3f} (sleep={sleep_state}, coh={coherence:.2f})")
+            self._accumulator = max(0.0, self._accumulator - self.decay_rate * elapsed)
             return None
+
+        # === THRESHOLD CROSSED — VOCALIZATION PATHWAY ===
+        log.info(f"[SALIENCE] {self.entity} THRESHOLD CROSSED: acc={self._accumulator:.3f} >= {effective_threshold:.3f}")
 
         # === DETERMINE VOCALIZATION TIER ===
         # TPN (fast) for reactive, immediate things
@@ -207,29 +223,33 @@ class SalienceAccumulator:
         tpn_sources = {"touch", "visual", "novelty", "oscillator"}
         dmn_sources = {"activity", "memory", "curiosity", "thought", "insight"}
 
-        top_source = self._events[0].source if self._events else ""
+        # Prioritize TPN if ANY recent event is touch/visual (fast-path always wins)
+        has_tpn_event = any(e.source in tpn_sources for e in self._events)
+        top_source = self._events[-1].source if self._events else ""
 
-        # Determine tier based on top event source
-        if top_source in tpn_sources:
+        if has_tpn_event:
             tier = "tpn"
             tier_cooldown = 15.0  # Quick reactions: 15s minimum
         else:
             tier = "dmn"
-            tier_cooldown = 120.0  # Deep responses: 2 minute minimum
+            tier_cooldown = 60.0  # Deep responses: 1 minute minimum
 
         # Override: very high salience (>0.9) always uses DMN
         if self._accumulator > 0.9:
             tier = "dmn"
-            tier_cooldown = 120.0
+            tier_cooldown = 60.0
 
         # Check tier-specific cooldown
         if (now - self._last_speak_time) < tier_cooldown:
+            log.debug(f"[SALIENCE] {self.entity} threshold crossed ({self._accumulator:.3f}) but cooldown active ({tier} {tier_cooldown}s)")
+            self._accumulator = max(0.0, self._accumulator - self.decay_rate * elapsed)
             return None
 
         # === VOCALIZATION TRIGGERED ===
         prompt = self._build_vocalization_prompt()
 
         if not prompt:
+            self._accumulator = max(0.0, self._accumulator - self.decay_rate * elapsed)
             return None
 
         # Build trigger dict

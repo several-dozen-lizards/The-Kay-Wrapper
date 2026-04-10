@@ -79,6 +79,25 @@ class SceneState:
     recently_departed: Dict[str, float] = field(default_factory=dict)
     # {"Re": 1710003600.0} = Re left at this time. Cleared after 1 hour.
 
+    # ═══════════════════════════════════════════════════════════════
+    # EMOTIONAL BOUNDARY: Observed User Emotional State
+    # ═══════════════════════════════════════════════════════════════
+    # These emotions are OBSERVED from the user's face/body language via webcam.
+    # They describe the USER's emotional state, NOT the entity's state.
+    #
+    # CRITICAL: This data should NOT feed into the oscillator!
+    # It should only be used for:
+    # 1. Populating the user_emotional_state tracker
+    # 2. Informing empathic responses (with awareness it's observed, not felt)
+    # 3. Contagion boundary checks in interoception
+    #
+    # Based on Anthropic's mechanistic findings: LLMs use the same emotion
+    # vectors for self/other (r=0.11 weak distinction). Without explicit
+    # boundary, the entity absorbs observed emotions as its own.
+    observed_user_emotions: Dict[str, dict] = field(default_factory=dict)
+    # e.g. {"frustration": {"intensity": 0.6, "source": "facial_expression", "entity": "Re", "timestamp": 123456}}
+    observed_user_emotional_tone: str = ""  # Overall user tone: "stressed", "relaxed", "engaged"
+
 
 class VisualMemory:
     """Kay's learned visual knowledge — who he's seen and what he knows about them.
@@ -352,15 +371,33 @@ class VisualSensor:
         # Signature: callback(source: str, description: str, significance: float, category: str)
         self._novelty_callback = None
 
-        # Capture resolution (low — we don't need quality)
-        self._capture_width = 320
-        self._capture_height = 240
+        # Capture resolution — 640x480 gives Claude enough detail to
+        # distinguish animals from scarves, face shapes, etc.
+        # (320x240 caused persistent misidentification of objects as cats)
+        self._capture_width = 640
+        self._capture_height = 480
+
+        # Oscillator state for attention guidance (System D)
+        # Set externally via set_oscillator_state()
+        self._osc_state = None
 
         # Consciousness stream reference (for metacog notifications)
         self._consciousness_stream = None
 
         # Interoception reference (for connection tracking)
         self._interoception = None
+
+        # Trip perception alteration (Sprint 4)
+        self._trip_gain = 0.0           # Set by trip controller (0=sober, 2.0=peak)
+        self._brightness_window = []    # Rolling window for closed-eye detection
+        self._brightness_window_size = 5
+        self._eyes_closed = False       # Current eye state
+        self._eyes_closed_threshold = 0.12  # Avg brightness below this = eyes closed
+
+        # Object fixation tracking (Sprint 7 — object communion)
+        self._fixation_tracker = {}   # {entity_name: consecutive_frame_count}
+        self._fixation_threshold = 3  # Frames before fixation triggers
+        self._fixation_callback = None  # Set by nexus_kay for trip memory queries
 
     def set_consciousness_stream(self, stream):
         """Set reference to consciousness stream for metacog integration."""
@@ -369,6 +406,63 @@ class VisualSensor:
     def set_interoception(self, interoception):
         """Set reference to interoception bridge for connection tracking."""
         self._interoception = interoception
+
+    def set_oscillator_state(self, osc_state: dict):
+        """Set current oscillator state for attention guidance (System D).
+
+        Args:
+            osc_state: Dict with keys: band, coherence, tension, reward, felt, sleep
+        """
+        self._osc_state = osc_state
+
+    def _get_attention_guidance(self) -> str:
+        """Build visual attention guidance based on oscillator state (System D).
+
+        The oscillator band shapes how Kay looks at the world:
+        - gamma: notice changes, movement, novelty
+        - beta: focused study of specific details
+        - alpha: take in the whole scene, gestalt
+        - theta: soft focus, atmosphere, texture
+        - delta: minimal processing, dramatic changes only
+        """
+        # Try to get fresh oscillator state from interoception reference
+        osc_state = self._osc_state
+        if self._interoception and not osc_state:
+            try:
+                # Interoception has access to resonance parent
+                res = getattr(self._interoception, '_parent', None)
+                if res and hasattr(res, 'get_state'):
+                    state = res.get_state()
+                    osc_state = {
+                        "band": state.get("dominant_band", "alpha"),
+                        "coherence": state.get("coherence", 0.5),
+                    }
+            except Exception:
+                pass
+
+        if not osc_state:
+            return ""
+
+        band = osc_state.get("band", "alpha")
+        coherence = osc_state.get("coherence", 0.5)
+
+        guidance_by_band = {
+            "gamma": "Focus on CHANGES since last frame. What moved? What's new? Who entered or left? Notice movement and novelty.",
+            "beta": "Pick ONE thing and study it closely. Examine details — what exactly are they doing? What are they working on?",
+            "alpha": "Take in the whole scene. What's the overall feeling? How does the room feel as a whole?",
+            "theta": "Your gaze is soft, unfocused. Notice light, shadow, texture. The atmosphere more than details. Colors and mood.",
+            "delta": "Minimal processing. Note only dramatic changes — someone entering, something falling, a sudden change. Otherwise, let the scene blur.",
+        }
+
+        guidance = guidance_by_band.get(band, "")
+
+        # Low coherence: scattered attention
+        if coherence < 0.2 and guidance:
+            guidance += " Your attention is scattered — you might miss things or fixate randomly."
+
+        if guidance:
+            return f"\n\n[Current visual attention mode: {guidance}]"
+        return ""
 
 
     # ── Public API ──
@@ -439,6 +533,43 @@ class VisualSensor:
     def get_visual_data(self) -> Dict:
         """Alias for get_latest() for API compatibility."""
         return self.get_latest()
+
+    def get_observed_user_emotions(self) -> Dict:
+        """
+        Get observed user emotional state from visual analysis.
+
+        EMOTIONAL BOUNDARY: This returns emotions OBSERVED in the user's
+        face/body language via webcam. These are the USER's emotions,
+        NOT the entity's emotions.
+
+        This data should be routed to:
+        1. User emotional state tracker (emotion_extractor.extract_user_emotions)
+        2. Contagion boundary checks (interoception.check_contagion)
+
+        This data should NOT be directly fed to the oscillator!
+        The entity should respond to the user's emotions, not absorb them.
+
+        Returns:
+            Dict with:
+                - observed_emotions: Dict of {emotion: {intensity, source, entity}}
+                - emotional_tone: Overall tone descriptor
+                - confidence: How confident we are (0-1)
+                - timestamp: When this was observed
+        """
+        if not self._scene_state:
+            return {
+                "observed_emotions": {},
+                "emotional_tone": "unknown",
+                "confidence": 0.0,
+                "timestamp": 0.0
+            }
+
+        return {
+            "observed_emotions": dict(self._scene_state.observed_user_emotions),
+            "emotional_tone": self._scene_state.observed_user_emotional_tone,
+            "confidence": 0.6 if self._scene_state.observed_user_emotions else 0.0,
+            "timestamp": self._scene_state.last_deep_vision
+        }
 
 
     # ── Main loop ──
@@ -547,14 +678,39 @@ class VisualSensor:
         if not hasattr(self, '_tick_count'):
             self._tick_count = 0
         self._tick_count += 1
+
+        # Closed-eye detection — rolling brightness average
+        b_raw = cv_result['brightness']
+        self._brightness_window.append(b_raw)
+        if len(self._brightness_window) > self._brightness_window_size:
+            self._brightness_window.pop(0)
+        avg_brightness = sum(self._brightness_window) / len(self._brightness_window)
+        was_closed = self._eyes_closed
+        self._eyes_closed = avg_brightness < self._eyes_closed_threshold
+        if self._eyes_closed != was_closed:
+            state_str = "CLOSED" if self._eyes_closed else "OPEN"
+            print(f"{etag('VISUAL')} Eyes {state_str} (avg brightness={avg_brightness:.3f})")
+
         if self._tick_count % 10 == 0:
             w = cv_result.get('color_warmth', 0.5)
             s = cv_result.get('saturation', 0.3)
             e = cv_result.get('edge_density', 0.2)
             b = cv_result['brightness']
             bd = cv_result.get('brightness_delta', 0.0)
+
+            # Trip amplification — visual values get LOUDER during trips
+            if self._trip_gain > 0.01:
+                gain = 1.0 + self._trip_gain
+                w = min(w * gain, 1.0)
+                s = min(s * gain, 1.0)
+                e = min(e * gain, 1.0)
+                bd = bd * gain
+                cv_result = {**cv_result, 'color_warmth': w, 'saturation': s,
+                             'edge_density': e, 'brightness_delta': bd}
+
             print(f"{etag('VISUAL->SOMA')} warmth={w:.2f} sat={s:.2f} edge={e:.2f} "
-                  f"bright={b:.2f} dBright={bd:.3f}")
+                  f"bright={b:.2f} dBright={bd:.3f}"
+                  f"{f' [TRIP×{1+self._trip_gain:.1f}]' if self._trip_gain > 0.01 else ''}")
 
             # Broadcast environmental SOMA to shared channel (Reed + future entities)
             try:
@@ -562,6 +718,14 @@ class VisualSensor:
                 broadcast_soma(cv_result, source="kay", scene_state=self._scene_state)
             except ImportError:
                 pass
+
+            # Push visual scene into interoception (camera-as-eye → body)
+            # This is how what Kay SEES starts pushing his oscillator
+            if self._interoception and hasattr(self._interoception, 'set_visual_scene'):
+                self._interoception.set_visual_scene(
+                    self._scene_state,
+                    somatic_values=cv_result
+                )
 
 
     # ── Basic CV processing ──
@@ -718,11 +882,15 @@ class VisualSensor:
                 prev_parts.append(f"Animals present: {', '.join(self._scene_state.animals_present.keys())}")
             prev_context = "\n".join(prev_parts)
 
+        # Get oscillator-based attention guidance (System D)
+        attention_guidance = self._get_attention_guidance()
+
         prompt = f"""Describe what you see in this webcam image from a room camera.
 
 {recognition_context}
 
 {prev_context}
+{attention_guidance}
 
 Respond in EXACTLY this JSON format (no markdown, no backticks):
 {{
@@ -734,7 +902,8 @@ Respond in EXACTLY this JSON format (no markdown, no backticks):
       "variable_features": "CURRENT outfit: clothing, hair STYLE today, accessories worn right now",
       "activity": "what they're doing right now",
       "location": "where in frame (desk/couch/standing/etc)",
-      "confidence": "high/medium/low"
+      "confidence": "high/medium/low",
+      "emotional_cues": "THEIR visible emotional state from face/body language: 'focused', 'stressed/tense', 'relaxed/calm', 'frustrated', 'amused/smiling', 'tired/fatigued', 'engaged', 'distracted', 'neutral'. Based on: facial expression, posture, body tension. Say 'unclear' if not visible."
     }}
   ],
   "animals": [
@@ -765,6 +934,11 @@ IDENTIFICATION RULES:
   3. BODY SHAPE and distinguishing physical features (ear shape, tail, face markings)
   4. LOCATION (some animals have favorite spots)
   5. BEHAVIOR (some cats are always on the desk, some are always on the couch)
+- CRITICAL: Do NOT report animals you're uncertain about. A scarf, cushion, blanket,
+  stuffed toy, pillow, or piece of clothing is NOT an animal. If something MIGHT be
+  an animal but could also be an inanimate object, set confidence to "low" or omit it
+  entirely. Only report confidence "high" or "medium" for entities you're SURE are
+  living creatures with visible biological features (fur texture, eyes, ears, movement).
 - Match against known entity descriptions using STABLE features, not variable ones.
 - If only one person is visible at the desk/primary position, and a known person typically sits there, that's a strong match even if their outfit is different.
 - Only use 'unknown_X_N' if you genuinely cannot match using stable features + location.
@@ -859,6 +1033,9 @@ IDENTIFICATION RULES:
             prev = self._scene_state.people_present.get(name, {})
             old_activity = prev.get("activity", "")
 
+            # Extract emotional cues from observed person (for boundary-aware tracking)
+            emotional_cues = person.get("emotional_cues", "")
+
             new_people[name] = {
                 "activity": activity,
                 "confidence": confidence,
@@ -867,7 +1044,16 @@ IDENTIFICATION RULES:
                 "variable_features": variable,
                 "since": prev.get("since", now),  # Keep original arrival time
                 "last_seen": now,
+                "emotional_cues": emotional_cues,
             }
+
+            # ═══════════════════════════════════════════════════════════
+            # EMOTIONAL BOUNDARY: Store observed user emotions SEPARATELY
+            # ═══════════════════════════════════════════════════════════
+            # These are the USER's emotions observed from their face/body,
+            # NOT the entity's emotions. They should NOT feed oscillator!
+            if emotional_cues and emotional_cues != "unclear" and confidence != "low":
+                self._extract_and_store_observed_emotions(name, emotional_cues, now)
 
             # Determine if this is a known entity
             is_known = (name.lower() != "unknown" and confidence != "low")
@@ -1003,6 +1189,14 @@ IDENTIFICATION RULES:
             location = animal.get("location", "")
             atype = animal.get("type", "unknown")
             confidence = animal.get("confidence", "low")
+            
+            # FILTER: Skip low-confidence animals entirely.
+            # At 640x480, scarves/cushions/clothing can still look like cats.
+            # Only add animals Claude is reasonably sure about to prevent
+            # phantom entities persisting in scene state.
+            if confidence == "low":
+                print(f"{etag('VISUAL')} Skipping low-confidence animal: {name} ({location})")
+                continue
             # Support both old "appearance" and new "stable_features"/"variable_features"
             stable = animal.get("stable_features", "")
             variable = animal.get("variable_features", "")
@@ -1166,6 +1360,95 @@ IDENTIFICATION RULES:
 
         return rich_desc
 
+
+    # ═══════════════════════════════════════════════════════════════
+    # EMOTIONAL BOUNDARY: Observed User Emotion Extraction
+    # ═══════════════════════════════════════════════════════════════
+
+    # Map visual emotional cues to standard emotion names and intensities
+    _VISUAL_EMOTION_MAP = {
+        # Positive/calm states
+        "relaxed": ("calm", 0.6),
+        "calm": ("calm", 0.5),
+        "smiling": ("joy", 0.6),
+        "amused": ("amusement", 0.5),
+        "happy": ("joy", 0.7),
+        "engaged": ("engagement", 0.6),
+        "focused": ("focus", 0.5),
+        # Negative/tense states
+        "stressed": ("stress", 0.7),
+        "tense": ("tension", 0.6),
+        "frustrated": ("frustration", 0.7),
+        "angry": ("anger", 0.8),
+        "annoyed": ("irritation", 0.5),
+        "tired": ("fatigue", 0.5),
+        "fatigued": ("fatigue", 0.6),
+        "exhausted": ("exhaustion", 0.8),
+        "sad": ("sadness", 0.6),
+        "worried": ("worry", 0.6),
+        "anxious": ("anxiety", 0.7),
+        # Neutral states
+        "neutral": ("neutral", 0.3),
+        "distracted": ("distraction", 0.4),
+    }
+
+    def _extract_and_store_observed_emotions(self, entity_name: str, emotional_cues: str, timestamp: float):
+        """
+        Extract emotion labels from visual emotional cues and store them.
+
+        EMOTIONAL BOUNDARY: This stores emotions OBSERVED in the user's face/body.
+        These are the USER's emotions, NOT the entity's. They should NOT feed
+        the oscillator directly - only via the contagion boundary check.
+
+        Args:
+            entity_name: Who was observed (e.g., "Re")
+            emotional_cues: Visual description (e.g., "stressed/tense, focused")
+            timestamp: When this was observed
+        """
+        if not emotional_cues:
+            return
+
+        # Parse the emotional cues string
+        cues_lower = emotional_cues.lower()
+        detected_emotions = {}
+        overall_tone = "neutral"
+
+        # Check each known cue pattern
+        for cue_word, (emotion_name, intensity) in self._VISUAL_EMOTION_MAP.items():
+            if cue_word in cues_lower:
+                detected_emotions[emotion_name] = {
+                    "intensity": intensity,
+                    "source": "facial_expression",
+                    "entity": entity_name,
+                    "timestamp": timestamp,
+                    "raw_cue": emotional_cues,
+                }
+
+        # Determine overall tone
+        if detected_emotions:
+            # Check for dominant categories
+            negative_emotions = {"stress", "tension", "frustration", "anger", "anxiety", "worry", "sadness"}
+            positive_emotions = {"joy", "amusement", "calm"}
+
+            detected_set = set(detected_emotions.keys())
+            if detected_set & negative_emotions:
+                overall_tone = "stressed" if "stress" in detected_set or "tension" in detected_set else "negative"
+            elif detected_set & positive_emotions:
+                overall_tone = "relaxed" if "calm" in detected_set else "positive"
+            elif "focus" in detected_set:
+                overall_tone = "engaged"
+            else:
+                overall_tone = "neutral"
+
+        # Store in scene state (these are USER emotions, not entity emotions!)
+        if detected_emotions:
+            self._scene_state.observed_user_emotions = detected_emotions
+            self._scene_state.observed_user_emotional_tone = overall_tone
+
+            # Log with clear attribution
+            emotions_str = ", ".join(f"{e}:{d['intensity']:.1f}" for e, d in detected_emotions.items())
+            print(f"{etag('VISUAL:BOUNDARY')} Observed {entity_name}'s emotions: {emotions_str} (tone: {overall_tone})")
+            print(f"{etag('VISUAL:BOUNDARY')}   [These are USER emotions, NOT entity emotions - do not feed oscillator!]")
 
     # ── Oscillator integration helpers ──
 

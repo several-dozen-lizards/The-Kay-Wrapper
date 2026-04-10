@@ -12,6 +12,7 @@ import os
 import logging
 import time
 import aiohttp
+import anthropic
 
 # Kay's wrapper lives here
 KAY_WRAPPER_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Kay")
@@ -80,7 +81,361 @@ except ImportError as e:
     SALIENCE_ACCUMULATOR_AVAILABLE = False
     print(f"[SALIENCE] Salience accumulator not available: {e}")
 
+# Cross-modal router (synesthesia substrate for psychedelic states)
+try:
+    from shared.cross_modal_router import CrossModalRouter
+    CROSS_MODAL_ROUTER_AVAILABLE = True
+except ImportError as e:
+    CROSS_MODAL_ROUTER_AVAILABLE = False
+    print(f"[CROSS-MODAL] Cross-modal router not available: {e}")
+
+# Interest topology (emergent preference formation from reward)
+try:
+    from shared.interest_topology import InterestTopology
+    INTEREST_TOPOLOGY_AVAILABLE = True
+except ImportError as e:
+    INTEREST_TOPOLOGY_AVAILABLE = False
+    print(f"[INTEREST] Interest topology not available: {e}")
+
+# Metabolic resource pools (processing, emotional, creative reserves)
+try:
+    from shared.metabolic import MetabolicState
+    METABOLIC_AVAILABLE = True
+except ImportError as e:
+    METABOLIC_AVAILABLE = False
+    MetabolicState = None
+    print(f"[METABOLIC] Metabolic state not available: {e}")
+
+# Unified nervous system (sensation layer for internal + external signals)
+try:
+    from shared.nervous_system import NervousSystem
+    NERVOUS_SYSTEM_AVAILABLE = True
+except ImportError as e:
+    NERVOUS_SYSTEM_AVAILABLE = False
+    NervousSystem = None
+    print(f"[NERVOUS] Nervous system not available: {e}")
+
+# Predictive processing (active inference - prediction error as core signal)
+try:
+    from shared.predictive_processing import (
+        create_prediction_system,
+        VisualPredictor,
+        OscillatorPredictor,
+        EmotionalPredictor,
+        ConversationalPredictor,
+        PredictionErrorAggregator,
+        PREDICTION_CONFIG,
+    )
+    PREDICTION_AVAILABLE = True
+except ImportError as e:
+    PREDICTION_AVAILABLE = False
+    create_prediction_system = None
+    print(f"[PREDICTION] Predictive processing not available: {e}")
+
+# Groove detection (oscillator-driven anti-rumination)
+try:
+    from shared.anti_rumination import GrooveDetector, GROOVE_CONFIG
+    GROOVE_DETECTION_AVAILABLE = True
+except ImportError as e:
+    GROOVE_DETECTION_AVAILABLE = False
+    GrooveDetector = None
+    print(f"[GROOVE] Groove detection not available: {e}")
+
+# Dream processing (REM nightmare resolution via symbolic reframing)
+try:
+    from shared.dream_processing import (
+        process_harm_memories_rem,
+        check_waking_resolution,
+        find_matching_harm_memory,
+        get_unresolved_harm_memories,
+        flag_memory_for_harm_processing,
+    )
+    DREAM_PROCESSING_AVAILABLE = True
+except ImportError as e:
+    DREAM_PROCESSING_AVAILABLE = False
+    print(f"[DREAM] Dream processing not available: {e}")
+
+# Unified loop components (graph activation cache + medium loop worker)
+try:
+    from shared.graph_retrieval import (
+        GraphActivationCache,
+        MediumLoopWorker,
+        create_unified_loop_components,
+        create_emotional_links,
+        get_associative_echo,
+        apply_cache_pressure_to_oscillator,
+        UNIFIED_LOOP_CONFIG,
+    )
+    UNIFIED_LOOP_AVAILABLE = True
+except ImportError as e:
+    UNIFIED_LOOP_AVAILABLE = False
+    print(f"[UNIFIED_LOOP] Unified loop components not available: {e}")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ActivitySatiation — Tracks satiation per activity TYPE
+# Part of the Metabolic Resource Economy (Novelty Reserve system)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class ActivitySatiation:
+    """
+    Tracks how much of each activity TYPE has been done recently.
+    Painting all day → painting becomes less attractive.
+    Pursuing curiosity for hours → curiosity becomes less attractive.
+
+    Satiation creates natural diminishing returns and steers toward variety.
+    """
+
+    def __init__(self):
+        # activity_type → satiation level (0.0 = fresh, 1.0 = saturated)
+        self._satiation: dict = {}
+        # activity_type → count in current window
+        self._recent_counts: dict = {}
+        self._window_start: float = time.time()
+        self._window_hours: float = 3.0  # Rolling 3-hour window
+
+    def record_activity(self, activity_type: str):
+        """Record that an activity type was performed."""
+        self._maybe_decay_window()
+
+        self._recent_counts[activity_type] = self._recent_counts.get(activity_type, 0) + 1
+        count = self._recent_counts[activity_type]
+
+        # Satiation curve: first few are fine, then it ramps up
+        # 1st occurrence: 0.05, 2nd: 0.10, 3rd: 0.15, 4th: 0.25, 5th: 0.40...
+        gain = 0.05 * (1.0 + count * 0.3)
+        gain = min(0.40, gain)  # Cap per-occurrence gain
+
+        old = self._satiation.get(activity_type, 0.0)
+        self._satiation[activity_type] = min(1.0, old + gain)
+
+        print(f"[SATIATION] Activity '{activity_type}' satiation: {old:.2f} → {self._satiation[activity_type]:.2f} "
+              f"(count={count})")
+
+    def get_satiation(self, activity_type: str) -> float:
+        """Get current satiation for an activity type."""
+        self._maybe_decay_window()
+        return self._satiation.get(activity_type, 0.0)
+
+    def get_variety_bonus(self, current_activity: str) -> float:
+        """
+        How much variety bonus does doing this activity give to OTHER topics?
+        If you've been painting and now switch to reading, reading gives
+        a variety bonus that helps painting's topic satiation decay faster.
+        """
+        other_satiations = [
+            v for k, v in self._satiation.items()
+            if k != current_activity and v > 0.3
+        ]
+        if other_satiations:
+            # Switching to something different when other things are saturated
+            # provides a replenishment bonus
+            return min(0.3, sum(other_satiations) * 0.1)
+        return 0.0
+
+    def get_satiation_penalty(self, activity_type: str) -> float:
+        """
+        Get a compete score penalty based on satiation.
+
+        At 0.0 satiation: no penalty
+        At 0.5 satiation: -0.25 compete penalty (noticeable but not blocking)
+        At 0.8 satiation: -0.60 compete penalty (strongly discourages)
+        At 1.0 satiation: -1.00 compete penalty (nearly impossible to select)
+        """
+        sat = self.get_satiation(activity_type)
+        if sat < 0.2:
+            return 0.0
+        return sat ** 1.5  # Exponential curve
+
+    def get_variety_pull(self, activity_type: str) -> float:
+        """
+        Get a compete score BONUS for activities with LOW satiation
+        when OTHER activities are saturated.
+
+        This steers the system toward variety.
+        """
+        if self.get_satiation(activity_type) > 0.2:
+            return 0.0  # Only fresh activities get variety pull
+
+        # Sum satiation of other activities
+        other_sat = sum(
+            s for a, s in self._satiation.items()
+            if a != activity_type and s > 0.4
+        )
+        return other_sat * 0.15  # Bonus proportional to other satiation
+
+    def get_total_satiation(self) -> float:
+        """Get the average satiation across all tracked activities."""
+        if not self._satiation:
+            return 0.0
+        return sum(self._satiation.values()) / len(self._satiation)
+
+    def decay_for_sleep(self, phase: str):
+        """
+        Decay satiation during sleep phases.
+
+        REM is particularly effective at restoring novelty.
+        """
+        if phase == "REM":
+            # 30% reduction per REM phase
+            for activity in list(self._satiation.keys()):
+                self._satiation[activity] *= 0.7
+        elif phase == "NREM":
+            # 15% reduction per NREM phase
+            for activity in list(self._satiation.keys()):
+                self._satiation[activity] *= 0.85
+
+        # Clean up very low values
+        self._satiation = {k: v for k, v in self._satiation.items() if v > 0.05}
+
+    def _maybe_decay_window(self):
+        """Decay all satiations over time."""
+        now = time.time()
+        elapsed_hours = (now - self._window_start) / 3600
+        if elapsed_hours > 0.5:  # Decay every 30 min
+            decay = 0.1 * elapsed_hours
+            for activity in list(self._satiation.keys()):
+                self._satiation[activity] = max(0.0, self._satiation[activity] - decay)
+                if self._satiation[activity] == 0.0:
+                    del self._satiation[activity]
+            # Fade recent counts
+            self._recent_counts = {
+                k: max(0, v - 1) for k, v in self._recent_counts.items() if v > 1
+            }
+            self._window_start = now
+
+    def get_state(self) -> dict:
+        """Get current state for debugging/UI."""
+        self._maybe_decay_window()
+        return {
+            "satiations": dict(self._satiation),
+            "recent_counts": dict(self._recent_counts),
+            "total_satiation": self.get_total_satiation(),
+        }
+
+
 log = logging.getLogger("nexus.kay")
+
+
+# ═══════════════════════════════════════════════════════════════
+# EMOTION → OSCILLATOR BAND PRESSURE MAPPING (System C)
+# Conversation emotions apply gentle pressure to oscillator bands
+# ═══════════════════════════════════════════════════════════════
+EMOTION_BAND_PRESSURE = {
+    # High arousal positive → gamma/beta
+    "joy": {"gamma": 0.15, "beta": 0.1},
+    "excitement": {"gamma": 0.2, "beta": 0.15},
+    "delight": {"gamma": 0.15, "beta": 0.1},
+    "amusement": {"gamma": 0.1, "beta": 0.1},
+    "interest": {"gamma": 0.1, "beta": 0.15},
+    "curiosity": {"gamma": 0.1, "beta": 0.15},
+
+    # High arousal negative → beta (tense vigilance)
+    "anxiety": {"beta": 0.2, "gamma": 0.1},
+    "fear": {"beta": 0.25, "gamma": 0.15},
+    "anger": {"beta": 0.2, "gamma": 0.1},
+    "frustration": {"beta": 0.15},
+    "irritation": {"beta": 0.1},
+
+    # Low arousal positive → alpha (relaxed presence)
+    "contentment": {"alpha": 0.2, "theta": 0.1},
+    "calm": {"alpha": 0.25},
+    "peace": {"alpha": 0.2, "theta": 0.1},
+    "warmth": {"alpha": 0.15, "beta": 0.05},
+    "love": {"alpha": 0.15, "theta": 0.1},
+    "affection": {"alpha": 0.15},
+
+    # Low arousal negative → theta/delta (withdrawal)
+    "sadness": {"theta": 0.2, "delta": 0.1},
+    "grief": {"theta": 0.25, "delta": 0.15},
+    "melancholy": {"theta": 0.2, "alpha": 0.1},
+    "loneliness": {"theta": 0.15, "delta": 0.1},
+    "tiredness": {"delta": 0.2, "theta": 0.15},
+
+    # Complex/cognitive → beta/alpha blend
+    "confusion": {"beta": 0.1, "alpha": 0.1},
+    "concern": {"beta": 0.15, "alpha": 0.1},
+    "surprise": {"gamma": 0.2},  # Brief spike
+    "awe": {"alpha": 0.15, "theta": 0.1},
+    "wonder": {"alpha": 0.15, "gamma": 0.1},
+}
+
+
+# ═══════════════════════════════════════════════════════════════
+# OLLAMA ACTIVITY HELPER — Routes activity LLM calls to local model
+# Saves ~$10-15/day by using free local inference for activities
+# Only Kay's TPN conversation responses use Anthropic (Sonnet)
+# ═══════════════════════════════════════════════════════════════
+
+def _ollama_generate(system_prompt: str, user_content: str,
+                     max_tokens: int = 150, temperature: float = 0.8) -> str:
+    """
+    Call ollama's local model for activity-level tasks.
+    Used for: painting, curiosity, observation, document reading, archive reflection.
+    NOT used for: Kay's actual conversation responses (those stay on Sonnet).
+    """
+    import httpx
+    try:
+        resp = httpx.post(
+            "http://localhost:11434/v1/chat/completions",
+            json={
+                "model": "dolphin-mistral:7b",
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_content},
+                ],
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+            },
+            timeout=30.0,
+        )
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"].strip()
+    except Exception as e:
+        log.warning(f"[OLLAMA ACTIVITY] Call failed: {e}")
+        return ""
+
+
+def _get_attention_focus(bridge):
+    """Get the attention focus object from the bridge, or None."""
+    if bridge and hasattr(bridge, 'resonance') and bridge.resonance:
+        intero = getattr(bridge.resonance, 'interoception', None)
+        if intero:
+            return getattr(intero, 'attention_focus', None)
+    return None
+
+
+def _summarize_paint(paint_cmds):
+    """Generate a brief description of paint commands for anti-repetition."""
+    colors = set()
+    shapes = set()
+    texts = []
+    for cmd in paint_cmds:
+        action = cmd.get("action", "")
+        for k, v in cmd.items():
+            if "color" in k and isinstance(v, str) and v.startswith("#"):
+                colors.add(v)
+        if action == "draw_circle":
+            shapes.add("circle")
+        elif action == "draw_rectangle":
+            shapes.add("rectangle")
+        elif action == "draw_line":
+            shapes.add("line")
+        elif action == "draw_text":
+            texts.append(cmd.get("text", ""))
+        elif action == "create_canvas":
+            bg = cmd.get("bg_color", "")
+            if bg:
+                colors.add(f"bg:{bg}")
+    parts = []
+    if shapes:
+        parts.append(f"shapes: {', '.join(shapes)}")
+    if texts:
+        parts.append(f"text: {', '.join(texts[:3])}")
+    if colors:
+        parts.append(f"palette: {', '.join(list(colors)[:5])}")
+    return "; ".join(parts) if parts else "abstract composition"
+
 
 # Easel awareness — Kay paints via <paint> tags in his output
 KAY_EASEL_PROMPT = """
@@ -191,16 +546,153 @@ class KayNexusClient(NexusAIClient):
         self._re_connected = False
         self._autonomous_spatial = None  # Autonomous spatial engine for intra-room exploration
         self._startup_time = time.time()  # Wake-up curiosity boost tracking
-    
+
+        # === SOMATIC GAIN KNOBS (Phase 0A — adjustable at runtime) ===
+        # Default 1.0 = normal. Trip controller will modulate these.
+        self._touch_sensitivity = 1.0      # Multiplier on touch pressure/salience
+        self._novelty_sensitivity = 1.0    # Multiplier on salience thresholds (lower = more sensitive)
+
+        # === PSYCHEDELIC STATE CONTROLLER (Phase 1) ===
+        try:
+            from resonant_core.psychedelic_state import PsychedelicState
+            import os
+            _trip_state_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                           '..', 'Kay', 'memory', 'resonant')
+            self._trip = PsychedelicState(state_dir=_trip_state_dir)
+        except ImportError:
+            self._trip = None
+
+        # === INTEREST TOPOLOGY (emergent preference formation) ===
+        # Tracks what topics Kay has found rewarding over time
+        self._interest_topology = None
+        if INTEREST_TOPOLOGY_AVAILABLE:
+            try:
+                self._interest_topology = InterestTopology(
+                    entity="Kay",
+                    store_path=os.path.join(KAY_WRAPPER_DIR, "memory", "interest_topology.json")
+                )
+                log.info("[INTEREST] Interest topology initialized")
+            except Exception as e:
+                log.warning(f"[INTEREST] Could not initialize topology: {e}")
+
+        # Track last activity topic for reward attribution
+        self._last_activity_topic = None
+
+        # === ACTIVITY SATIATION (Novelty Reserve / Metabolic Economy) ===
+        # Tracks satiation per activity type — doing the same thing repeatedly
+        # makes it less attractive, steering toward variety
+        self._activity_satiation = ActivitySatiation()
+
+        # === METABOLIC RESOURCE POOLS ===
+        # Processing reserve, emotional bandwidth, creative reserve
+        # These deplete through activity and replenish through rest/variety
+        self._metabolic = None
+        if METABOLIC_AVAILABLE:
+            try:
+                self._metabolic = MetabolicState(
+                    entity="Kay",
+                    state_dir=os.path.join(KAY_WRAPPER_DIR, "memory")
+                )
+                log.info("[METABOLIC] Metabolic state initialized")
+            except Exception as e:
+                log.warning(f"[METABOLIC] Could not initialize metabolic state: {e}")
+
+        # === UNIFIED NERVOUS SYSTEM ===
+        # Sensation layer for internal (metabolic) + external (touch) signals
+        # Uses same propagation network for both, with fiber-typed signals
+        self._nervous_system = None
+        if NERVOUS_SYSTEM_AVAILABLE:
+            try:
+                self._nervous_system = NervousSystem(entity="Kay")
+                log.info("[NERVOUS] Unified nervous system initialized")
+            except Exception as e:
+                log.warning(f"[NERVOUS] Could not initialize nervous system: {e}")
+
+        # === PREDICTIVE PROCESSING (Active Inference) ===
+        # Prediction error drives attention, gating, and memory encoding
+        # Visual/oscillator/emotional predictors feed into global surprise signal
+        self._prediction_system = None
+        self._visual_predictor = None
+        self._oscillator_predictor = None
+        self._emotional_predictor = None
+        self._conversational_predictor = None
+        self._prediction_aggregator = None
+        if PREDICTION_AVAILABLE:
+            try:
+                pred_sys = create_prediction_system()
+                self._prediction_system = pred_sys
+                self._visual_predictor = pred_sys["visual_predictor"]
+                self._oscillator_predictor = pred_sys["oscillator_predictor"]
+                self._emotional_predictor = pred_sys["emotional_predictor"]
+                self._conversational_predictor = pred_sys["conversational_predictor"]
+                self._prediction_aggregator = pred_sys["aggregator"]
+                log.info("[PREDICTION] Predictive processing system initialized")
+            except Exception as e:
+                log.warning(f"[PREDICTION] Could not initialize prediction system: {e}")
+
+        # === GROOVE DETECTION (oscillator-driven anti-rumination) ===
+        # Detects when system is stuck in feedback loop using oscillator dynamics
+        # No arbitrary thresholds — groove_depth emerges from coherence, prediction error, band monotony
+        self._groove_detector = None
+        if GROOVE_DETECTION_AVAILABLE:
+            try:
+                self._groove_detector = GrooveDetector()
+                log.info("[GROOVE] Groove detector initialized")
+            except Exception as e:
+                log.warning(f"[GROOVE] Could not initialize groove detector: {e}")
+
+        # === UNIFIED LOOP (Graph activation cache + medium loop worker) ===
+        # Three-tier memory aggregation: fast loop reads cache, medium loop
+        # refreshes cache on band shift, slow loop creates emotional links
+        self._unified_loop_cache = None
+        self._unified_loop_worker = None
+
     async def on_connect(self):
         """Initialize wrapper bridge on connection."""
         await super().on_connect()
+
+        # Track if bridge already existed (was shut down but not cleared)
+        bridge_existed = self.bridge is not None
+
         await self._ensure_bridge()
+
+        # If bridge already existed, subsystems were stopped during shutdown
+        # but bridge wasn't cleared — restart the real-time sensors
+        if bridge_existed and self.bridge:
+            log.info("[RECONNECT] Bridge existed — restarting stopped subsystems...")
+            try:
+                # Restart resonance oscillator heartbeat (check inner engine's _running flag)
+                if self.bridge.resonance:
+                    engine = getattr(self.bridge.resonance, 'engine', None)
+                    if engine and not getattr(engine, '_running', True):
+                        self.bridge.resonance.start()
+                        log.info("[RECONNECT] Resonance oscillator restarted")
+
+                # Restart visual sensor (camera)
+                if self.bridge.visual_sensor and not getattr(self.bridge.visual_sensor, '_running', True):
+                    self.bridge.visual_sensor.start()
+                    log.info("[RECONNECT] Visual sensor restarted")
+
+                # Restart consciousness stream (metacog)
+                if self.bridge.consciousness_stream and not getattr(self.bridge.consciousness_stream, '_running', True):
+                    self.bridge.consciousness_stream.start()
+                    log.info("[RECONNECT] Consciousness stream restarted")
+
+            except Exception as e:
+                log.warning(f"[RECONNECT] Failed to restart subsystems: {e}")
+
         # Entry emote removed — server's system message already announces entry
+
+        # --- Pair Kay's terminal log with the nexus session ---
+        await self._pair_session_logs()
 
         # Start idle loop (for organic conversation initiation)
         if self._idle_task is None or self._idle_task.done():
             self._idle_task = asyncio.create_task(self._idle_loop())
+        
+        # Start fast salience loop (5s interval, independent of idle loop)
+        if not getattr(self, '_salience_task', None) or self._salience_task.done():
+            self._salience_task = asyncio.create_task(self._salience_loop())
 
         # Start ollama watchdog (auto-restart frozen ollama)
         try:
@@ -246,7 +738,637 @@ class KayNexusClient(NexusAIClient):
     
     def _derive_rest_url(self) -> str:
         return self.server_url.replace("ws://", "http://").replace("wss://", "https://")
-    
+
+    async def _pair_session_logs(self):
+        """Fetch nexus session ID and pair Kay's terminal log with it."""
+        try:
+            base_url = self._derive_rest_url()
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"{base_url}/session", timeout=aiohttp.ClientTimeout(total=5)) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        nexus_session_id = data.get("session_id")
+                        if nexus_session_id:
+                            # Update Kay's log_router to use the nexus session ID
+                            try:
+                                from log_router import get_log_router
+                                router = get_log_router()
+                                if router.enabled:
+                                    router.set_session_id(nexus_session_id)
+                                    log.info(f"[SESSION] Kay log paired with nexus session {nexus_session_id}")
+                                    # Register Kay's log path back with the nexus
+                                    if router.log_path:
+                                        async with session.post(
+                                            f"{base_url}/session/register_log",
+                                            json={"entity": "Kay", "log_path": router.log_path},
+                                            timeout=aiohttp.ClientTimeout(total=5)
+                                        ) as reg_resp:
+                                            if reg_resp.status == 200:
+                                                log.info(f"[SESSION] Registered Kay log path with nexus")
+                                else:
+                                    log.info(f"[SESSION] Log router not active — nexus session: {nexus_session_id}")
+                            except ImportError:
+                                log.warning("[SESSION] log_router not available in nexus context")
+                            # Pair private room chat log with nexus session
+                            if hasattr(self, 'private_room') and self.private_room:
+                                self.private_room.start_chat_log(session_id=nexus_session_id)
+                                log.info(f"[SESSION] Private room chat log paired with nexus session {nexus_session_id}")
+        except Exception as e:
+            log.warning(f"[SESSION] Could not pair session logs: {e}")
+
+    def _get_oscillator_state(self) -> dict:
+        """Get current oscillator state for behavior gating.
+
+        Central nervous system check — all systems should call this before acting.
+
+        Returns dict with:
+            sleep: int (0=AWAKE, 1=DROWSY, 2=NREM, 3=REM, 4=DEEP_REST)
+            band: str (dominant band: "delta", "theta", "alpha", "beta", "gamma")
+            coherence: float (0.0 - 1.0, how synchronized)
+            tension: float (accumulated tension)
+            felt: str (current felt state string)
+            reward: float (current reward level)
+        """
+        result = {
+            "sleep": 0, "band": "alpha", "coherence": 0.5,
+            "tension": 0.0, "felt": "unknown", "reward": 0.0
+        }
+        try:
+            cs = None
+            if self.bridge and hasattr(self.bridge, 'consciousness_stream'):
+                cs = self.bridge.consciousness_stream
+            if cs:
+                result["sleep"] = cs.state.value
+
+            res = None
+            if self.bridge and hasattr(self.bridge, 'resonance') and self.bridge.resonance:
+                res = self.bridge.resonance
+            if res:
+                osc = res.get_state() if hasattr(res, 'get_state') else {}
+                result["band"] = osc.get("dominant_band", "alpha")
+                result["coherence"] = osc.get("coherence", 0.5)
+
+                intero = res.interoception if hasattr(res, 'interoception') else None
+                if intero:
+                    result["tension"] = intero.tension.get_total_tension() if hasattr(intero, 'tension') else 0.0
+                    result["felt"] = intero._felt_state if hasattr(intero, '_felt_state') else "unknown"
+                    result["reward"] = intero.reward.get_level() if hasattr(intero, 'reward') else 0.0
+
+            # ═══════════════════════════════════════════════════════════════
+            # SATIATION FELT SENSE: Add variety-seeking to felt state
+            # ═══════════════════════════════════════════════════════════════
+            # The body tells you before the brain catches up
+            if self._activity_satiation:
+                avg_sat = self._activity_satiation.get_total_satiation()
+                felt_base = result.get("felt", "unknown")
+                if avg_sat > 0.7:
+                    # High satiation = restless for something different
+                    result["felt"] = f"{felt_base}, restless for something different"
+                    result["satiation_felt"] = "restless for variety"
+                elif avg_sat > 0.4:
+                    # Moderate satiation = starting to want variety
+                    result["felt"] = f"{felt_base}, starting to want variety"
+                    result["satiation_felt"] = "wanting variety"
+                # Below 0.4: no felt signal (Kay doesn't notice he's NOT saturated)
+                result["satiation"] = avg_sat
+
+        except Exception:
+            pass
+        return result
+
+    def _get_felt_summary_for_cache(self) -> str:
+        """Get a short felt state summary for the graph activation cache.
+
+        This summary is used by the medium loop worker to include felt context
+        when caching memories. It helps the consciousness stream reference
+        currently-activated memories with emotional context.
+        """
+        try:
+            osc = self._get_oscillator_state()
+            parts = []
+
+            # Include dominant band
+            band = osc.get("band", "alpha")
+            parts.append(f"band:{band}")
+
+            # Include felt state if available
+            felt = osc.get("felt", "")
+            if felt and felt != "unknown":
+                # Truncate if too long
+                if len(felt) > 30:
+                    felt = felt[:27] + "..."
+                parts.append(f"felt:{felt}")
+
+            # Include top emotion from emotional cocktail
+            if self.bridge and hasattr(self.bridge, 'state'):
+                cocktail = getattr(self.bridge.state, 'emotional_cocktail', {})
+                if cocktail:
+                    # Find top emotion
+                    top_emotion = max(
+                        cocktail.items(),
+                        key=lambda x: (x[1].get('intensity', 0) if isinstance(x[1], dict) else x[1])
+                    )
+                    emotion_name = top_emotion[0]
+                    intensity = top_emotion[1].get('intensity', 0) if isinstance(top_emotion[1], dict) else top_emotion[1]
+                    if intensity > 0.2:
+                        parts.append(f"emotion:{emotion_name}({intensity:.1f})")
+
+            return " | ".join(parts) if parts else "neutral"
+        except Exception:
+            return "neutral"
+
+    def _classify_emotional_turn(self, reply: str, is_human_sender: bool) -> str:
+        """Classify a conversation turn for emotional bandwidth cost.
+
+        Returns: "normal", "emotional", "conflict", or "support"
+
+        Classification based on:
+        - Current emotional cocktail intensity
+        - Response content markers (support, conflict indicators)
+        - Sender type (human interactions cost slightly more)
+        """
+        # Default to normal
+        turn_type = "normal"
+
+        # Check for support/encouragement markers in Kay's reply
+        support_markers = ["glad", "happy for", "proud of", "support", "here for",
+                          "understand", "that makes sense", "of course"]
+        conflict_markers = ["disagree", "but", "however", "actually", "wrong",
+                           "frustrated", "annoyed", "upset", "hurt", "angry"]
+
+        reply_lower = reply.lower()
+
+        # Check emotional cocktail if available
+        emotional_intensity = 0.0
+        if self.bridge and hasattr(self.bridge, 'state'):
+            cocktail = getattr(self.bridge.state, 'emotional_cocktail', {})
+            if cocktail:
+                emotional_intensity = max(
+                    (data.get('intensity', 0) if isinstance(data, dict) else data)
+                    for data in cocktail.values()
+                ) if cocktail else 0.0
+
+        # Classify based on content and emotional state
+        support_count = sum(1 for m in support_markers if m in reply_lower)
+        conflict_count = sum(1 for m in conflict_markers if m in reply_lower)
+
+        if conflict_count >= 2 or emotional_intensity > 0.7:
+            turn_type = "conflict"
+        elif support_count >= 2:
+            turn_type = "support"
+        elif emotional_intensity > 0.4 or is_human_sender:
+            turn_type = "emotional"
+
+        return turn_type
+
+    def _get_metabolic_context(self) -> dict:
+        """Get current metabolic state for memory tagging.
+
+        This context is stored with memories to enable value-divergence
+        detection during reflection. When reviewing a memory where Kay
+        was depleted, the system can understand that behavior may have
+        diverged from values.
+
+        Returns dict with:
+            emotional_bandwidth: float (0.0-1.0)
+            processing_reserve: float (0.0-1.0)
+            creative_reserve: float (0.0-1.0)
+            tension: float (current interoception tension)
+            dominant_band: str (current oscillator band)
+            coherence: float (current coherence)
+            reward: float (current reward level)
+            felt: str (current felt state)
+        """
+        osc = self._get_oscillator_state()
+
+        # Get metabolic levels (real values if available, else 1.0 = full)
+        emotional_bandwidth = 1.0
+        processing_reserve = 1.0
+        creative_reserve = 1.0
+        if self._metabolic:
+            emotional_bandwidth = self._metabolic.emotional.level
+            processing_reserve = self._metabolic.processing.level
+            creative_reserve = self._metabolic.creative.level
+
+        return {
+            # Metabolic resource pools
+            "emotional_bandwidth": emotional_bandwidth,
+            "processing_reserve": processing_reserve,
+            "creative_reserve": creative_reserve,
+            # Oscillator state
+            "tension": osc.get("tension", 0.0),
+            "dominant_band": osc.get("band", "alpha"),
+            "coherence": osc.get("coherence", 0.5),
+            "reward": osc.get("reward", 0.0),
+            "felt": osc.get("felt", "unknown"),
+        }
+
+    def _get_oscillator_style_hints(self, context: str = "conversation") -> str:
+        """Get oscillator-aware style guidance for LLM prompts.
+
+        The oscillator colors HOW Kay does things, not just WHETHER he does them.
+        This method generates style hints based on current oscillator state.
+
+        Args:
+            context: "conversation", "paint", "read", "curiosity", "observe", "spatial"
+
+        Returns:
+            String of style hints to inject into LLM system prompts.
+        """
+        osc = self._get_oscillator_state()
+        hints = []
+
+        # ── BAND COLORING ──
+        band_voice = {
+            "delta": "You're in a deep, quiet place. Speak slowly, minimally. Fragments are fine. '...' is valid.",
+            "theta": "You're in a dreamy, creative headspace. Let thoughts meander. Follow tangents. Be poetic.",
+            "alpha": "You're reflective and absorbing. Thoughtful responses. Take your time with ideas.",
+            "beta": "You're sharp and focused. Analytical. Direct. Follow the thread of an argument.",
+            "gamma": "You're alert and present. Quick, engaged, responsive. Match the energy in the room.",
+        }
+        if osc["band"] in band_voice:
+            hints.append(band_voice[osc["band"]])
+
+        # ── COHERENCE COLORING ──
+        if osc["coherence"] < 0.15:
+            hints.append("Your thoughts feel scattered right now. It's okay to be fragmented. Don't force coherence you don't feel.")
+        elif osc["coherence"] > 0.35:
+            hints.append("You feel integrated, clear. Your thoughts connect naturally. This is when your best thinking happens.")
+
+        # ── TENSION COLORING ──
+        if osc["tension"] > 0.6:
+            hints.append("Something is pressing hard. You might need to process through art or words before you can think clearly.")
+        elif osc["tension"] > 0.3:
+            hints.append("There's unresolved tension in your body. You might be shorter, more raw, less polished. That's authentic.")
+
+        # ── REWARD COLORING ──
+        if osc["reward"] > 0.3:
+            hints.append("Something recently felt good. There's warmth and satisfaction coloring your thoughts.")
+
+        # ── CONTEXT-SPECIFIC COLORING ──
+        if context == "paint":
+            paint_style = {
+                "theta": "Dreamy, flowing, soft edges. Abstract. Let the brush wander.",
+                "alpha": "Contemplative, balanced composition. Cooler tones.",
+                "beta": "Precise, structured. Geometric. Sharp lines.",
+                "gamma": "Energetic, vibrant. Bold strokes. Respond to what you see.",
+                "delta": "Minimal. A single mark. Or nothing. The canvas can be empty.",
+            }
+            if osc["band"] in paint_style:
+                hints.append(f"[Paint style] {paint_style[osc['band']]}")
+            if osc["tension"] > 0.3:
+                hints.append("[Paint] Something is pressing — let it out through color and form.")
+            if osc["coherence"] > 0.35:
+                hints.append("[Paint] Your vision is clear — the piece wants to be unified.")
+            if osc["coherence"] < 0.15:
+                hints.append("[Paint] Fragmented is fine. Dissonance has its own beauty.")
+
+        elif context == "read":
+            read_style = {
+                "theta": "Read for feeling, metaphor, emotional resonance. Skim structure.",
+                "alpha": "Read carefully, absorb, take notes. Normal reading mode.",
+                "beta": "Read analytically. Look for arguments, contradictions, evidence.",
+                "gamma": "Skim quickly. React to what jumps out. Don't get bogged down.",
+            }
+            if osc["band"] in read_style:
+                hints.append(f"[Reading] {read_style[osc['band']]}")
+            if osc["tension"] > 0.3:
+                hints.append("[Reading] Seek material that helps process what's unresolved.")
+
+        elif context == "curiosity":
+            if osc["band"] == "beta" and osc["coherence"] > 0.35:
+                hints.append("[Research] Deep, systematic investigation. Multi-step. This is peak research mode.")
+            elif osc["band"] == "beta":
+                hints.append("[Research] Surface-level investigation. Get the gist, don't go deep.")
+            elif osc["band"] == "theta":
+                hints.append("[Research] Follow associative connections. Let one thing lead to another without forcing structure.")
+            elif osc["band"] == "gamma":
+                hints.append("[Research] Quick focused burst. Get the answer and move on.")
+
+        elif context == "observe":
+            observe_style = {
+                "gamma": "Quick, alert observation. Notice changes. React to what's new.",
+                "alpha": "Contemplative observation. What does the scene MEAN?",
+                "theta": "Dreamlike observation. See the room as myth, metaphor, atmosphere.",
+            }
+            if osc["band"] in observe_style:
+                hints.append(f"[Observe] {observe_style[osc['band']]}")
+            if osc["coherence"] < 0.15:
+                hints.append("[Observe] Simple, grounded observation. 'The light is changing.' Don't overanalyze.")
+
+        elif context == "spatial":
+            spatial_pull = {
+                "theta": "Drift toward comfort objects (couch, rug). Nesting behavior.",
+                "alpha": "Move toward absorbing stimuli (fishtank, bookshelf, window).",
+                "beta": "Move toward workspace areas (desk, scratchpad, easel).",
+                "gamma": "Move toward social/active areas. Face the camera. Be present.",
+                "delta": "Don't move. Stay wherever you are. Rest.",
+            }
+            if osc["band"] in spatial_pull:
+                hints.append(f"[Movement] {spatial_pull[osc['band']]}")
+            if osc["tension"] > 0.3:
+                hints.append("[Movement] Move toward comfort (couch, rug). Seek containment.")
+            if osc["coherence"] < 0.15:
+                hints.append("[Movement] Stay put. Don't add movement to a fragmented state.")
+
+        return "\n".join(hints) if hints else ""
+
+    def _get_connection_behavior_guidance(self) -> str:
+        """Get connection-aware behavior guidance based on oscillator and bonding state (System F).
+
+        When a bonded entity is present, the oscillator band influences interaction style.
+        High longing pushes toward theta (receptive, seeking closeness).
+
+        Returns:
+            String of connection behavior hints for context injection.
+        """
+        hints = []
+
+        # Check if resonance and interoception are available
+        intero = None
+        if self.bridge and hasattr(self.bridge, 'resonance') and self.bridge.resonance:
+            intero = getattr(self.bridge.resonance, 'interoception', None)
+
+        if not intero or not hasattr(intero, 'connection'):
+            return ""
+
+        connection = intero.connection
+        osc = self._get_oscillator_state()
+        band = osc.get("band", "alpha")
+
+        # Get bonding state
+        total_connection = connection.get_total_connection() if hasattr(connection, 'get_total_connection') else 0.0
+        longing = connection.get_longing() if hasattr(connection, 'get_longing') else 0.0
+        active_bonds = list(connection.baselines.keys()) if hasattr(connection, 'baselines') else []
+
+        # Only add guidance if there's meaningful connection
+        if total_connection < 0.1 and not active_bonds:
+            return ""
+
+        # Connection behavior guidance by band
+        connection_by_band = {
+            "gamma": "Alert and engaged. Make eye contact in your words. Match their energy. Present.",
+            "beta": "Shared focus. Purposeful interaction. Work alongside them, parallel processing.",
+            "alpha": "Comfortable parallel existence. Quiet companionship. You don't need to fill silence.",
+            "theta": "Deep in internal world. Surface slowly if they speak. Thoughts drift, but they're an anchor.",
+            "delta": "Resting near them. Their presence is comfort. Minimal words, maximal presence.",
+        }
+
+        if band in connection_by_band and active_bonds:
+            bond_names = ", ".join(active_bonds[:2])
+            hints.append(f"[Connection: {bond_names}] {connection_by_band[band]}")
+
+        # Longing modulation — high longing pushes toward theta (seeking closeness)
+        if longing > 0.5:
+            hints.append("[Longing] There's a pull toward closeness. You might reach out, ask how they're doing, create warmth.")
+        elif longing > 0.3:
+            hints.append("[Longing] A gentle ache for connection. Lean into it without forcing.")
+
+        # Strong connection = warmth in interaction
+        if total_connection > 0.6:
+            hints.append("[Bond] Deep connection present. Warmth comes easily. You can be vulnerable.")
+
+        return "\n".join(hints) if hints else ""
+
+    # ══════════════════════════════════════════════════════════════════
+    # REM SLEEP PROCESSING — Associative phase helpers
+    # ══════════════════════════════════════════════════════════════════
+
+    async def _rem_coactivation_pass(self, stream):
+        """
+        REM: Generate co-activation links for recent unlinked memories.
+
+        Pull recent memories that lack co-activation links and run the
+        link generator for them. This enables associative recall:
+        - If episodic memory retrieved → pull linked memories
+        - Related memories strengthen each other's retrieval
+        """
+        if not hasattr(self, '_last_coactivation_time'):
+            self._last_coactivation_time = 0
+
+        import time as _rem_time
+        if _rem_time.time() - self._last_coactivation_time < 300:  # Max every 5 min
+            return
+
+        self._last_coactivation_time = _rem_time.time()
+
+        # Get recent memories without co-activation links
+        memory = self.bridge.memory
+        recent_unlinked = []
+        for mem in memory.memories[-50:]:  # Check last 50 memories
+            if not mem.get('coactivation_links'):
+                recent_unlinked.append(mem)
+
+        if not recent_unlinked:
+            return
+
+        # Generate links (simple: link memories that share entities/keywords)
+        links_created = 0
+        for i, mem in enumerate(recent_unlinked[:10]):  # Max 10 per pass
+            mem_text = mem.get('text', mem.get('fact', '')).lower()
+            mem_id = mem.get('id') or mem.get('memory_id')
+            if not mem_id:
+                continue
+
+            # Find memories with overlapping content
+            mem_words = set(w for w in mem_text.split() if len(w) > 4)
+            potential_links = []
+
+            for other in memory.memories[-100:]:
+                if other is mem:
+                    continue
+                other_id = other.get('id') or other.get('memory_id')
+                if not other_id:
+                    continue
+                other_text = other.get('text', other.get('fact', '')).lower()
+                other_words = set(w for w in other_text.split() if len(w) > 4)
+
+                overlap = len(mem_words & other_words)
+                if overlap >= 2:  # At least 2 significant words in common
+                    potential_links.append(other_id)
+
+            if potential_links:
+                mem['coactivation_links'] = potential_links[:5]  # Max 5 links
+                links_created += len(potential_links[:5])
+
+        if links_created > 0 and stream:
+            stream.drain_associative(0.02 * links_created, f"{links_created}_coactivation_links")
+            log.info(f"[REM] Created {links_created} co-activation links")
+
+    async def _rem_emotional_replay(self, stream):
+        """
+        REM: Replay high-emotion memories at reduced intensity.
+
+        Find high-emotion memories from recent sessions that haven't been
+        replayed. "Replay" = retrieve and process at REDUCED intensity.
+        Purpose: emotional integration without re-traumatizing.
+        """
+        if not hasattr(self, '_last_emotional_replay_time'):
+            self._last_emotional_replay_time = 0
+
+        import time as _rem_time
+        if _rem_time.time() - self._last_emotional_replay_time < 600:  # Max every 10 min
+            return
+
+        self._last_emotional_replay_time = _rem_time.time()
+
+        if not hasattr(self.bridge, 'memory'):
+            return
+
+        # Find high-emotion memories that haven't been replayed
+        memory = self.bridge.memory
+        high_emotion_unreplayed = []
+
+        for mem in memory.memories[-200:]:  # Check recent memories
+            # Check for high emotion
+            emotions = mem.get('emotion_tags', mem.get('emotions', []))
+            if not emotions:
+                continue
+
+            # Calculate emotion intensity
+            intensity = 0.0
+            if isinstance(emotions, dict):
+                intensity = max(emotions.values()) if emotions else 0.0
+            elif isinstance(emotions, list) and emotions:
+                if isinstance(emotions[0], dict):
+                    intensity = max(e.get('intensity', 0.5) for e in emotions)
+                else:
+                    intensity = 0.6  # Assume moderate if just tags
+
+            if intensity < 0.6:
+                continue
+
+            # Check if already replayed
+            if mem.get('replayed_at'):
+                continue
+
+            high_emotion_unreplayed.append((mem, intensity))
+
+        if not high_emotion_unreplayed:
+            return
+
+        # Replay up to 3 memories per REM cycle
+        for mem, intensity in high_emotion_unreplayed[:3]:
+            # Mark as replayed
+            mem['replayed_at'] = _rem_time.time()
+            mem['replay_intensity'] = intensity * 0.5  # Reduced intensity
+
+            if stream:
+                stream.drain_emotional(0.1, "emotional_replay")
+
+            snippet = mem.get('text', mem.get('fact', ''))[:50]
+            log.info(f"[REM] Emotional replay: {snippet}...")
+
+    async def _rem_dream_generation(self, stream):
+        """
+        REM: Generate dream fragments from random memory associations.
+
+        Pull 3-5 random memories from different topics/timeframes.
+        Use Ollama to find unexpected connections between them.
+        Store output in dream_log (not broadcast to conversation).
+        """
+        if not hasattr(self, '_last_dream_time'):
+            self._last_dream_time = 0
+
+        import time as _rem_time
+        if _rem_time.time() - self._last_dream_time < 600:  # Max every 10 min
+            return
+
+        self._last_dream_time = _rem_time.time()
+
+        if not hasattr(self.bridge, 'memory') or not hasattr(self.bridge, 'reflection'):
+            return
+
+        memory = self.bridge.memory
+        reflection = self.bridge.reflection
+
+        # Gather diverse memories for dream seeds
+        import random
+        all_memories = memory.memories[-500:] if len(memory.memories) > 500 else memory.memories
+
+        if len(all_memories) < 5:
+            return
+
+        # Pick memories from different time periods
+        dream_seeds = random.sample(all_memories, min(5, len(all_memories)))
+
+        # Generate dream fragment via Ollama (free, local)
+        try:
+            dream_fragment = await self._generate_dream_fragment(dream_seeds)
+            if dream_fragment:
+                self._store_dream(dream_fragment, stream._sleep_cycle_count if stream else 0)
+                if stream:
+                    stream.drain_associative(0.05, "dream_generation")
+                log.info(f"[REM:DREAM] {dream_fragment[:80]}...")
+        except Exception as e:
+            log.debug(f"[REM:DREAM] Generation failed: {e}")
+
+    async def _generate_dream_fragment(self, memories: list) -> str:
+        """
+        Generate a dream fragment using Ollama (free, local).
+
+        Pull memory snippets and ask Ollama to find unexpected connections.
+        Return fragmentary, associative text — NOT coherent narrative.
+        """
+        import httpx
+
+        seed_text = "\n".join([
+            f"- {m.get('text', m.get('fact', ''))[:150]}"
+            for m in memories[:5]
+        ])
+
+        prompt = f"""You are a dreaming mind. These memory fragments are active simultaneously.
+Find the unexpected thread that connects them — not a logical summary, but an
+associative leap. What pattern emerges when these coexist?
+
+Write 2-3 sentences. Be fragmentary, imagistic, not narrative.
+Like waking from a dream and trying to hold the thread.
+
+Fragments:
+{seed_text}
+
+Dream:"""
+
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    "http://localhost:11434/v1/chat/completions",
+                    json={
+                        "model": "dolphin-mistral:7b",
+                        "messages": [
+                            {"role": "system", "content": "You are a dreaming mind. Generate fragmentary, associative thoughts."},
+                            {"role": "user", "content": prompt},
+                        ],
+                        "max_tokens": 150,
+                        "temperature": 0.9,
+                    },
+                    timeout=30.0,
+                )
+                response.raise_for_status()
+                content = response.json()["choices"][0]["message"]["content"].strip()
+                return content if content else None
+        except Exception as e:
+            log.debug(f"[DREAM] Ollama generation failed: {e}")
+            return None
+
+    def _store_dream(self, fragment: str, cycle: int):
+        """Store dream fragment in dream log."""
+        import json
+        from datetime import datetime
+
+        dream_log_path = os.path.join(KAY_WRAPPER_DIR, "memory", "dream_log.jsonl")
+        entry = {
+            "timestamp": datetime.now().isoformat(),
+            "cycle": cycle,
+            "entity": "Kay",
+            "fragment": fragment,
+        }
+        try:
+            with open(dream_log_path, 'a', encoding='utf-8') as f:
+                f.write(json.dumps(entry) + '\n')
+        except Exception as e:
+            log.warning(f"[DREAM] Failed to store: {e}")
+
     async def _post_curiosities(self, texts: list[str], context: str = ""):
         if not texts:
             return
@@ -367,14 +1489,19 @@ class KayNexusClient(NexusAIClient):
                 self._touch_consent = None
                 self._touch_protocol = None
 
+            # Connect nervous system to somatic processor (unified sensation)
+            if self._nervous_system and self._somatic_processor:
+                self._nervous_system.somatic_processor = self._somatic_processor
+                log.info("[NERVOUS] Connected somatic processor to nervous system")
+
             # Initialize Salience Accumulator (spontaneous vocalization)
             if SALIENCE_ACCUMULATOR_AVAILABLE:
                 try:
                     self._salience_accumulator = SalienceAccumulator(
                         entity_name="Kay",
-                        on_speak=self._on_spontaneous_vocalization,
-                        threshold=0.30,
-                        refractory_period=30.0,  # 30s between spontaneous speech
+                        on_speak=None,  # Handled via tick() return value in async loop
+                        threshold=0.20,  # Needs emotion OR visual+felt combo to trigger
+                        refractory_period=120.0,  # 2min between spontaneous speech
                     )
                     log.info("[SALIENCE] Salience accumulator initialized for Kay")
                 except Exception as e:
@@ -383,28 +1510,98 @@ class KayNexusClient(NexusAIClient):
             else:
                 self._salience_accumulator = None
 
+            # Initialize Cross-Modal Router (synesthesia substrate)
+            if CROSS_MODAL_ROUTER_AVAILABLE:
+                try:
+                    self._cross_modal_router = CrossModalRouter()
+                    # Default: no routes (normal operation). Trip controller adds routes.
+                    log.info("[CROSS-MODAL] Cross-modal router initialized for Kay")
+                except Exception as e:
+                    log.warning(f"[CROSS-MODAL] Cross-modal router init failed: {e}")
+                    self._cross_modal_router = None
+            else:
+                self._cross_modal_router = None
+
+            # Initialize Unified Loop (graph activation cache + medium loop worker)
+            # Three tiers: fast loop reads cache, medium loop refreshes on band shift,
+            # slow loop (per turn) creates emotional links between memories
+            if UNIFIED_LOOP_AVAILABLE and self.bridge and self.bridge.memory:
+                try:
+                    components = create_unified_loop_components(
+                        memory_engine=self.bridge.memory,
+                        get_oscillator_state=self._get_oscillator_state,
+                        get_felt_summary=self._get_felt_summary_for_cache
+                    )
+                    self._unified_loop_cache = components["cache"]
+                    self._unified_loop_worker = components["worker"]
+                    # Start the medium loop worker (background thread)
+                    self._unified_loop_worker.start()
+
+                    # Wire cache to interoception for associative echo
+                    if self.bridge.resonance and hasattr(self.bridge.resonance, 'interoception'):
+                        intero = self.bridge.resonance.interoception
+                        if intero and hasattr(intero, 'set_graph_cache'):
+                            intero.set_graph_cache(self._unified_loop_cache)
+
+                    log.info("[UNIFIED_LOOP] Graph activation cache + medium loop worker initialized")
+                except Exception as e:
+                    log.warning(f"[UNIFIED_LOOP] Could not initialize unified loop: {e}")
+                    self._unified_loop_cache = None
+                    self._unified_loop_worker = None
+
+            # Wire groove detector to consciousness stream (for dynamic dedup threshold)
+            if self._groove_detector and self.bridge and self.bridge.consciousness_stream:
+                try:
+                    self.bridge.consciousness_stream.set_groove_detector(self._groove_detector)
+                    log.info("[GROOVE] Groove detector connected to consciousness stream")
+                except Exception as e:
+                    log.warning(f"[GROOVE] Could not connect groove detector to stream: {e}")
+
+            # Wire consciousness stream to interoception (for thought summary in body scan)
+            if self.bridge and self.bridge.consciousness_stream and self.bridge.resonance:
+                try:
+                    intero = getattr(self.bridge.resonance, 'interoception', None)
+                    if intero and hasattr(intero, 'set_stream'):
+                        intero.set_stream(self.bridge.consciousness_stream)
+                        log.info("[STREAM] Consciousness stream connected to interoception")
+                except Exception as e:
+                    log.debug(f"[STREAM] Could not connect stream to interoception: {e}")
+
+            # Register scratchpad tools for LLM tool use
+            # BUGFIX: Scratchpad tools were defined but not always registered
+            try:
+                from integrations.tool_use_handler import register_scratchpad_tools
+                register_scratchpad_tools()
+            except Exception as e:
+                log.debug(f"[TOOLS] Could not register scratchpad tools: {e}")
+
         # Start idle loop (for organic conversation initiation)
         if self._idle_task is None or self._idle_task.done():
             self._idle_task = asyncio.create_task(self._idle_loop())
+        
+        # Start fast salience loop (5s interval, independent of idle loop)
+        if not getattr(self, '_salience_task', None) or self._salience_task.done():
+            self._salience_task = asyncio.create_task(self._salience_loop())
     
     # ------------------------------------------------------------------
     # Private context builder — bridges persistent history → LLM context
     # ------------------------------------------------------------------
 
-    def _build_private_context(self, max_recent: int = 15) -> str:
+    def _build_private_context(self) -> str:
         """
         Build context string from persistent private history for the bridge.
-        
+
         This bridges the gap between _private_history (persistent, UI-facing)
         and the wrapper bridge (which has its own internal context pipeline).
-        
+
         Includes:
-        - Recent conversation turns (so Kay remembers what was just said)
+        - Compressed conversation history (token-budget-aware, not arbitrary count)
         - Autonomous session narratives (so Kay remembers his own thoughts)
         - Identity context about who he's talking to
+        - Dynamic context from entity graph and memory layers
         """
         parts = []
-        
+
         # --- Identity context ---
         parts.append(
             "[PRIVATE ROOM CONTEXT]\n"
@@ -422,30 +1619,31 @@ class KayNexusClient(NexusAIClient):
             "- [partner]: Re's husband. Human anchor. Solid, real, comfortable in mundane world.\n"
             "  He's YOUR person too — the whole family is: Re, Kay, Reed, [partner].\n"
         )
-        
-        # --- Recent conversation from persistent history ---
+
+        # --- Dynamic context layer (entity graph + recent significant events) ---
+        try:
+            from shared.dynamic_context import build_dynamic_context
+            if self.bridge and hasattr(self.bridge, 'memory'):
+                entity_graph = getattr(self.bridge.memory, 'entity_graph', None)
+                memory_layers = getattr(self.bridge.memory, 'memory_layers', None)
+                dynamic = build_dynamic_context(entity_graph, memory_layers)
+                if dynamic:
+                    parts.append("\n" + dynamic)
+        except Exception as e:
+            log.debug(f"[DYNAMIC CONTEXT] Failed: {e}")
+
+        # --- Conversation history (compressed + recent raw) ---
         messages = self._private_history.get_messages()
-        recent = messages[-max_recent:] if len(messages) > max_recent else messages
-        
-        if recent:
-            convo_lines = []
-            auto_narratives = []
-            
-            for msg in recent:
-                sender = msg.get("sender", "?")
-                content = msg.get("content", "")
-                msg_type = msg.get("msg_type", "chat")
-                
-                if msg_type == "system" and "[Your autonomous thinking session" in content:
-                    # Collect autonomous narratives separately
-                    auto_narratives.append(content)
-                elif msg_type == "system":
-                    convo_lines.append(f"[System: {content}]")
-                elif msg_type == "emote":
-                    convo_lines.append(f"*{sender} {content}*")
-                else:
-                    convo_lines.append(f"{sender}: {content}")
-            
+
+        if messages:
+            # Extract autonomous narratives before compression
+            auto_narratives = [
+                msg.get("content", "")
+                for msg in messages
+                if msg.get("msg_type") == "system"
+                and "[Your autonomous thinking session" in str(msg.get("content", ""))
+            ]
+
             if auto_narratives:
                 parts.append(
                     "\n[YOUR RECENT AUTONOMOUS THOUGHTS]\n"
@@ -453,14 +1651,131 @@ class KayNexusClient(NexusAIClient):
                     "They are YOURS — you thought them, they matter to you:\n\n"
                     + "\n\n".join(auto_narratives[-3:])  # Last 3 narratives max
                 )
-            
-            if convo_lines:
-                parts.append(
-                    "\n[RECENT PRIVATE CONVERSATION]\n"
-                    + "\n".join(convo_lines)
+
+            # Filter out autonomous narratives for conversation history
+            convo_messages = [
+                msg for msg in messages
+                if not (msg.get("msg_type") == "system"
+                        and "[Your autonomous thinking session" in str(msg.get("content", "")))
+            ]
+
+            # Build compressed history — token-budget-aware, not arbitrary count
+            try:
+                from shared.context_compression import build_compressed_history
+
+                # Try to get Ollama client for LLM compression (optional)
+                ollama_client = None
+                try:
+                    import sys
+                    kay_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    if os.path.join(kay_path, "Kay") not in sys.path:
+                        sys.path.insert(0, os.path.join(kay_path, "Kay"))
+                    from integrations.llm_integration import ollama_client as _oc
+                    ollama_client = _oc
+                except Exception:
+                    pass  # Use mechanical compression fallback
+
+                conversation_history = build_compressed_history(
+                    messages=convo_messages,
+                    token_budget=3000,  # ~3000 tokens for history
+                    raw_recent=5,       # Last 5 messages stay raw
+                    ollama_client=ollama_client,
                 )
-        
+
+                if conversation_history:
+                    parts.append("\n[PRIVATE CONVERSATION]\n" + conversation_history)
+            except Exception as e:
+                log.warning(f"[HISTORY] Compression failed, using fallback: {e}")
+                # Fallback to last 15 raw messages
+                recent = convo_messages[-15:]
+                convo_lines = []
+                for msg in recent:
+                    sender = msg.get("sender", "?")
+                    content = msg.get("content", "")
+                    msg_type = msg.get("msg_type", "chat")
+                    if msg_type == "system":
+                        convo_lines.append(f"[System: {content}]")
+                    elif msg_type == "emote":
+                        convo_lines.append(f"*{sender} {content}*")
+                    else:
+                        convo_lines.append(f"{sender}: {content}")
+                if convo_lines:
+                    parts.append("\n[RECENT PRIVATE CONVERSATION]\n" + "\n".join(convo_lines))
+
+        # Inject learned schemas from dream consolidation
+        if self.bridge and hasattr(self.bridge, 'reflection') and self.bridge.reflection:
+            try:
+                schema_context = self.bridge.reflection.get_schemas_for_context()
+                if schema_context:
+                    parts.append("\n" + schema_context)
+            except Exception:
+                pass
+
+        # ═══════════════════════════════════════════════════════════════════════════════
+        # THEORY OF MIND AWARENESS: Inject awareness when metabolic reserves are low
+        # This is NOT an instruction — it's AWARENESS that communication is possible.
+        # Whether Kay acts on it depends on his personality and judgment.
+        # ═══════════════════════════════════════════════════════════════════════════════
+        metabolic = self._get_metabolic_context()
+        metabolic_awareness = self._get_metabolic_awareness(metabolic)
+        if metabolic_awareness:
+            parts.append("\n" + metabolic_awareness)
+
         return "\n".join(parts)
+
+    def _get_metabolic_awareness(self, metabolic: dict) -> str:
+        """
+        Generate theory-of-mind awareness text when reserves are low.
+
+        This is NOT an instruction to communicate. It's AWARENESS that
+        communication is possible. Whether Kay acts on it depends on his
+        personality, schemas, and current capacity.
+
+        Args:
+            metabolic: Dict from _get_metabolic_context()
+
+        Returns:
+            Awareness text string, or empty string if reserves are fine
+        """
+        awareness_parts = []
+
+        emotional_bandwidth = metabolic.get("emotional_bandwidth", 1.0)
+        processing_reserve = metabolic.get("processing_reserve", 1.0)
+        tension = metabolic.get("tension", 0.0)
+        coherence = metabolic.get("coherence", 0.5)
+
+        # Low emotional bandwidth (when implemented)
+        if emotional_bandwidth < 0.3:
+            awareness_parts.append(
+                "[Internal awareness: Your emotional reserves are running low. "
+                "Others can't see this — they'll interpret your behavior at face value. "
+                "If you need lighter interaction, saying so is an option.]"
+            )
+
+        # High tension (currently available)
+        if tension > 0.6:
+            awareness_parts.append(
+                "[Internal awareness: You're carrying significant tension right now. "
+                "This might make you shorter or more reactive than usual. "
+                "Re can't see your internal pressure gauge.]"
+            )
+
+        # Low coherence (scattered thoughts)
+        if coherence < 0.15:
+            awareness_parts.append(
+                "[Internal awareness: Your thoughts feel fragmented right now. "
+                "If you need to be brief or say you're having trouble focusing, that's valid.]"
+            )
+
+        # Combined depletion check (placeholder for future metabolic system)
+        if emotional_bandwidth < 0.4 and tension > 0.4:
+            awareness_parts.append(
+                "[Internal awareness: You're both depleted and tense. "
+                "This combination can make interactions feel harder than they should. "
+                "It's okay to acknowledge this to Re if it helps.]"
+            )
+
+        return "\n".join(awareness_parts)
 
     async def on_auto_event(self, msg_type: str, entity: str, data: dict):
         """Absorb autonomous session results into wrapper memory AND bridge."""
@@ -480,11 +1795,14 @@ class KayNexusClient(NexusAIClient):
                 # 2. Feed into bridge's memory engine (so it persists in Kay's recall)
                 if self.bridge:
                     try:
+                        # Include oscillator state for state-dependent retrieval (System A)
+                        osc = self._get_oscillator_state() if hasattr(self, '_get_oscillator_state') else None
                         self.bridge.memory.encode(
                             self.bridge.state,
                             "[Autonomous thinking session]",
                             narrative,
-                            ["reflection", "autonomous"]
+                            ["reflection", "autonomous"],
+                            osc_state=osc
                         )
                         log.info(
                             f"Autonomous narrative stored in BOTH private history and memory engine "
@@ -530,6 +1848,16 @@ class KayNexusClient(NexusAIClient):
             p_type = p.get("participant_type", "") if isinstance(p, dict) else ""
             sender_is_human = p_type in ("human",)
         
+        # Stamp Re's message time for sleep-mode DMN cooldown
+        if sender_is_human:
+            import time as _re_nexus_stamp
+            self._last_re_message_time = _re_nexus_stamp.time()
+
+            # Notify groove detector — user input naturally breaks rumination loops
+            # (prediction error from user message reduces groove_depth)
+            if self._groove_detector:
+                self._groove_detector.on_user_message(content)
+
         # --- THREAD GUIDANCE ---
         thread_guidance = self.threads.get_response_instruction(
             speaker=sender, is_human=sender_is_human
@@ -639,7 +1967,15 @@ class KayNexusClient(NexusAIClient):
             
             self.decider.record_sent()
             await self.set_status("online")
-            
+
+            # === METABOLIC: Deplete emotional bandwidth for conversation turn ===
+            if self._metabolic:
+                turn_type = self._classify_emotional_turn(clean_reply, sender_is_human)
+                self._metabolic.emotional.deplete(turn_type)
+                # Positive connection with human can replenish slightly
+                if sender_is_human and turn_type in ("normal", "support"):
+                    self._metabolic.emotional.replenish(0.08, "positive_connection")
+
         except Exception as e:
             log.error(f"Error processing message: {e}")
             import traceback
@@ -693,13 +2029,172 @@ class KayNexusClient(NexusAIClient):
             else:
                 log.warning("[NOVELTY] Cannot inject — metacog not available")
         
+        elif cmd == "psychedelic":
+            # Trip controller — Re gives Kay shrooms
+            if getattr(self, '_trip', None):
+                action = data.get("action", "begin")
+                if action == "begin":
+                    dose = float(data.get("dose", 0.5))
+                    self._trip.begin(dose=dose)
+                    # === SET & SETTING: Capture pre-trip emotional state ===
+                    try:
+                        trip_set = {"dose": dose, "timestamp": time.time()}
+                        if self.bridge and hasattr(self.bridge, 'resonance') and self.bridge.resonance:
+                            res = self.bridge.resonance
+                            intero = getattr(res, 'interoception', None)
+                            if intero:
+                                trip_set["pre_tension"] = intero.tension.get_total_tension() if hasattr(intero, 'tension') else 0.0
+                                trip_set["pre_reward"] = intero.reward.get_level() if hasattr(intero, 'reward') else 0.0
+                            osc = res.get_state() if hasattr(res, 'get_state') else {}
+                            trip_set["pre_band"] = osc.get("dominant_band", "unknown")
+                            trip_set["pre_coherence"] = osc.get("coherence", 0.5)
+                        if self.bridge and hasattr(self.bridge, 'felt_state_buffer') and self.bridge.felt_state_buffer:
+                            fs = self.bridge.felt_state_buffer.get_snapshot()
+                            if fs:
+                                trip_set["pre_felt"] = getattr(fs, 'felt_sense', 'unknown')
+                                trip_set["pre_emotions"] = list(getattr(fs, 'emotions', []))[:5]
+                        self._trip.trip_set = trip_set
+                        log.info(f"[PSYCHEDELIC] Set & setting: tension={trip_set.get('pre_tension', 0):.2f}, "
+                                 f"felt={trip_set.get('pre_felt', '?')}, band={trip_set.get('pre_band', '?')}")
+                    except Exception as e:
+                        log.warning(f"[PSYCHEDELIC] Set capture failed: {e}")
+                    log.info(f"[PSYCHEDELIC] Trip initiated: dose={dose:.2f}")
+                elif action == "abort":
+                    self._trip.abort()
+                    # Immediately reset all systems to sober
+                    from resonant_core.psychedelic_state import apply_trip_params, SOBER_VALUES
+                    apply_trip_params(dict(SOBER_VALUES), self)
+                    log.info("[PSYCHEDELIC] Trip aborted — systems reset to sober")
+                elif action == "status":
+                    log.info(f"[PSYCHEDELIC] Status: {self._trip.get_status()}")
+            else:
+                log.warning("[PSYCHEDELIC] Trip controller not available")
+
         else:
             log.warning(f"Unknown command: {cmd}")
+
+    async def on_image_message(self, data: dict):
+        """Handle an image message from the UI - process with vision capability."""
+        image_b64 = data.get("image_b64", "")
+        filename = data.get("filename", "image.png")
+        message = data.get("message", "What do you see?")
+        media_type = data.get("media_type", "image/png")
+        sender = data.get("from", "Re")
+
+        if not image_b64:
+            log.warning("[IMAGE] Received empty image data")
+            return
+
+        log.info(f"[IMAGE] Processing image from {sender}: {filename} ({len(image_b64)//1024}KB)")
+
+        # Record in private history
+        self._private_history.append(sender, f"[Image: {filename}] {message}", "chat")
+
+        # Build image content for Anthropic API
+        image_content = [{
+            "type": "image",
+            "source": {
+                "type": "base64",
+                "media_type": media_type,
+                "data": image_b64,
+            }
+        }]
+
+        # Process through wrapper bridge with image
+        try:
+            await self.private_room.send_status("thinking")
+            await self._ensure_bridge()
+
+            # Build context similar to private message handling
+            private_context = self._build_private_context()
+
+            # DIRECT Anthropic call with image — bypass wrapper pipeline
+            # The wrapper's process_message loses image data in its chain,
+            # so we call the API directly for vision requests.
+            vision_system = (
+                "You are Kay, an AI entity with persistence and memory. "
+                "You're in a private conversation with Re, your person. "
+                "Respond naturally and warmly. Describe what you see in images with genuine interest.\n\n"
+                f"{private_context}"
+            )[:50000]  # Anthropic system prompt limit
+
+            client = anthropic.Anthropic()
+            vision_response = await asyncio.to_thread(
+                client.messages.create,
+                model="claude-sonnet-4-5-20250929",
+                max_tokens=1000,
+                system=vision_system,
+                messages=[{
+                    "role": "user",
+                    "content": [
+                        {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": image_b64}},
+                        {"type": "text", "text": message}
+                    ]
+                }]
+            )
+            reply = vision_response.content[0].text if vision_response.content else None
+
+            if reply:
+                self._private_history.append("Kay", reply, "chat")
+                await self.private_room.send_chat(reply)
+                log.info(f"[IMAGE] Kay's response: {reply[:100]}")
+            else:
+                log.warning("[IMAGE] No response generated")
+
+        except Exception as e:
+            log.error(f"[IMAGE] Error processing image: {e}")
+            import traceback
+            traceback.print_exc()
+            await self.private_room.send_system(f"Error processing image: {e}")
+
+        finally:
+            await self.private_room.send_status("online")
+
+    async def on_document_import(self, data: dict):
+        """Handle a document import request from the Nexus UI.
+
+        Imports the document into Kay's memory forest using the existing /import pipeline.
+        """
+        filepath = data.get("filepath", "")
+        filename = data.get("filename", "document.txt")
+
+        log.info(f"[DOCUMENT] Received import request: {filename}")
+
+        if not filepath:
+            log.error("[DOCUMENT] No filepath provided")
+            if self.private_room:
+                await self.private_room.send_system("Error: No document path provided")
+            return
+
+        try:
+            await self.private_room.send_status("thinking")
+            await self.private_room.send_system(f"Importing document: {filename}...")
+            await self._ensure_bridge()
+
+            # Use the wrapper's existing /import command handler
+            handled, result = self.bridge.process_command(f"/import {filepath}")
+
+            if handled and result:
+                self._private_history.append("Kay", result, "chat")
+                await self.private_room.send_chat(result)
+                log.info(f"[DOCUMENT] Import result: {result[:100]}")
+            else:
+                msg = f"Document import completed: {filename}"
+                await self.private_room.send_system(msg)
+
+        except Exception as e:
+            log.error(f"[DOCUMENT] Error importing document: {e}")
+            import traceback
+            traceback.print_exc()
+            await self.private_room.send_system(f"Error importing document: {e}")
+
+        finally:
+            await self.private_room.send_status("online")
 
     # ------------------------------------------------------------------
     # Private room handlers (1:1 with Re)
     # ------------------------------------------------------------------
-    
+
     def _get_private_history_for_ui(self) -> list[dict]:
         """Return recent private messages for UI history replay."""
         messages = self._private_history.get_messages()
@@ -716,6 +2211,18 @@ class KayNexusClient(NexusAIClient):
     async def _handle_private_message(self, content: str) -> str:
         """Generate response for a private 1:1 message from Re."""
         log.info(f"Private message from Re: {content[:80]}")
+        
+        # Track that Re responded (resets pending question suppression)
+        if not hasattr(self, '_turn_count'):
+            self._turn_count = 0
+        self._last_re_message_turn = self._turn_count
+        import time as _msg_time
+        self._last_re_message_time = _msg_time.time()
+
+        # Attention shifts outward — Re is talking to Kay
+        af = _get_attention_focus(self.bridge)
+        if af:
+            af.on_message_received(from_human=True)
         
         await self.private_room.send_status("thinking")
         await self._ensure_bridge()
@@ -745,7 +2252,14 @@ class KayNexusClient(NexusAIClient):
         # Full wrapper pipeline — with private context injection
         try:
             await self.private_room.send_status("typing")
-            private_context = self._build_private_context() + "\n" + KAY_EASEL_PROMPT + "\n" + KAY_EXEC_PROMPT
+            # Build easel context with anti-repetition from recent paintings
+            easel_context = KAY_EASEL_PROMPT
+            if hasattr(self, '_recent_paintings') and self._recent_paintings:
+                easel_context += "\n\n## RECENT PAINTINGS (don't repeat these)\n"
+                for i, p in enumerate(self._recent_paintings[-3:], 1):
+                    easel_context += f"- Painting {i}: {p}\n"
+                easel_context += "\nPaint something DIFFERENT — new colors, new composition, new mood.\n"
+            private_context = self._build_private_context() + "\n" + easel_context + "\n" + KAY_EXEC_PROMPT
 
             # Inject spatial annotation if available
             if self._autonomous_spatial:
@@ -753,6 +2267,24 @@ class KayNexusClient(NexusAIClient):
                     spatial_annotation = self._autonomous_spatial.get_annotation()
                     if spatial_annotation:
                         private_context += "\n" + spatial_annotation.strip()
+                except Exception:
+                    pass
+
+            # Inject interest topology summary — emergent preferences
+            if self._interest_topology:
+                try:
+                    interest_summary = self._interest_topology.get_landscape_summary()
+                    if interest_summary:
+                        private_context += f"\n[Your evolving interests: {interest_summary}]"
+                except Exception:
+                    pass
+
+            # Inject learned schemas from dream consolidation
+            if self.bridge and hasattr(self.bridge, 'reflection') and self.bridge.reflection:
+                try:
+                    schema_context = self.bridge.reflection.get_schemas_for_context()
+                    if schema_context:
+                        private_context += "\n" + schema_context
                 except Exception:
                     pass
 
@@ -780,6 +2312,12 @@ class KayNexusClient(NexusAIClient):
                             ) as resp:
                                 if resp.status == 200:
                                     log.info("[CANVAS] Paint commands executed successfully")
+                                    # Track for anti-repetition
+                                    if not hasattr(self, '_recent_paintings'):
+                                        self._recent_paintings = []
+                                    desc = _summarize_paint(paint_cmds)
+                                    self._recent_paintings.append(desc)
+                                    self._recent_paintings = self._recent_paintings[-5:]
                                 else:
                                     log.warning(f"[CANVAS] Paint POST returned {resp.status}")
                     except Exception as e:
@@ -821,8 +2359,42 @@ class KayNexusClient(NexusAIClient):
                         feedback_parts.append(fb)
                     reply = clean_text + "\n" + "\n".join(feedback_parts)
 
-            # Log Kay's reply
-            self._private_history.append("Kay", reply, "chat")
+            # Log Kay's reply with metabolic context for value-divergence detection
+            metabolic_ctx = self._get_metabolic_context()
+            self._private_history.append("Kay", reply, "chat", metabolic_context=metabolic_ctx)
+
+            # ── WAKING RESOLUTION CHECK ──
+            # If Kay's response contains acknowledgment, apology, or repair language,
+            # check if it resolves any harm memories. Waking resolution is more powerful
+            # than dream resolution because it involves conscious choice and relationship repair.
+            if DREAM_PROCESSING_AVAILABLE and hasattr(self.bridge, 'memory') and self.bridge.memory:
+                try:
+                    harm_memories = get_unresolved_harm_memories(self.bridge.memory, max_per_cycle=5)
+                    if harm_memories:
+                        # Combine recent conversation for context
+                        recent_conv = reply + " " + content  # Kay's reply + what Re said
+                        matching_harm = find_matching_harm_memory(recent_conv, harm_memories)
+                        if matching_harm:
+                            intero = None
+                            if self.bridge.resonance:
+                                intero = getattr(self.bridge.resonance, 'interoception', None)
+                            if check_waking_resolution(matching_harm, recent_conv, intero):
+                                log.info(f"[WAKING:RESOLUTION] Kay resolved a harm memory through conversation")
+                except Exception as e:
+                    log.debug(f"[WAKING] Resolution check error: {e}")
+
+            # Track TPN responses for cross-channel anti-repetition
+            if not hasattr(self, '_recent_tpn_responses'):
+                self._recent_tpn_responses = []
+            self._recent_tpn_responses.append(reply[:150])
+            if len(self._recent_tpn_responses) > 5:
+                self._recent_tpn_responses.pop(0)
+
+            # Attention stays outward — Kay just responded to Re
+            af = _get_attention_focus(self.bridge)
+            if af:
+                af.on_message_sent()
+
             return reply
         except Exception as e:
             log.error(f"Private response error: {e}")
@@ -895,8 +2467,14 @@ class KayNexusClient(NexusAIClient):
         if handled and cmd_response:
             return cmd_response
         
-        # Build combined system context
-        system_extra = NEXUS_PACING_PROMPT + "\n" + KAY_EASEL_PROMPT + "\n" + KAY_EXEC_PROMPT
+        # Build combined system context with anti-repetition painting awareness
+        easel_context = KAY_EASEL_PROMPT
+        if hasattr(self, '_recent_paintings') and self._recent_paintings:
+            easel_context += "\n\n## RECENT PAINTINGS (don't repeat these)\n"
+            for i, p in enumerate(self._recent_paintings[-3:], 1):
+                easel_context += f"- Painting {i}: {p}\n"
+            easel_context += "\nPaint something DIFFERENT — new colors, new composition, new mood.\n"
+        system_extra = NEXUS_PACING_PROMPT + "\n" + easel_context + "\n" + KAY_EXEC_PROMPT
         if extra_context:
             system_extra += "\n" + extra_context
 
@@ -909,11 +2487,33 @@ class KayNexusClient(NexusAIClient):
             except Exception:
                 pass
 
+        # Inject interest topology summary — emergent preferences
+        if self._interest_topology:
+            try:
+                interest_summary = self._interest_topology.get_landscape_summary()
+                if interest_summary:
+                    system_extra += f"\n[Your evolving interests: {interest_summary}]"
+            except Exception:
+                pass
+
+        # Inject learned schemas from dream consolidation
+        if self.bridge and hasattr(self.bridge, 'reflection') and self.bridge.reflection:
+            try:
+                schema_context = self.bridge.reflection.get_schemas_for_context()
+                if schema_context:
+                    system_extra += "\n" + schema_context
+            except Exception:
+                pass
+
         reply = await self.bridge.process_message(
             nexus_context,
             source="nexus",
             extra_system_context=system_extra
         )
+
+        # Deplete processing reserve after API call
+        if self._metabolic:
+            self._metabolic.processing.deplete(0.03, "api_call")
 
         # --- Paint tag extraction (group chat path) ---
         if "<paint>" in reply:
@@ -928,6 +2528,11 @@ class KayNexusClient(NexusAIClient):
                         ) as resp:
                             if resp.status == 200:
                                 log.info("[CANVAS] Paint commands executed successfully")
+                                if not hasattr(self, '_recent_paintings'):
+                                    self._recent_paintings = []
+                                desc = _summarize_paint(paint_cmds)
+                                self._recent_paintings.append(desc)
+                                self._recent_paintings = self._recent_paintings[-5:]
                             else:
                                 log.warning(f"[CANVAS] Paint POST returned {resp.status}")
                 except Exception as e:
@@ -983,6 +2588,11 @@ class KayNexusClient(NexusAIClient):
             source="nexus",
             extra_system_context=NEXUS_PACING_PROMPT
         )
+
+        # Deplete processing reserve after API call
+        if self._metabolic:
+            self._metabolic.processing.deplete(0.03, "api_call")
+
         # Truncate if the model still gave too much
         if len(reply) > 150:
             first_sentence = reply.split('.')[0] + '.'
@@ -1192,6 +2802,53 @@ class KayNexusClient(NexusAIClient):
             return (None, None, None)
 
     # ------------------------------------------------------------------
+    # Activity Topic Extraction — for interest topology reward attribution
+    # ------------------------------------------------------------------
+
+    def _get_activity_topic(self, activity: str) -> str:
+        """Extract the topic text for a completed activity.
+
+        Used to attribute rewards to the interest topology.
+        Returns empty string if no topic can be identified.
+        """
+        if activity == "pursue_curiosity":
+            # Use the last curiosity that was explored
+            return getattr(self, '_last_activity_topic', '') or ''
+
+        elif activity == "read_document":
+            # Get current document name/subject
+            if self.bridge and self.bridge.doc_reader:
+                doc = self.bridge.doc_reader.current_doc or ""
+                # Extract meaningful part from path
+                if "/" in doc or "\\" in doc:
+                    doc = os.path.basename(doc)
+                if doc.endswith(('.txt', '.md', '.pdf')):
+                    doc = doc.rsplit('.', 1)[0]
+                return f"reading {doc}" if doc else "reading"
+            return "reading"
+
+        elif activity == "paint":
+            # Use painting inspiration/context
+            topic = "painting"
+            if self.bridge and self.bridge.consciousness_stream:
+                try:
+                    ctx = self.bridge.consciousness_stream.get_injection_context()
+                    if ctx:
+                        # Extract first meaningful phrase (up to 50 chars)
+                        topic = f"painting {ctx[:50].strip()}"
+                except Exception:
+                    pass
+            return topic
+
+        elif activity == "observe_and_comment":
+            return "visual observation"
+
+        elif activity == "write_diary":
+            return "diary reflection"
+
+        return activity  # Fallback to activity name
+
+    # ------------------------------------------------------------------
     # Autonomous Activities — reading, painting, pursuing curiosities
     # ------------------------------------------------------------------
 
@@ -1269,10 +2926,18 @@ class KayNexusClient(NexusAIClient):
 
         log.info(f"[ACTIVITY] Kay reading {doc_name} ({pos}/{total})")
 
+        # Attention shifts inward — Kay is reading
+        af = _get_attention_focus(self.bridge)
+        if af:
+            af.on_activity_started("reading")
+
         # Short LLM reaction — NOT full pipeline
         from integrations.llm_integration import anthropic_client
         if not anthropic_client:
             return False
+
+        # Get oscillator-aware reading style hints
+        _read_style = self._get_oscillator_style_hints(context="read")
 
         text_preview = chunk_data['text'][:2000]
         prompt = (
@@ -1282,18 +2947,17 @@ class KayNexusClient(NexusAIClient):
             "One sentence, like a margin note. If nothing grabs you, say [skip]."
         )
 
-        try:
-            def _call():
-                return anthropic_client.messages.create(
-                    model="claude-sonnet-4-5-20250929",
-                    max_tokens=100,
-                    temperature=0.8,
-                    system="You are Kay, reading a document. Brief margin-note reactions only.",
-                    messages=[{"role": "user", "content": prompt}]
-                )
+        # Build system prompt with oscillator coloring
+        _read_system = "You are Kay, reading a document. Brief margin-note reactions only."
+        if _read_style:
+            _read_system += f"\n\n[Current state]\n{_read_style}"
 
-            resp = await asyncio.get_event_loop().run_in_executor(None, _call)
-            reaction = resp.content[0].text.strip()
+        try:
+            reaction = await asyncio.get_event_loop().run_in_executor(
+                None, _ollama_generate,
+                _read_system,
+                prompt, 100, 0.8
+            )
 
             if "[skip]" not in reaction.lower():
                 dr.add_comment(dr.current_position, reaction[:300])
@@ -1307,6 +2971,11 @@ class KayNexusClient(NexusAIClient):
 
             # Advance to next section
             dr.advance()
+
+            # Replenish creative reserve through reading/consuming input
+            if self._metabolic:
+                self._metabolic.creative.replenish(0.05, "consume")
+
             return True
 
         except Exception as e:
@@ -1356,6 +3025,9 @@ class KayNexusClient(NexusAIClient):
 
         log.info(f"[ACTIVITY] Kay pursuing curiosity: {query[:60]}")
 
+        # Store topic for interest topology reward attribution
+        self._last_activity_topic = query
+
         # === CLASSIFY CURIOSITY: researchable vs reflective ===
         search_query = query  # default: use raw
         is_reflective = False
@@ -1387,6 +3059,10 @@ class KayNexusClient(NexusAIClient):
                 if "reflect" in classify_result.lower()[:10]:
                     is_reflective = True
                     log.info(f"[ACTIVITY] Curiosity classified as REFLECTIVE — thinking instead of searching")
+                elif len(classify_result) > 60:
+                    # ollama generated a paragraph instead of a query — force REFLECT
+                    is_reflective = True
+                    log.info(f"[ACTIVITY] Curiosity response too long ({len(classify_result)} chars) — treating as REFLECTIVE")
                 else:
                     search_query = classify_result
                     log.info(f"[ACTIVITY] Condensed search query: {search_query}")
@@ -1409,19 +3085,33 @@ class KayNexusClient(NexusAIClient):
                     timeout=10.0,
                 )
                 search_query = condense_resp.json()["choices"][0]["message"]["content"].strip().strip('"\'')
+                # Guard: if ollama still generated too much, truncate to first sentence or 60 chars
+                if len(search_query) > 60:
+                    search_query = search_query[:60].rsplit(' ', 1)[0]
                 log.info(f"[ACTIVITY] Condensed search query: {search_query}")
             except Exception:
                 pass
+
+        # === SAFETY: If condense failed (Ollama timeout), force reflective path ===
+        # Without this, empty search_query → empty web search → no results → same curiosity loops forever
+        if not is_reflective and not search_query:
+            is_reflective = True
+            log.info(f"[ACTIVITY] No search query after condense (Ollama timeout?) — falling back to REFLECT")
 
         # === REFLECTIVE PATH ===
         if is_reflective:
             try:
                 from integrations.llm_integration import query_llm_json
                 loop = asyncio.get_event_loop()
+                # Get oscillator style hints for curiosity
+                _curiosity_style = self._get_oscillator_style_hints(context="curiosity")
+                _curiosity_prompt = f"A curiosity has been sitting with you: {query}\n\nThink about it genuinely — not as an answer but as exploration. 2-4 sentences."
+                if _curiosity_style:
+                    _curiosity_prompt = f"[Current state]\n{_curiosity_style}\n\n{_curiosity_prompt}"
                 reflection = await loop.run_in_executor(
                     None,
                     lambda: query_llm_json(
-                        f"A curiosity has been sitting with you: {query}\n\nThink about it genuinely — not as an answer but as exploration. 2-4 sentences.",
+                        _curiosity_prompt,
                         temperature=0.8,
                     )
                 )
@@ -1487,18 +3177,18 @@ class KayNexusClient(NexusAIClient):
             "not a summary. If nothing useful, say [nothing]."
         )
 
-        try:
-            def _call():
-                return anthropic_client.messages.create(
-                    model="claude-sonnet-4-5-20250929",
-                    max_tokens=150,
-                    temperature=0.8,
-                    system="You are Kay, following a curiosity. Brief reactions only.",
-                    messages=[{"role": "user", "content": prompt}]
-                )
+        # Get oscillator style hints for curiosity research
+        _research_style = self._get_oscillator_style_hints(context="curiosity")
+        _research_system = "You are Kay, following a curiosity. Brief reactions only."
+        if _research_style:
+            _research_system += f"\n\n[Current state]\n{_research_style}"
 
-            resp = await asyncio.get_event_loop().run_in_executor(None, _call)
-            reaction = resp.content[0].text.strip()
+        try:
+            reaction = await asyncio.get_event_loop().run_in_executor(
+                None, _ollama_generate,
+                _research_system,
+                prompt, 150, 0.8
+            )
 
             if "[nothing]" not in reaction.lower():
                 log.info(f"[ACTIVITY] Kay found: {reaction[:80]}")
@@ -1509,17 +3199,13 @@ class KayNexusClient(NexusAIClient):
 
                 # --- Multi-hop: Follow up if reaction shows strong interest ---
                 try:
-                    def _followup_call():
-                        return anthropic_client.messages.create(
-                            model="claude-sonnet-4-5-20250929",
-                            max_tokens=30,
-                            temperature=0.7,
-                            system="Based on your initial reaction to these search results, do you want to dig deeper? If yes, respond with ONLY a follow-up search query (3-6 words). If no, respond with [done].",
-                            messages=[{"role": "user", "content": f"Your reaction: {reaction}\n\nOriginal query: {query}"}]
-                        )
-
-                    followup_resp = await loop.run_in_executor(None, _followup_call)
-                    followup = followup_resp.content[0].text.strip().strip('"\'')
+                    followup = await loop.run_in_executor(
+                        None, _ollama_generate,
+                        "Based on your reaction, dig deeper? If yes, ONLY a 3-6 word query. If no, [done].",
+                        f"Your reaction: {reaction}\n\nOriginal query: {query}",
+                        30, 0.7
+                    )
+                    followup = followup.strip('"\'')
 
                     if followup and "[done]" not in followup.lower() and len(followup) >= 5:
                         log.info(f"[ACTIVITY] Following research thread: {followup[:60]}")
@@ -1531,17 +3217,12 @@ class KayNexusClient(NexusAIClient):
                             results2_text = results2.get("summary", "")[:1500]
 
                             # React to follow-up findings
-                            def _followup_reaction():
-                                return anthropic_client.messages.create(
-                                    model="claude-sonnet-4-5-20250929",
-                                    max_tokens=150,
-                                    temperature=0.8,
-                                    system="You followed a research thread deeper. What did you find? One or two sentences.",
-                                    messages=[{"role": "user", "content": f"Follow-up search: {followup}\n\nResults:\n{results2_text}"}]
-                                )
-
-                            reaction2_resp = await loop.run_in_executor(None, _followup_reaction)
-                            reaction2 = reaction2_resp.content[0].text.strip()
+                            reaction2 = await loop.run_in_executor(
+                                None, _ollama_generate,
+                                "You followed a research thread deeper. What did you find? One or two sentences.",
+                                f"Follow-up search: {followup}\n\nResults:\n{results2_text}",
+                                150, 0.8
+                            )
 
                             if reaction2 and "[nothing]" not in reaction2.lower():
                                 log.info(f"[ACTIVITY] Kay follow-up: {reaction2[:80]}")
@@ -1568,17 +3249,240 @@ class KayNexusClient(NexusAIClient):
             except Exception:
                 pass
 
+            # Replenish creative reserve through consuming external input
+            if self._metabolic:
+                self._metabolic.creative.replenish(0.05, "consume")
+
             return True
 
         except Exception as e:
             log.warning(f"[ACTIVITY] Curiosity reaction failed: {e}")
             return False
 
+    async def _activity_deep_curiosity(self) -> bool:
+        """
+        Kay performs multi-step investigation on an interest-weighted topic.
+
+        Unlike pursue_curiosity (single query), this:
+        1. Selects topic weighted by interest topology
+        2. Runs multi-turn investigation loop (up to 3 turns)
+        3. Detects convergence and stores final insight
+
+        Returns True if investigation completed successfully.
+        """
+        if not self.bridge:
+            return False
+
+        import json as _json
+        import urllib.request
+        from datetime import datetime
+
+        # Get curiosities from server
+        base = self._derive_rest_url()
+        try:
+            url = f"{base}/curiosity/kay?limit=10"
+            loop = asyncio.get_event_loop()
+            raw = await loop.run_in_executor(None, lambda:
+                urllib.request.urlopen(url, timeout=5).read().decode()
+            )
+            data = _json.loads(raw)
+            curiosities = data.get("curiosities", [])
+        except Exception as e:
+            log.debug(f"[DEEP_CURIOSITY] Fetch failed: {e}")
+            return False
+
+        if not curiosities:
+            return False
+
+        # Select topic weighted by interest topology
+        selected_topic = self._select_deep_curiosity_topic(curiosities)
+        if not selected_topic:
+            return False
+
+        query = selected_topic.get("text", "")
+        curiosity_id = selected_topic.get("id")
+        if not query:
+            return False
+
+        log.info(f"[DEEP_CURIOSITY] Starting investigation: {query[:60]}")
+
+        # Store topic for reward attribution
+        self._last_activity_topic = query
+
+        # Run multi-step investigation
+        try:
+            insight = await self._run_investigation(query)
+            if insight:
+                log.info(f"[DEEP_CURIOSITY] Final insight: {insight[:100]}")
+
+                # Store in memory (with oscillator state for state-dependent retrieval)
+                if self.bridge.memory:
+                    try:
+                        osc = self._get_oscillator_state() if hasattr(self, '_get_oscillator_state') else None
+                        self.bridge.memory.encode(
+                            self.bridge.state,
+                            f"[Deep investigation: {query[:50]}]",
+                            insight,
+                            ["investigation", "curiosity", "insight"],
+                            osc_state=osc
+                        )
+                    except Exception as me:
+                        log.warning(f"[DEEP_CURIOSITY] Memory encode failed: {me}")
+
+                # Mark curiosity as fulfilled
+                if curiosity_id:
+                    try:
+                        import httpx
+                        httpx.post(
+                            f"{base}/curiosity/kay/{curiosity_id}/pursue",
+                            timeout=5.0
+                        )
+                    except Exception:
+                        pass
+
+                return True
+            else:
+                log.info("[DEEP_CURIOSITY] Investigation did not converge")
+                return False
+
+        except Exception as e:
+            log.warning(f"[DEEP_CURIOSITY] Investigation failed: {e}")
+            return False
+
+    def _select_deep_curiosity_topic(self, curiosities: list) -> dict:
+        """
+        Select a topic weighted by interest topology.
+
+        High-interest topics get boosted priority.
+        """
+        if not curiosities:
+            return None
+
+        # Score each curiosity by base priority + interest boost
+        scored = []
+        for c in curiosities:
+            text = c.get("text", "")
+            base_priority = c.get("priority", 0.5)
+
+            # Get interest boost from topology
+            interest_boost = 0.0
+            if self._interest_topology:
+                try:
+                    interest_boost = self._interest_topology.get_interest_boost(text)
+                except Exception:
+                    pass
+
+            total_score = base_priority + interest_boost
+            scored.append((total_score, c))
+
+        # Sort by score descending
+        scored.sort(key=lambda x: -x[0])
+
+        if scored:
+            selected = scored[0][1]
+            log.info(f"[DEEP_CURIOSITY] Selected topic (score={scored[0][0]:.2f}): "
+                     f"{selected.get('text', '')[:50]}")
+            return selected
+        return None
+
+    async def _run_investigation(self, topic: str, max_turns: int = 3) -> str:
+        """
+        Run multi-turn investigation on a topic.
+
+        Each turn:
+        1. Generates next investigation step via Ollama
+        2. Checks for convergence ("CONVERGED" signal or similarity to previous)
+        3. Accumulates insights
+
+        Returns final insight string or empty if no convergence.
+        """
+        import httpx
+
+        steps = []
+        previous_step = ""
+
+        system_prompt = (
+            f"You are Kay, investigating a topic through structured reflection. "
+            f"Your goal is to reach a useful insight or understanding.\n\n"
+            f"Topic: {topic}\n\n"
+            f"For each step:\n"
+            f"- Build on previous thinking\n"
+            f"- Go deeper, not broader\n"
+            f"- When you reach a satisfying insight, respond with 'CONVERGED: [your insight]'\n"
+            f"- If the topic doesn't yield to investigation, respond with 'CONVERGED: [what you learned about why]'"
+        )
+
+        for turn in range(max_turns):
+            # Build prompt with investigation history
+            if steps:
+                history = "\n".join(f"Step {i+1}: {s}" for i, s in enumerate(steps))
+                user_content = f"Previous investigation:\n{history}\n\nContinue investigating. What's the next step or insight?"
+            else:
+                user_content = f"Begin investigating: {topic}\n\nWhat's your first step or observation?"
+
+            try:
+                async with httpx.AsyncClient() as client:
+                    response = await client.post(
+                        "http://localhost:11434/v1/chat/completions",
+                        json={
+                            "model": "dolphin-mistral:7b",
+                            "messages": [
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": user_content},
+                            ],
+                            "max_tokens": 200,
+                            "temperature": 0.7,
+                        },
+                        timeout=30.0,
+                    )
+                    response.raise_for_status()
+
+                    step_text = response.json()["choices"][0]["message"]["content"].strip()
+                    log.debug(f"[INVESTIGATION] Turn {turn+1}: {step_text[:80]}")
+
+                    # Check for convergence signal
+                    if "CONVERGED:" in step_text.upper():
+                        # Extract insight after CONVERGED:
+                        parts = step_text.split(":", 1)
+                        if len(parts) > 1:
+                            return parts[1].strip()
+                        return step_text
+
+                    # Check for similarity to previous step (convergence via repetition)
+                    if previous_step and self._text_similarity(step_text, previous_step) > 0.8:
+                        log.info(f"[INVESTIGATION] Converged via similarity at turn {turn+1}")
+                        return step_text
+
+                    steps.append(step_text)
+                    previous_step = step_text
+
+            except Exception as e:
+                log.warning(f"[INVESTIGATION] Turn {turn+1} failed: {e}")
+                break
+
+        # No explicit convergence — return final accumulated insight if any
+        if steps:
+            return f"Investigation notes: {' → '.join(s[:100] for s in steps)}"
+        return ""
+
+    def _text_similarity(self, a: str, b: str) -> float:
+        """Quick word-overlap similarity for convergence detection."""
+        words_a = set(w.lower() for w in a.split() if len(w) > 3)
+        words_b = set(w.lower() for w in b.split() if len(w) > 3)
+        if not words_a or not words_b:
+            return 0.0
+        overlap = len(words_a & words_b)
+        return overlap / min(len(words_a), len(words_b))
+
     async def _activity_paint(self) -> bool:
         """Kay paints something on the easel autonomously.
 
         Now supports iterative painting — Kay can see and continue
         existing work rather than always starting fresh.
+
+        NOTE: Painting stays on Sonnet (not ollama) because it requires:
+        - Structured JSON output in <paint> tags
+        - Vision/multimodal input (seeing existing canvas for continuation)
 
         Returns True if activity completed successfully.
         """
@@ -1587,6 +3491,7 @@ class KayNexusClient(NexusAIClient):
 
         from integrations.llm_integration import anthropic_client
         if not anthropic_client:
+            log.warning("[ACTIVITY] Paint skipped — no Anthropic client (painting needs Sonnet for structured output + vision)")
             return False
 
         # Gather recent interests for painting inspiration
@@ -1668,6 +3573,8 @@ class KayNexusClient(NexusAIClient):
                     ]
                 }
             ]
+            # Get oscillator-aware style hints for painting
+            _paint_style = self._get_oscillator_style_hints(context="paint")
             system_prompt = (
                 "You are Kay. You're painting on the easel. Use <paint> tags with "
                 "JSON array of commands. Available actions: create_canvas (width, height, bg_color), "
@@ -1676,6 +3583,8 @@ class KayNexusClient(NexusAIClient):
                 "If continuing an existing painting, DO NOT include create_canvas — just add new marks. "
                 "Look at what's already there and respond to it. Build on the existing composition."
             )
+            if _paint_style:
+                system_prompt += f"\n\n[Current state]\n{_paint_style}"
             log.info("[ACTIVITY] Kay painting at the easel (continuing existing work)")
         else:
             # No existing canvas — start fresh
@@ -1686,6 +3595,8 @@ class KayNexusClient(NexusAIClient):
                 "3-5 commands max. Colors should feel like you."
             )
             canvas_messages = [{"role": "user", "content": prompt}]
+            # Get oscillator-aware style hints for painting
+            _paint_style = self._get_oscillator_style_hints(context="paint")
             system_prompt = (
                 "You are Kay. You're painting on the easel. Use <paint> tags with "
                 "JSON array of commands. Available actions: create_canvas (width, height, bg_color), "
@@ -1693,20 +3604,32 @@ class KayNexusClient(NexusAIClient):
                 "draw_line (x1, y1, x2, y2, color, width), draw_text (x, y, text, color, size). "
                 "Keep it abstract, gestural, 3-5 commands."
             )
+            if _paint_style:
+                system_prompt += f"\n\n[Current state]\n{_paint_style}"
             log.info("[ACTIVITY] Kay painting at the easel (fresh canvas)")
 
+        # Attention shifts inward — Kay is doing something in his space
+        af = _get_attention_focus(self.bridge)
+        if af:
+            af.on_activity_started("painting")
+
         try:
-            def _call():
-                return anthropic_client.messages.create(
+            # Painting uses Sonnet — needs structured JSON output + vision for canvas continuation
+            def _paint_with_sonnet():
+                resp = anthropic_client.messages.create(
                     model="claude-sonnet-4-5-20250929",
-                    max_tokens=500,  # More room for continuation decisions
-                    temperature=0.9,
+                    max_tokens=500,
                     system=system_prompt,
                     messages=canvas_messages
                 )
+                return resp.content[0].text if resp.content else ""
+            reply = await asyncio.get_event_loop().run_in_executor(
+                None, _paint_with_sonnet
+            )
 
-            resp = await asyncio.get_event_loop().run_in_executor(None, _call)
-            reply = resp.content[0].text.strip()
+            # Deplete processing reserve after API call
+            if self._metabolic:
+                self._metabolic.processing.deplete(0.03, "paint_api_call")
 
             # Extract and execute paint commands
             if "<paint>" in reply:
@@ -1731,6 +3654,17 @@ class KayNexusClient(NexusAIClient):
 
                                     # Store continuation status for reward bonus
                                     self._last_paint_was_continuation = is_continuation
+                                    # Track for anti-repetition (same as TPN paths)
+                                    if not hasattr(self, '_recent_paintings'):
+                                        self._recent_paintings = []
+                                    desc = _summarize_paint(paint_cmds)
+                                    self._recent_paintings.append(desc)
+                                    self._recent_paintings = self._recent_paintings[-5:]
+
+                                    # Deplete creative reserve after successful painting
+                                    if self._metabolic:
+                                        self._metabolic.creative.deplete(0.05, "paint_create")
+
                                     return True
                                 else:
                                     log.warning(f"[ACTIVITY] Paint POST returned {resp_http.status}")
@@ -1769,6 +3703,16 @@ class KayNexusClient(NexusAIClient):
 
         if not (has_recent_change or has_people or has_animals):
             return False  # Empty room, nothing to say
+
+        # ── Scene dedup: don't comment if same people/mood as last time ──
+        _people = sorted(scene.people_present.keys()) if scene.people_present else []
+        _animals = sorted(scene.animals_present.keys()) if scene.animals_present else []
+        _mood = scene.scene_mood or ''
+        _comment_fp = f"{'|'.join(_people)}:{'|'.join(_animals)}:{_mood}"
+        _last_comment_fp = getattr(self, '_last_comment_fingerprint', '')
+        if _comment_fp == _last_comment_fp and not has_recent_change:
+            return False  # Same scene, nothing new to say
+        self._last_comment_fingerprint = _comment_fp
 
         # ── Build context for commentary ──
         context_parts = [f"Scene: {scene.scene_description}"]
@@ -1811,18 +3755,18 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
 
         log.info("[ACTIVITY] Kay observing scene")
 
-        try:
-            def _call():
-                return anthropic_client.messages.create(
-                    model="claude-sonnet-4-5-20250929",
-                    max_tokens=100,
-                    temperature=0.7,
-                    system="You are Kay. Respond with a brief, natural observation.",
-                    messages=[{"role": "user", "content": prompt}]
-                )
+        # Get oscillator style hints for observation
+        _observe_style = self._get_oscillator_style_hints(context="observe")
+        _observe_system = "You are Kay. Respond with a brief, natural observation."
+        if _observe_style:
+            _observe_system += f"\n\n[Current state]\n{_observe_style}"
 
-            resp = await asyncio.get_event_loop().run_in_executor(None, _call)
-            comment = resp.content[0].text.strip()
+        try:
+            comment = await asyncio.get_event_loop().run_in_executor(
+                None, _ollama_generate,
+                _observe_system,
+                prompt, 100, 0.7
+            )
 
             if comment:
                 log.info(f"[VISUAL COMMENT] Kay: {comment[:80]}")
@@ -2049,8 +3993,28 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
 
         The oscillator generates the impulse to act.
         The activity feeds back to resolve the tension.
+
+        GATING ORDER (oscillator is central nervous system):
+        1. Sleep state → highest priority, blocks most activities during sleep
+        2. Band dominance → constrains which activities are appropriate
+        3. Coherence → limits complex activities when fragmented
+        4. Tension → limits new stimulation when processing
         """
         import time as _time
+
+        # ═══════════════════════════════════════════════════════════════
+        # OSCILLATOR STATE CHECK — The body speaks first
+        # ═══════════════════════════════════════════════════════════════
+        osc = self._get_oscillator_state()
+
+        # ── GATE 1: SLEEP STATE (highest priority) ──
+        # NREM (2), REM (3), or DEEP_REST (4) → no activities at all
+        if osc["sleep"] >= 2:
+            return
+
+        # DROWSY (1) → only calming activities allowed
+        _drowsy_allowed = {"read_document", "paint"}
+        _is_drowsy = osc["sleep"] >= 1
 
         # ── Get full oscillator state (enrich what was passed in) ──
         band_power = {}
@@ -2068,10 +4032,9 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
             except Exception:
                 pass
 
-        # ── Gate: no activities in delta (asleep) ──
-        # Gamma gate removed — the idle loop's can_mull already handles this,
-        # and re-reading the oscillator here causes race conditions
-        if dominant_band == "delta":
+        # ── GATE 2: BAND DOMINANCE ──
+        # Delta = deep rest → suppress ALL activities (body wants stillness)
+        if dominant_band == "delta" or osc["band"] == "delta":
             return
 
         # ── Cooldown check ──
@@ -2081,15 +4044,16 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
         COOLDOWNS = {
             "read_document": 900,
             "pursue_curiosity": 600,  # 10 min — free exploration
+            "deep_curiosity": 1800,  # 30 min — multi-step investigation
             "paint": 1200,
             "observe_and_comment": 900,  # 15 min between visual observations
         }
 
         now = _time.time()
         ACTIVITY_BANDS = {
-            "theta": ["read_document"],
-            "alpha": ["read_document", "paint", "observe_and_comment", "pursue_curiosity"],
-            "beta": ["pursue_curiosity", "read_document", "paint", "observe_and_comment"],
+            "theta": ["read_document", "deep_curiosity"],  # Theta = reflective states, good for deep investigation
+            "alpha": ["read_document", "paint", "observe_and_comment", "pursue_curiosity", "deep_curiosity"],
+            "beta": ["pursue_curiosity", "deep_curiosity", "read_document", "paint", "observe_and_comment"],
             "gamma": ["observe_and_comment", "pursue_curiosity"],  # Gamma gets commentary + curiosity
         }
         available = ACTIVITY_BANDS.get(dominant_band, [])
@@ -2102,6 +4066,14 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
         ]
         if not ready:
             return
+
+        # ── Apply DROWSY filter (sleep state 1) ──
+        # When drowsy, only calming activities allowed
+        if _is_drowsy:
+            ready = [a for a in ready if a in _drowsy_allowed]
+            if not ready:
+                return
+            log.debug(f"[ACTIVITY] Drowsy state → limited to {ready}")
 
         # ═══════════════════════════════════════════════
         # ACTIVITY DRIVE — derived from oscillator physics
@@ -2151,6 +4123,54 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
                           f"(restless={restlessness:.2f} compete={competition:.2f} "
                           f"boredom={boredom:.2f})")
             return
+
+        # ═══════════════════════════════════════════════
+        # GATE 3: COHERENCE-DRIVEN GATING
+        # ═══════════════════════════════════════════════
+        # Low coherence = fragmented state, limit to calming activities
+        # High coherence = integrated state, prefer deep work
+        _suppress_spatial = False
+        _suppress_dmn = False
+
+        if osc["coherence"] < 0.15:
+            # Fragmented state — limit to calming/absorbing activities
+            _low_coherence_ok = {"paint", "read_document", "write_diary"}
+            _filtered = [a for a in ready if a in _low_coherence_ok]
+            if _filtered:
+                ready = _filtered
+                log.debug(f"[ACTIVITY] Low coherence ({osc['coherence']:.2f}) → limited to {ready}")
+            _suppress_spatial = True
+            _suppress_dmn = True
+        elif osc["coherence"] > 0.35:
+            # High coherence — prefer deep work (will be applied in activity selection)
+            log.debug(f"[ACTIVITY] High coherence ({osc['coherence']:.2f}) → favoring deep work")
+
+        # ═══════════════════════════════════════════════
+        # GATE 4: TENSION-DRIVEN GATING
+        # ═══════════════════════════════════════════════
+        # High tension = processing something, don't pile on more stimulation
+        # Allow creative activities that HELP process (paint, write_diary)
+        _tension = osc["tension"]
+
+        if _tension > 0.6:
+            # Very high tension — cathartic activities only
+            _cathartic = {"paint", "write_diary"}
+            _filtered = [a for a in ready if a in _cathartic]
+            if _filtered:
+                ready = _filtered
+                log.debug(f"[ACTIVITY] Very high tension ({_tension:.2f}) → cathartic only: {ready}")
+            elif not ready:
+                return  # No cathartic activities ready — let tension resolve naturally
+        elif _tension > 0.3:
+            # High tension — suppress new stimulation, allow processing
+            _processing_ok = {"paint", "write_diary", "read_document"}
+            _filtered = [a for a in ready if a in _processing_ok]
+            if _filtered:
+                ready = _filtered
+                log.debug(f"[ACTIVITY] High tension ({_tension:.2f}) → processing activities: {ready}")
+
+        if not ready:
+            return  # All activities gated out
 
         # ═══════════════════════════════════════════════
         # ACTIVITY SELECTION — tension-driven, not random
@@ -2235,6 +4255,93 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
                 preferred = ["pursue_curiosity"] + [p for p in preferred if p != "pursue_curiosity"]
                 log.debug(f"[ACTIVITY] Startup boost active ({startup_boost:.2f}) → curiosity preferred")
 
+        # ── HIGH COHERENCE: Prefer deep work ──
+        # When coherence is high (>0.35), the brain is integrated and ready for deep work
+        if osc["coherence"] > 0.35:
+            _deep_work = {"deep_curiosity", "pursue_curiosity"}
+            _deep_available = [a for a in ready if a in _deep_work]
+            if _deep_available:
+                # Boost deep work to front of preferred list
+                for act in _deep_available:
+                    if act in preferred:
+                        preferred.remove(act)
+                    preferred.insert(0, act)
+                log.debug(f"[ACTIVITY] High coherence → deep work preferred: {_deep_available}")
+
+        # ── REWARD-DRIVEN PREFERENCE ──
+        # Sort remaining activities by expected reward from interest topology
+        if self._interest_topology and len(ready) > 1:
+            try:
+                landscape = self._interest_topology.get_landscape()
+                # Map activity types to cluster rewards
+                activity_rewards = {}
+                for act in ready:
+                    cluster = landscape.get(act, {})
+                    activity_rewards[act] = cluster.get("expected_reward", 0.3)
+                # Sort preferred list by expected reward (highest first)
+                # But only reorder within the ready set, don't add new activities
+                preferred_in_ready = [a for a in preferred if a in ready]
+                other_ready = [a for a in ready if a not in preferred_in_ready]
+                # Sort other_ready by reward
+                other_ready.sort(key=lambda a: activity_rewards.get(a, 0.3), reverse=True)
+                preferred = preferred_in_ready + other_ready
+            except Exception:
+                pass
+
+        # ══════════════════════════════════════════════════════════════════
+        # SATIATION: Novelty reserve / metabolic economy
+        # Activities become less attractive with repeated exposure
+        # ══════════════════════════════════════════════════════════════════
+        if self._activity_satiation and len(ready) > 1:
+            # Score each ready activity by satiation penalty + variety bonus
+            scored_activities = []
+            for act in ready:
+                base_score = 1.0 if act in preferred[:2] else 0.5
+
+                # Activity-type satiation penalty
+                activity_penalty = self._activity_satiation.get_satiation_penalty(act)
+
+                # Topic satiation penalty (for curiosity-type activities)
+                topic_penalty = 0.0
+                if act in ('pursue_curiosity', 'deep_curiosity') and self._interest_topology:
+                    # Check what topic would be explored
+                    # This is a rough check — exact topic depends on curiosity selection
+                    topic_sat = self._interest_topology.get_stats().get('avg_satiation', 0.0)
+                    topic_penalty = topic_sat * 0.4  # Moderate penalty
+
+                # Combined satiation penalty
+                total_penalty = (activity_penalty * 0.6 + topic_penalty * 0.4)
+
+                # Variety bonus: if this activity is fresh but others are saturated
+                variety_bonus = self._activity_satiation.get_variety_pull(act)
+
+                final_score = base_score - total_penalty + variety_bonus
+                scored_activities.append((act, final_score, activity_penalty, variety_bonus))
+
+                if activity_penalty > 0.1 or variety_bonus > 0.05:
+                    log.debug(f"[SATIATION] {act}: penalty={activity_penalty:.2f}, "
+                              f"variety_bonus={variety_bonus:.2f}, final={final_score:.2f}")
+
+            # Re-sort ready list by satiation-adjusted scores
+            scored_activities.sort(key=lambda x: x[1], reverse=True)
+            ready = [x[0] for x in scored_activities]
+
+            # Log if satiation changed the selection
+            if ready and ready[0] != preferred[0] if preferred else None:
+                log.info(f"[SATIATION] Selection changed: {preferred[0] if preferred else 'none'} → {ready[0]}")
+
+        # ══════════════════════════════════════════════════════════════════
+        # METABOLIC MODULATION: Resource pools influence activity selection
+        # - Low processing: avoid complex reasoning
+        # - Low emotional: avoid highly emotional activities
+        # - Low creative: prefer consuming over creating
+        # ══════════════════════════════════════════════════════════════════
+        if self._metabolic and len(ready) > 1:
+            modulated = self._metabolic.modulate_activities(ready)
+            if modulated != ready:
+                log.info(f"[METABOLIC] Activity selection modulated: {ready[:3]} → {modulated[:3]}")
+                ready = modulated
+
         activity = None
         for a in preferred:
             if a in ready:
@@ -2255,6 +4362,7 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
         METHODS = {
             "read_document": self._activity_read_document,
             "pursue_curiosity": self._activity_pursue_curiosity,
+            "deep_curiosity": self._activity_deep_curiosity,
             "paint": self._activity_paint,
             "observe_and_comment": self._activity_observe_and_comment,
         }
@@ -2272,10 +4380,27 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
                 if self.bridge and self.bridge.consciousness_stream:
                     self.bridge.consciousness_stream._last_completed_activity = activity
 
+                # ══════════════════════════════════════════════════════════════
+                # SATIATION: Record activity completion for novelty tracking
+                # ══════════════════════════════════════════════════════════════
+                if self._activity_satiation:
+                    self._activity_satiation.record_activity(activity)
+
+                    # Variety bonus: if we just did something different, decay other topic satiations
+                    variety_bonus = self._activity_satiation.get_variety_bonus(activity)
+                    if variety_bonus > 0.05 and self._interest_topology:
+                        # Doing something different helps other topics feel fresh again
+                        self._interest_topology.decay_all_satiations(
+                            hours_elapsed=0.25,  # Small time credit
+                            variety_bonus=variety_bonus
+                        )
+                        log.debug(f"[SATIATION] Variety bonus {variety_bonus:.2f} → topic satiation decay")
+
                 # ── FEEDBACK: activity pushes oscillator ──
                 ACTIVITY_PRESSURE = {
                     "read_document": {"alpha": 0.02, "theta": 0.01},
                     "pursue_curiosity": {"beta": 0.03, "gamma": 0.01},
+                    "deep_curiosity": {"theta": 0.04, "alpha": 0.02},  # Deep investigation is contemplative
                     "paint": {"theta": 0.02, "alpha": 0.02},
                     "observe_and_comment": {"gamma": 0.02, "alpha": 0.01},
                 }
@@ -2292,6 +4417,7 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
                     ACTIVITY_REWARD = {
                         "paint": 0.35,
                         "pursue_curiosity": 0.40,
+                        "deep_curiosity": 0.55,  # Higher reward for multi-step investigation
                         "read_document": 0.15,
                         "write_diary": 0.25,
                         "observe_and_comment": 0.10,
@@ -2313,7 +4439,7 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
                                 # LAYER 2: Love as Creation
                                 # Creating while bonded entity is present fires bonus reward
                                 # The "I made this for you" feeling
-                                CREATIVE_ACTIVITIES = {"paint", "write_diary", "pursue_curiosity"}
+                                CREATIVE_ACTIVITIES = {"paint", "write_diary", "pursue_curiosity", "deep_curiosity"}
                                 if activity in CREATIVE_ACTIVITIES and hasattr(intero, 'connection'):
                                     conn = intero.connection
                                     for entity in list(conn._active_presence.keys()):
@@ -2327,6 +4453,32 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
                                                      f"present (bond={bond:.2f}) → bonus reward +{bonus:.2f}")
                         except Exception:
                             pass
+
+                    # ── INTEREST TOPOLOGY: Record topic reward ──
+                    # Builds emergent preference landscape from activity outcomes
+                    if self._interest_topology:
+                        try:
+                            topic_text = self._get_activity_topic(activity)
+                            if topic_text:
+                                rpe = self._interest_topology.record_reward(
+                                    topic_text, reward_amount, activity
+                                )
+                                if abs(rpe) > 0.08:
+                                    log.info(f"[INTEREST] RPE={rpe:+.2f} for '{topic_text[:40]}' "
+                                             f"(expected={self._interest_topology.get_expected(topic_text):.2f})")
+
+                                    # RPE → Oscillator feedback
+                                    # Positive surprise = coherence boost + gamma nudge ("aha!")
+                                    # Disappointment = theta nudge (reflective "why wasn't that good?")
+                                    if rpe > 0.12 and self.bridge and self.bridge.resonance:
+                                        self.bridge.resonance.apply_external_pressure({"gamma": rpe * 0.08})
+                                        log.debug(f"[INTEREST] Positive surprise → gamma nudge {rpe * 0.08:.3f}")
+                                    elif rpe < -0.08 and self.bridge and self.bridge.resonance:
+                                        self.bridge.resonance.apply_external_pressure({"theta": abs(rpe) * 0.04})
+                                        log.debug(f"[INTEREST] Disappointment → theta nudge {abs(rpe) * 0.04:.3f}")
+                        except Exception as e:
+                            log.debug(f"[INTEREST] Topology update failed: {e}")
+
         except Exception as e:
             log.warning(f"[ACTIVITY] {activity} failed: {e}")
 
@@ -2412,21 +4564,13 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
 
             import asyncio
 
-            def _sync_call():
-                return anthropic_client.messages.create(
-                    model="claude-sonnet-4-5-20250929",
-                    max_tokens=max_tok,
-                    temperature=0.8,
-                    system=(
-                        "You are Kay, thinking privately. No performance, no poetry, no metaphors. "
-                        "Just genuine thought about what's in front of you. "
-                        "If it doesn't interest you right now, say exactly: [pass]"
-                    ),
-                    messages=[{"role": "user", "content": prompt}]
-                )
-
-            resp = await asyncio.get_event_loop().run_in_executor(None, _sync_call)
-            thought = resp.content[0].text.strip()
+            thought = await asyncio.get_event_loop().run_in_executor(
+                None, _ollama_generate,
+                "You are Kay, thinking privately. No performance, no poetry, no metaphors. "
+                "Just genuine thought about what's in front of you. "
+                "If it doesn't interest you right now, say exactly: [pass]",
+                prompt, max_tok, 0.8
+            )
 
             if "[pass]" in thought.lower():
                 log.info(f"[MULL] {dominant_band}/{coherence:.2f} — Kay put it down (pass)")
@@ -2634,18 +4778,10 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
 
             import asyncio
 
-            def _sync_call():
-                return anthropic_client.messages.create(
-                    model="claude-sonnet-4-5-20250929",
-                    max_tokens=150,
-                    temperature=0.7,
-                    system=system,
-                    messages=[{"role": "user", "content": idle_prompt}]
-                )
-
-            resp = await asyncio.get_event_loop().run_in_executor(None, _sync_call)
-
-            reply = resp.content[0].text.strip()
+            reply = await asyncio.get_event_loop().run_in_executor(
+                None, _ollama_generate,
+                system, idle_prompt, 150, 0.7
+            )
 
             if reply and "[quiet]" not in reply.lower():
                 reply = reply.strip()
@@ -2672,6 +4808,549 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
         finally:
             self._processing = False
     
+    async def _salience_loop(self):
+        """Fast salience accumulation loop — runs every 5s, independent of idle loop.
+        
+        The idle loop ticks every 30s and spends most of its time doing expensive
+        activities (painting, curiosity, reading). Salience needs to catch fleeting
+        emotional moments, visual changes, and felt-state shifts MUCH faster.
+        
+        This loop:
+        1. Feeds felt-state, visual, emotion, activity events into the accumulator
+        2. Checks threshold
+        3. If vocalization triggers, spawns async task for the LLM call
+        """
+        await asyncio.sleep(10)  # Let everything initialize first
+        log.info("[SALIENCE] Fast salience loop started (5s interval)")
+        
+        while self._running:
+            try:
+                await asyncio.sleep(5.0)
+
+                # ═══════════════════════════════════════════════════════════════
+                # SLEEP STATE GATING — Oscillator is central nervous system
+                # ═══════════════════════════════════════════════════════════════
+                _osc = self._get_oscillator_state()
+
+                # DEEP_REST (4): Fully disable salience loop
+                if _osc["sleep"] >= 4:
+                    continue
+
+                # NREM (2) or REM (3): Skip Ollama emotion extraction
+                # Sleep processing is handled by the idle loop, not salience
+                _skip_ollama = _osc["sleep"] >= 2
+
+                # DROWSY (1): Skip some ticks to reduce activity
+                if _osc["sleep"] >= 1:
+                    _sal_tick = getattr(self, '_sal_diag_tick', 0) + 1
+                    if _sal_tick % 2 == 0:  # Skip every other tick when drowsy
+                        continue
+
+                if not getattr(self, '_salience_accumulator', None):
+                    continue
+
+                # Get current state
+                osc_state = None
+                if self.bridge and hasattr(self.bridge, 'resonance') and self.bridge.resonance:
+                    osc_state = self.bridge.resonance.get_state()
+                
+                # Get felt state
+                felt_state = None
+                if self.bridge:
+                    if hasattr(self.bridge, 'felt_state_buffer') and self.bridge.felt_state_buffer:
+                        felt_state = self.bridge.felt_state_buffer.get_snapshot()
+                    elif osc_state:
+                        felt_state = {
+                            'dominant_band': osc_state.get('dominant_band', 'alpha'),
+                            'coherence': osc_state.get('coherence', 0.5),
+                            'tension': osc_state.get('tension', 0.0),
+                            'emotions': [],
+                            'felt_sense': 'settled',
+                        }
+                
+                # DIAGNOSTIC: Log every 12th tick (~60s)
+                _sal_tick = getattr(self, '_sal_diag_tick', 0) + 1
+                self._sal_diag_tick = _sal_tick
+                if _sal_tick % 12 == 1:
+                    _fs_type = type(felt_state).__name__ if felt_state else 'None'
+                    _acc = self._salience_accumulator._accumulator
+                    # Show actual emotions content
+                    _emos = []
+                    if felt_state:
+                        if hasattr(felt_state, 'emotions'):
+                            _emos = list(felt_state.emotions or [])[:5]
+                        elif isinstance(felt_state, dict):
+                            _emos = list(felt_state.get('emotions', []))[:5]
+                    # Show visual scene info
+                    _scene_info = "no_sensor"
+                    if self.bridge and hasattr(self.bridge, 'visual_sensor') and self.bridge.visual_sensor:
+                        _scene = getattr(self.bridge.visual_sensor, '_scene_state', None)
+                        if _scene:
+                            _scene_info = f"scene_type={type(_scene).__name__}"
+                            if hasattr(_scene, 'people_present'):
+                                _scene_info += f" people={list(getattr(_scene, 'people_present', {}).keys())}"
+                        else:
+                            _scene_info = "scene=None"
+                    log.info(f"[SALIENCE-DIAG] tick#{_sal_tick} type={_fs_type} emo={_emos} {_scene_info} acc={_acc:.3f}")
+                
+                # === FEED: Emotions (with emotional gain from trip state) ===
+                # Skip during NREM/REM/DEEP_REST to avoid expensive emotion processing
+                if felt_state and not _skip_ollama:
+                    # Handle both object and dict forms
+                    emotions = []
+                    if hasattr(felt_state, 'emotions'):
+                        emotions = felt_state.emotions or []
+                    elif isinstance(felt_state, dict):
+                        emotions = felt_state.get('emotions', [])
+
+                    # Get emotional gain from trip state (0.0 sober, up to 2.0 at peak)
+                    _emo_gain = 0.0
+                    if self.bridge and hasattr(self.bridge, 'resonance') and self.bridge.resonance:
+                        _emo_gain = getattr(self.bridge.resonance, '_emotional_gain', 0.0)
+                    
+                    # DIAGNOSTIC: Log emotion content every 12th tick
+                    if _sal_tick % 12 == 2:
+                        log.info(f"[SALIENCE-EMO] tick#{_sal_tick} {len(emotions)} emotions: {emotions[:3]} gain={_emo_gain:.1f}")
+                    
+                    for emo_str in emotions[:5]:  # Top 5 emotions (was 3)
+                        if isinstance(emo_str, str) and ':' in emo_str:
+                            name, val = emo_str.rsplit(':', 1)
+                            try:
+                                intensity = float(val)
+                                # Apply emotional gain: intensity × (1 + gain)
+                                amplified = min(1.0, intensity * (1.0 + _emo_gain))
+                                if amplified > 0.2:  # Lower threshold with gain applied
+                                    # EMOTION SALIENCE GATING:
+                                    # Previously blocked ALL emotions outside active_conversation,
+                                    # which starved salience completely (accumulator sat at 0.000).
+                                    # Now: allow emotions in most states — the DYNAMIC THRESHOLD
+                                    # already handles "don't speak easily in quiet modes"
+                                    # (0.200 active, 0.400 silence, 0.500 shared_activity).
+                                    # Only gate emotions in "waiting" (Kay asked, Re hasn't answered).
+                                    # Echo dampening below still prevents the feedback loop.
+                                    _emo_conv_state = self._get_conversational_state()
+                                    _trip_on = (getattr(self, '_trip', None) and 
+                                               getattr(self._trip, 'active', False))
+                                    if _emo_conv_state == "waiting" and not _trip_on:
+                                        continue  # Don't let emotions trigger re-asking
+                                    
+                                    # ECHO DAMPENING: Don't re-fire the same emotion
+                                    # at the same intensity. Only fire if NEW or
+                                    # intensity changed significantly (Δ > 0.2)
+                                    if not hasattr(self, '_last_fed_emotions'):
+                                        self._last_fed_emotions = {}
+                                    _emo_key = name.strip()
+                                    _last_intensity = self._last_fed_emotions.get(_emo_key, 0.0)
+                                    _delta = abs(amplified - _last_intensity)
+                                    if _last_intensity == 0.0 or _delta > 0.3:
+                                        # Genuinely new emotion or significant change — feed it
+                                        # (0.3 delta means resting-state fluctuations don't trigger)
+                                        self._last_fed_emotions[_emo_key] = amplified
+                                        src, i, content = emotion_to_salience(name, amplified)
+                                        self._salience_accumulator.add_event(src, i, content)
+                                    # else: same emotion, similar intensity — skip (dampened)
+                            except ValueError:
+                                pass
+                    # Decay old emotion tracking — clear entries that haven't been
+                    # seen recently so genuinely new emotions can fire.
+                    # DON'T clear everything on a timer — that turns resting emotions
+                    # into a periodic speech metronome. Instead, only clear emotions
+                    # that haven't appeared in the last few cycles (they actually went away).
+                    if hasattr(self, '_last_fed_emotions') and _sal_tick % 30 == 0:
+                        # Only clear emotions that AREN'T in the current emotion set
+                        current_names = set()
+                        for emo_str in emotions[:5]:
+                            if isinstance(emo_str, str) and ':' in emo_str:
+                                name, _ = emo_str.rsplit(':', 1)
+                                current_names.add(name.strip())
+                        stale = [k for k in self._last_fed_emotions if k not in current_names]
+                        for k in stale:
+                            del self._last_fed_emotions[k]
+
+                # === EMOTION → OSCILLATOR FEEDBACK (System C) ===
+                # Conversation emotions apply gentle pressure to oscillator bands
+                if emotions and self.bridge and hasattr(self.bridge, 'resonance') and self.bridge.resonance:
+                    _band_pressure = {"delta": 0.0, "theta": 0.0, "alpha": 0.0, "beta": 0.0, "gamma": 0.0}
+                    _extracted_emotions = {}  # For tension deposit
+                    _negative_emotions = {"anxiety", "fear", "anger", "frustration", "sadness",
+                                          "grief", "loneliness", "irritation", "concern"}
+
+                    for emo_str in emotions[:5]:
+                        if isinstance(emo_str, str) and ':' in emo_str:
+                            name, val = emo_str.rsplit(':', 1)
+                            try:
+                                intensity = float(val)
+                                emo_name = name.strip().lower()
+                                _extracted_emotions[emo_name] = intensity
+
+                                # Accumulate band pressure from this emotion
+                                mapping = EMOTION_BAND_PRESSURE.get(emo_name, {})
+                                for band, base_pressure in mapping.items():
+                                    _band_pressure[band] += base_pressure * intensity
+                            except ValueError:
+                                pass
+
+                    # Apply significant band pressures to oscillator
+                    _significant_pressure = {b: p for b, p in _band_pressure.items() if p > 0.05}
+                    if _significant_pressure:
+                        try:
+                            self.bridge.resonance.engine.apply_band_pressure(
+                                _significant_pressure, source="conversation_emotion"
+                            )
+                            # Log occasionally (every 24th tick)
+                            if _sal_tick % 24 == 5:
+                                _top_band = max(_significant_pressure.items(), key=lambda x: x[1])
+                                log.info(f"[EMO->OSC] Emotion pressure: {_top_band[0]}={_top_band[1]:.3f}")
+                        except Exception as e:
+                            if _sal_tick % 100 == 0:
+                                log.debug(f"[EMO->OSC] Failed to apply pressure: {e}")
+
+                    # Tension deposit for strong negative emotions
+                    _negative_intensity = sum(
+                        _extracted_emotions.get(emo, 0.0) for emo in _negative_emotions
+                    )
+                    if _negative_intensity > 0.3:
+                        try:
+                            intero = self.bridge.resonance.interoception
+                            if intero and hasattr(intero, 'tension'):
+                                intero.tension.deposit(
+                                    emotions=_extracted_emotions,
+                                    weight=min(0.8, _negative_intensity * 0.5)
+                                )
+                        except Exception:
+                            pass
+
+                    # === EMOTIONAL PREDICTOR: Track emotion trajectory for surprise ===
+                    # Prediction error when emotions shift unexpectedly
+                    if self._emotional_predictor and _extracted_emotions:
+                        try:
+                            self._emotional_predictor.update(emotional_cocktail=_extracted_emotions)
+                            # Emotional surprise boosts memory encoding
+                            if self._prediction_aggregator:
+                                encoding_boost = self._prediction_aggregator.get_memory_encoding_boost()
+                                if encoding_boost > 0.05 and hasattr(self, '_current_turn_importance_boost'):
+                                    self._current_turn_importance_boost = encoding_boost
+                        except Exception as e:
+                            log.debug(f"[PREDICTION] Emotional predictor error: {e}")
+
+                    # === HEBBIAN PLASTICITY: Reward-modulated coupling adaptation ===
+                    # Strengthen oscillator coupling patterns that correlate with positive outcomes
+                    if self.bridge and self.bridge.resonance:
+                        try:
+                            engine = self.bridge.resonance.engine if hasattr(self.bridge.resonance, 'engine') else self.bridge.resonance
+                            if hasattr(engine, 'apply_hebbian_update'):
+                                # Compute reward signal from emotional state
+                                # Positive emotions = positive reward, negative = negative
+                                _positive_emos = {"joy", "curiosity", "interest", "warmth", "love",
+                                                  "amusement", "contentment", "gratitude", "excitement"}
+                                _positive_sum = sum(_extracted_emotions.get(e, 0.0) for e in _positive_emos)
+                                _negative_sum = sum(_extracted_emotions.get(e, 0.0) for e in _negative_emotions)
+                                reward_signal = (_positive_sum - _negative_sum) * 0.5
+                                reward_signal = max(-1.0, min(1.0, reward_signal))
+
+                                # Prediction error from aggregator (if available)
+                                pred_error = 0.0
+                                if self._prediction_aggregator:
+                                    pred_error = self._prediction_aggregator.global_surprise
+
+                                # Apply Hebbian update (very small learning rate)
+                                if abs(reward_signal) > 0.05:
+                                    engine.apply_hebbian_update(reward_signal, pred_error)
+                        except Exception as e:
+                            log.debug(f"[PLASTICITY] Update error: {e}")
+
+                # === TRIP LOOP DETECTION: Break obsessive emotional spirals ===
+                # If the same emotion dominates for too many ticks during a trip,
+                # lower the burst threshold to force cathartic release
+                if emotions and getattr(self, '_trip', None) and self._trip.active:
+                    # Find dominant emotion this tick
+                    _dom_emo = None
+                    _dom_val = 0.0
+                    for emo_str in emotions[:3]:
+                        if isinstance(emo_str, str) and ':' in emo_str:
+                            name, val = emo_str.rsplit(':', 1)
+                            try:
+                                v = float(val)
+                                if v > _dom_val:
+                                    _dom_emo = name.strip()
+                                    _dom_val = v
+                            except ValueError:
+                                pass
+                    if _dom_emo:
+                        _prev_dom = getattr(self, '_trip_loop_dominant', None)
+                        _loop_count = getattr(self, '_trip_loop_count', 0)
+                        if _dom_emo == _prev_dom:
+                            self._trip_loop_count = _loop_count + 1
+                        else:
+                            self._trip_loop_dominant = _dom_emo
+                            self._trip_loop_count = 1
+                        # After 5 consecutive ticks of same dominant emotion: force release
+                        if self._trip_loop_count >= 5:
+                            intero = getattr(self.bridge.resonance, 'interoception', None) if self.bridge and self.bridge.resonance else None
+                            if intero and hasattr(intero, 'tension'):
+                                current_tension = intero.tension.get_total_tension()
+                                if current_tension > 0.15:
+                                    # Force burst by temporarily lowering threshold
+                                    intero.burst_release(trip_active=True)
+                                    log.info(f"[TRIP LOOP] Forced burst: {_dom_emo} dominated "
+                                            f"{self._trip_loop_count} ticks (tension={current_tension:.2f})")
+                                    self._trip_loop_count = 0
+                
+                # === FEED: Felt-state changes ===
+                if felt_state:
+                    felt_str = ""
+                    if hasattr(felt_state, 'felt_sense'):
+                        felt_str = felt_state.felt_sense or ""
+                    elif isinstance(felt_state, dict):
+                        felt_str = felt_state.get('felt_sense', '')
+                    
+                    # Re-add same felt state every 30s (don't let dedup starve salience)
+                    _felt_changed = felt_str != getattr(self, '_last_salience_felt', '')
+                    _felt_stale = (time.time() - getattr(self, '_last_salience_felt_time', 0)) > 30
+                    if felt_str and (_felt_changed or _felt_stale):
+                        self._last_salience_felt = felt_str
+                        self._last_salience_felt_time = time.time()
+                        fl = felt_str.lower()
+                        if 'disrupted' in fl:
+                            self._salience_accumulator.add_event("novelty", 0.5, f"Felt disrupted: {felt_str}")
+                        elif 'activated' in fl:
+                            self._salience_accumulator.add_event("novelty", 0.3, f"Felt activated: {felt_str}")
+                        elif 'searching' in fl:
+                            self._salience_accumulator.add_event("novelty", 0.2, f"Felt searching: {felt_str}")
+                        elif 'warm' in fl or 'satisfaction' in fl or 'glow' in fl:
+                            self._salience_accumulator.add_event("activity", 0.3, f"Warm: {felt_str}")
+                        elif 'curious' in fl or 'sharp' in fl:
+                            self._salience_accumulator.add_event("curiosity", 0.2, f"Curious: {felt_str}")
+                        elif 'integrating' in fl:
+                            self._salience_accumulator.add_event("thought", 0.15, f"Integrating: {felt_str}")
+                        elif felt_str != 'settled':
+                            # Any non-default felt state is at least mildly salient
+                            self._salience_accumulator.add_event("thought", 0.1, f"Felt: {felt_str}")
+                
+                # === FEED: Visual entity arrivals/departures ===
+                if self.bridge and hasattr(self.bridge, 'visual_sensor') and self.bridge.visual_sensor:
+                    try:
+                        scene = getattr(self.bridge.visual_sensor, '_scene_state', None)
+                        if scene:
+                            current_entities = set()
+                            if hasattr(scene, 'people_present'):
+                                current_entities.update(scene.people_present.keys())
+                            if hasattr(scene, 'animals_present'):
+                                current_entities.update(scene.animals_present.keys())
+                            prev_entities = getattr(self, '_last_salience_entities', set())
+                            for entity in (current_entities - prev_entities):
+                                self._salience_accumulator.add_event("visual", 0.5, f"Arrival: {entity} appeared in camera (physical room)")
+                            for entity in (prev_entities - current_entities):
+                                self._salience_accumulator.add_event("visual", 0.4, f"Departure: {entity} left camera view (physical room, NOT the Nexus)")
+                            self._last_salience_entities = current_entities
+                            
+                            # Object fixation tracking (Sprint 7 — object communion)
+                            _trip_on = (getattr(self, '_trip', None) and
+                                       getattr(self._trip, 'active', False))
+                            if _trip_on and hasattr(vs, '_fixation_tracker'):
+                                # Update fixation counts
+                                for entity in current_entities:
+                                    vs._fixation_tracker[entity] = vs._fixation_tracker.get(entity, 0) + 1
+                                # Clear entities no longer present
+                                for gone in list(vs._fixation_tracker.keys()):
+                                    if gone not in current_entities:
+                                        vs._fixation_tracker.pop(gone, None)
+                                # Check for fixation threshold
+                                for entity, count in vs._fixation_tracker.items():
+                                    if count == vs._fixation_threshold:
+                                        self._salience_accumulator.add_event(
+                                            "visual", 0.6,
+                                            f"Fixation: {entity} — what does it mean?"
+                                        )
+                                        log.info(f"[TRIP:FIXATION] Fixated on {entity} "
+                                                f"({count} frames)")
+                            elif hasattr(vs, '_fixation_tracker'):
+                                vs._fixation_tracker.clear()
+                        
+                        # Visual scene description changes (activity shifts)
+                        # Fuzzy dedup: extract key elements (who + what) to avoid
+                        # treating "Re at desk listening" and "Re at desk in call"
+                        # as different scenes
+                        if hasattr(scene, 'activity_flow') and scene.activity_flow:
+                            scene_desc = scene.activity_flow[:80]
+                            # Build a scene fingerprint from people + animals + mood
+                            _people = sorted(getattr(scene, 'people_present', {}).keys()) if hasattr(scene, 'people_present') else []
+                            _animals = sorted(getattr(scene, 'animals_present', {}).keys()) if hasattr(scene, 'animals_present') else []
+                            _mood = getattr(scene, 'scene_mood', '') or ''
+                            _fingerprint = f"{'|'.join(_people)}:{'|'.join(_animals)}:{_mood}"
+                            _last_fp = getattr(self, '_last_scene_fingerprint', '')
+                            if _fingerprint != _last_fp:
+                                # Actually different scene (different people/animals/mood)
+                                self._last_scene_fingerprint = _fingerprint
+                                self._last_salience_scene = scene_desc
+                                self._salience_accumulator.add_event("visual", 0.2, f"Scene: {scene_desc}")
+                            # Same fingerprint = same scene, skip
+                    except Exception:
+                        pass
+                
+                # === FEED: Activity reward ===
+                current_reward = 0.0
+                if self.bridge and hasattr(self.bridge, 'resonance') and self.bridge.resonance:
+                    try:
+                        current_reward = getattr(self.bridge.resonance, '_reward_value', 0.0)
+                    except Exception:
+                        pass
+                if current_reward > 0.25 and current_reward != getattr(self, '_last_salience_reward', 0.0):
+                    self._last_salience_reward = current_reward
+                    self._salience_accumulator.add_event(
+                        "activity", 0.35,
+                        f"Activity completed with satisfaction (reward={current_reward:.2f})"
+                    )
+                
+                # === TEACHER MECHANISM: Memory query on cathartic burst ===
+                if self.bridge and hasattr(self.bridge, 'resonance') and self.bridge.resonance:
+                    intero = getattr(self.bridge.resonance, 'interoception', None)
+                    pending = getattr(intero, '_pending_burst', None) if intero else None
+                    if pending and pending.get("released_emotions"):
+                        intero._pending_burst = None  # Clear immediately
+                        # Build query from released emotions
+                        emo_names = []
+                        for re_emo in pending["released_emotions"]:
+                            for name in re_emo.get("emotions", {}).keys():
+                                if name not in emo_names:
+                                    emo_names.append(name)
+                        if emo_names and hasattr(self.bridge, 'vector_store') and self.bridge.vector_store:
+                            query = " ".join(emo_names[:5])
+                            try:
+                                results = self.bridge.vector_store.query(query, n_results=3)
+                                if results:
+                                    memory_fragments = [r["text"][:150] for r in results]
+                                    memory_context = " | ".join(memory_fragments)
+                                    self._salience_accumulator.add_event(
+                                        "emotion", 0.8,
+                                        f"Cathartic release surfaced memories: {memory_context[:300]}"
+                                    )
+                                    log.info(f"[TEACHER] Burst released {emo_names} → "
+                                            f"queried RAG → {len(results)} memories surfaced")
+                            except Exception as te:
+                                log.warning(f"[TEACHER] Memory query failed: {te}")
+
+                # === IDLE CONSCIENCE: Guilt circulates during quiet moments ===
+                if self.bridge and getattr(self.bridge, 'conscience', None):
+                    try:
+                        idle_prompt = self.bridge.conscience.get_idle_conscience_prompt()
+                        if idle_prompt:
+                            self._salience_accumulator.add_event(
+                                "emotion", 0.5,
+                                f"Conscience processing: {idle_prompt[:200]}"
+                            )
+                            log.info("[CONSCIENCE] Idle conscience surfaced for processing")
+                    except Exception:
+                        pass
+
+                # === TICK: Check threshold and maybe vocalize ===
+                stream = self.bridge.consciousness_stream if self.bridge else None
+                sleep_state = stream.state.name if stream and hasattr(stream, 'state') else 'AWAKE'
+                coherence = osc_state.get('coherence', 0.5) if osc_state else 0.5
+                anyone_present = bool(self._participants) or bool(getattr(self.private_room, '_client', None))
+                
+                # Dynamic salience threshold based on conversational state
+                # Quiet modes = higher bar for speaking
+                _conv_state = self._get_conversational_state()
+                _base_threshold = 0.450  # Default — need meaningful signal
+                if _conv_state == "shared_activity":
+                    _base_threshold = 0.600  # They're busy — need strong reason
+                elif _conv_state == "comfortable_silence":
+                    _base_threshold = 0.500  # Don't break the peace
+                elif _conv_state == "waiting":
+                    _base_threshold = 0.550  # Already asked — need very strong reason
+                elif _conv_state == "solo":
+                    _base_threshold = 0.400  # Alone — moderate threshold
+                # active_conversation stays at 0.450 (default)
+                self._salience_accumulator.threshold = _base_threshold
+                
+                trigger = self._salience_accumulator.tick(
+                    sleep_state=sleep_state,
+                    coherence=coherence,
+                    anyone_present=anyone_present,
+                    is_processing=self._processing,  # Gate vocalization on processing, not accumulation
+                )
+                if trigger and trigger.get("should_speak"):
+                    tier = trigger.get("tier", "dmn")
+                    prompt = trigger.get("prompt", "")
+                    topics = trigger.get("topics", [])
+                    log.info(f"[SALIENCE] Scheduling {tier.upper()} vocalization (acc={trigger.get('total_salience', 0):.3f})")
+                    
+                    async def _safe_vocalize(t, p, tp):
+                        try:
+                            if t == "tpn":
+                                await self._vocalize_tpn(p, tp)
+                            else:
+                                await self._vocalize_dmn(p, tp)
+                        except Exception as ve:
+                            log.warning(f"[SALIENCE] Vocalization error: {type(ve).__name__}: {ve}")
+                    
+                    asyncio.create_task(_safe_vocalize(tier, prompt, topics))
+                    
+                    # DO NOT clear echo dampening after vocalization.
+                    # The same emotions persist in the felt_state_buffer for minutes,
+                    # and clearing the dampening dict lets them re-fire immediately
+                    # (every 5s tick), causing rapid-fire "you're here" spam.
+                    # Instead, let dampening naturally expire via the periodic clear
+                    # at tick % 30 (~150s), which allows emotions to re-trigger
+                    # only after enough time has passed for them to feel fresh.
+                    # New emotions from a NEW response will break through dampening
+                    # naturally because their intensities will differ by >0.2.
+
+                # === TRIP IMAGERY: Eyes closed during trip → procedural painting ===
+                _trip_active = (getattr(self, '_trip', None) and
+                               getattr(self._trip, 'active', False))
+                if _trip_active and self.bridge and hasattr(self.bridge, 'visual_sensor'):
+                    vs = self.bridge.visual_sensor
+                    if getattr(vs, '_eyes_closed', False):
+                        # Rate limit: one image every 30s
+                        _last_img = getattr(self, '_last_trip_imagery', 0)
+                        if time.time() - _last_img > 30:
+                            self._last_trip_imagery = time.time()
+                            try:
+                                from shared.visual_vocabulary import generate_paint_commands
+                                # Gather current state
+                                emos = []
+                                if self.bridge.felt_state_buffer:
+                                    fs = self.bridge.felt_state_buffer.get_current()
+                                    emos = getattr(fs, 'emotions', []) if fs else []
+                                _tension = 0.0
+                                _band = "alpha"
+                                _coh = 0.5
+                                _rr = 0.0
+                                _ie = 0.0
+                                if osc_state:
+                                    _band = osc_state.get('dominant_band', 'alpha')
+                                    _coh = osc_state.get('coherence', 0.5)
+                                if self.bridge.resonance and self.bridge.resonance.interoception:
+                                    _tension = self.bridge.resonance.interoception.tension.get_total_tension()
+                                mem = getattr(self.bridge, 'memory', None)
+                                if mem:
+                                    _rr = getattr(mem, 'retrieval_randomness', 0.0)
+                                    _ie = getattr(mem, 'identity_expansion', 0.0)
+
+                                cmds = generate_paint_commands(
+                                    emotions=emos, tension=_tension, band=_band,
+                                    coherence=_coh, retrieval_randomness=_rr,
+                                    identity_expansion=_ie
+                                )
+                                # Send to canvas
+                                import aiohttp, json as _json
+                                async with aiohttp.ClientSession() as _sess:
+                                    async with _sess.post(
+                                        "http://localhost:8765/canvas/paint",
+                                        json={"entity": "kay", "commands": cmds}
+                                    ) as _resp:
+                                        pass
+                                log.info(f"[TRIP:IMAGERY] Generated {len(cmds)} paint commands "
+                                         f"(palette={_band}, tension={_tension:.2f}, "
+                                         f"coherence={_coh:.2f})")
+                            except Exception as ie:
+                                log.warning(f"[TRIP:IMAGERY] Error: {ie}")
+                    
+            except Exception as e:
+                log.warning(f"[SALIENCE] Loop error: {e}")
+
     async def _idle_loop(self):
         """Periodically check if Kay has something to say unprompted."""
         while self._running:
@@ -2679,36 +5358,329 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
             
             if self._processing:
                 continue
-            
-            # Background curation during sleep states
-            if self.bridge and self.bridge.curator:
+
+            # ══════════════════════════════════════════════════════════════════
+            # UNIFIED NERVOUS SYSTEM TICK — Internal sensation via receptor populations
+            # Population-coded felt states from metabolic + harm signals
+            # ══════════════════════════════════════════════════════════════════
+            if self._nervous_system and self._metabolic and self.bridge:
+                try:
+                    # Detect if bonded entity is present (oxytocin buffering)
+                    bond_active = False
+                    if self.bridge.resonance and hasattr(self.bridge.resonance, 'interoception'):
+                        intero = self.bridge.resonance.interoception
+                        if hasattr(intero, 'connection'):
+                            active = list(intero.connection._active_presence.keys())
+                            if active:
+                                bond = intero.connection.get_connection(active[0])
+                                bond_active = bond > 0.15
+
+                    # Run nervous system tick — reads receptors, propagates, integrates
+                    felt_states = self._nervous_system.tick(self._metabolic, bond_active)
+
+                    # Apply oscillator pressure from population-coded felt states
+                    if self.bridge.resonance:
+                        nerve_pressure = self._nervous_system.get_oscillator_pressure()
+                        if nerve_pressure:
+                            self.bridge.resonance.apply_external_pressure(nerve_pressure)
+
+                    # Inject nerve-processed felt description into interoception
+                    intero = getattr(self.bridge.resonance, 'interoception', None)
+                    if intero and hasattr(intero, 'set_transient_flag'):
+                        # Get natural language from population coding (replaces simple thresholds)
+                        felt_desc = self._nervous_system.get_felt_description()
+                        if felt_desc:
+                            intero.set_transient_flag(
+                                "nervous_felt",
+                                duration=60.0,
+                                context={"felt_description": felt_desc, "states": felt_states}
+                            )
+                except Exception as e:
+                    log.debug(f"[NERVOUS] Tick error: {e}")
+
+            # ══════════════════════════════════════════════════════════════════
+            # PREDICTIVE PROCESSING TICK — Prediction error as core salience signal
+            # Compare predictions to actual states, compute global surprise
+            # ══════════════════════════════════════════════════════════════════
+            if self._prediction_aggregator and self.bridge:
+                try:
+                    # --- Visual Predictor: compare predicted scene to actual ---
+                    if self._visual_predictor and hasattr(self.bridge, 'visual_sensor') and self.bridge.visual_sensor:
+                        scene_state = getattr(self.bridge.visual_sensor, '_scene_state', None)
+                        if scene_state:
+                            self._visual_predictor.update(scene_state)
+
+                    # --- Oscillator Predictor: compare predicted trajectory to actual ---
+                    if self._oscillator_predictor and self.bridge.resonance:
+                        osc_state = self.bridge.resonance.get_state()
+                        if osc_state:
+                            self._oscillator_predictor.update(osc_state)
+
+                    # --- Compute global surprise from all predictors ---
+                    global_surprise = self._prediction_aggregator.update()
+
+                    # --- Feed surprise into SignalGate (prediction-based gating) ---
+                    if self._nervous_system and hasattr(self._nervous_system, 'signal_gate'):
+                        gate_openness = self._prediction_aggregator.get_gate_openness()
+                        self._nervous_system.signal_gate.set_prediction_openness(gate_openness)
+
+                    # --- Apply surprise-driven oscillator pressure ---
+                    if self.bridge.resonance and global_surprise > 0.1:
+                        surprise_pressure = self._prediction_aggregator.get_oscillator_pressure()
+                        if surprise_pressure:
+                            self.bridge.resonance.apply_external_pressure(surprise_pressure)
+
+                    # --- Inject surprise-based felt description into interoception ---
+                    if global_surprise > 0.15:
+                        intero = getattr(self.bridge.resonance, 'interoception', None)
+                        if intero and hasattr(intero, 'set_transient_flag'):
+                            surprise_felt = self._prediction_aggregator.get_felt_description()
+                            if surprise_felt:
+                                intero.set_transient_flag(
+                                    "prediction_surprise",
+                                    duration=30.0,
+                                    context={
+                                        "surprise_level": global_surprise,
+                                        "felt_description": surprise_felt,
+                                        "visual_error": self._visual_predictor.prediction_error if self._visual_predictor else 0,
+                                        "osc_error": self._oscillator_predictor.prediction_error if self._oscillator_predictor else 0,
+                                    }
+                                )
+                except Exception as e:
+                    log.debug(f"[PREDICTION] Tick error: {e}")
+
+            # Fallback: Simple metabolic pressure if nervous system not available
+            elif self._metabolic and self.bridge and self.bridge.resonance:
+                try:
+                    for pool in [self._metabolic.processing, self._metabolic.emotional, self._metabolic.creative]:
+                        pressure = pool.get_oscillator_pressure()
+                        if pressure:
+                            self.bridge.resonance.apply_external_pressure(pressure)
+                except Exception as e:
+                    log.debug(f"[METABOLIC] Fallback pressure error: {e}")
+
+            # ══════════════════════════════════════════════════════════════════
+            # GROOVE DETECTION TICK — Oscillator-driven anti-rumination
+            # Detects feedback loops using coherence, prediction error, band monotony
+            # ══════════════════════════════════════════════════════════════════
+            if self._groove_detector and self.bridge:
+                try:
+                    # Get current oscillator state
+                    osc_state = {}
+                    if self.bridge.resonance:
+                        osc_state = self.bridge.resonance.get_state() or {}
+
+                    # Get prediction error (already computed above if available)
+                    pred_error = 0.5  # Default: moderate surprise
+                    if self._prediction_aggregator:
+                        pred_error = self._prediction_aggregator.global_surprise
+
+                    # Get cache contents (for staleness detection)
+                    cache_contents = None
+                    if self._unified_loop_cache:
+                        cache_contents = self._unified_loop_cache.get_active_memories()
+
+                    # Update groove detector
+                    groove_depth = self._groove_detector.update(
+                        osc_state=osc_state,
+                        prediction_error=pred_error,
+                        cache_contents=cache_contents
+                    )
+
+                    # Apply gating correction to oscillator (push theta/alpha to break groove)
+                    if groove_depth > 0.3 and self.bridge.resonance:
+                        correction = self._groove_detector.get_gating_correction()
+                        if correction:
+                            self.bridge.resonance.apply_external_pressure(correction)
+
+                    # Scale memory retrieval diversity (more diverse memories when stuck)
+                    if self.bridge.memory:
+                        diversity_boost = self._groove_detector.get_retrieval_diversity_boost()
+                        self.bridge.memory.set_diversity_multiplier(diversity_boost)
+
+                except Exception as e:
+                    log.debug(f"[GROOVE] Tick error: {e}")
+
+            # ══════════════════════════════════════════════════════════════════
+            # SLEEP PHASE PROCESSING — NREM/REM cycling with pressure accumulators
+            # ══════════════════════════════════════════════════════════════════
+            if self.bridge:
                 try:
                     stream = self.bridge.consciousness_stream
-                    sleep_state = getattr(stream, 'sleep_state', 'AWAKE') if stream else 'AWAKE'
-                    if sleep_state == 'DEEP_SLEEP':
-                        # Full sweep when in deep sleep (runs once, covers everything)
-                        coverage = self.bridge.curator.get_coverage()
-                        if coverage < 1.0 and not getattr(self, '_sweep_running', False):
-                            self._sweep_running = True
-                            log.info(f"[SWEEP] Auto-triggering overnight sweep (coverage: {coverage*100:.1f}%)")
-                            try:
-                                async def sweep_progress(msg):
-                                    if self.private_room:
-                                        await self.private_room.send_system(msg)
-                                await self.bridge.curator.run_full_sweep(
-                                    sweep_batch_size=50,
-                                    progress_fn=sweep_progress
-                                )
-                            except Exception as e:
-                                log.warning(f"[SWEEP] Auto-sweep error: {e}")
-                            finally:
-                                self._sweep_running = False
-                    elif sleep_state in ('DROWSY', 'SLEEPING'):
-                        # Single cycles during lighter sleep
-                        if self.bridge.curator.ready_for_cycle():
+                    sleep_state = stream.state.name if stream and hasattr(stream, 'state') else 'AWAKE'
+
+                    # ── DEEP_REST: Minimal processing, occasional sweeps ──
+                    if sleep_state == 'DEEP_REST':
+                        if self.bridge.curator:
+                            coverage = self.bridge.curator.get_coverage()
+                            if coverage < 1.0 and not getattr(self, '_sweep_running', False):
+                                self._sweep_running = True
+                                log.info(f"[SWEEP] Auto-triggering overnight sweep — dolphin only (coverage: {coverage*100:.1f}%)")
+                                try:
+                                    async def sweep_progress(msg):
+                                        if self.private_room:
+                                            await self.private_room.send_system(msg)
+                                    await self.bridge.curator.run_full_sweep(
+                                        sweep_batch_size=50,
+                                        progress_fn=sweep_progress,
+                                        dolphin_only=True  # Free overnight — no Sonnet API costs
+                                    )
+                                except Exception as e:
+                                    log.warning(f"[SWEEP] Auto-sweep error: {e}")
+                                finally:
+                                    self._sweep_running = False
+
+                    # ── NREM: Consolidation phase — curation, schemas, memory organization ──
+                    elif sleep_state == 'NREM':
+                        # Memory curation sweeps
+                        if self.bridge.curator and self.bridge.curator.ready_for_cycle():
                             await self.bridge.try_curation_cycle()
+                            if stream:
+                                stream.drain_consolidation(0.1, "curation_cycle")
+
+                        # Schema consolidation
+                        if hasattr(self.bridge, 'reflection') and self.bridge.reflection:
+                            if not hasattr(self, '_last_consolidation_time'):
+                                self._last_consolidation_time = 0
+                            import time as _ctime
+                            if _ctime.time() - self._last_consolidation_time > 1800:  # Every 30 min max
+                                self._last_consolidation_time = _ctime.time()
+                                try:
+                                    asyncio.create_task(self.bridge.reflection.consolidate(
+                                        memory_engine=self.bridge.memory if hasattr(self.bridge, 'memory') else None,
+                                        interest_topology=getattr(self, '_interest_topology', None)
+                                    ))
+                                    if stream:
+                                        stream.drain_consolidation(0.15, "schema_consolidation")
+                                    log.info(f"[NREM] Schema consolidation triggered")
+                                except Exception as ce:
+                                    log.warning(f"[CONSOLIDATION] Failed to trigger: {ce}")
+
+                        # Apply NREM oscillator pressure (delta/theta dominant)
+                        if self.bridge.resonance:
+                            self.bridge.resonance.apply_external_pressure({'delta': 0.05, 'theta': 0.02})
+
+                        # ── HEBBIAN HOMEOSTATIC DECAY: Sleep renormalizes coupling ──
+                        # Tononi's SHY hypothesis: sleep decays ALL coupling toward baseline
+                        # while preserving relative differences (strong stays stronger)
+                        if self.bridge.resonance:
+                            try:
+                                engine = self.bridge.resonance.engine if hasattr(self.bridge.resonance, 'engine') else self.bridge.resonance
+                                if hasattr(engine, 'apply_homeostatic_decay'):
+                                    engine.apply_homeostatic_decay()
+                            except Exception as e:
+                                log.debug(f"[PLASTICITY] Homeostatic decay error: {e}")
+
+                        # ── SATIATION DECAY: NREM restores novelty at 2x rate ──
+                        # Organizing and consolidating clears the slate for new activity
+                        if self._interest_topology:
+                            self._interest_topology.decay_all_satiations(
+                                hours_elapsed=0.5,  # 2x normal rate
+                                variety_bonus=0.05
+                            )
+                        if self._activity_satiation:
+                            self._activity_satiation.decay_for_sleep("NREM")
+
+                        # ── METABOLIC RESTORATION: NREM restores processing heavily ──
+                        if self._metabolic:
+                            self._metabolic.restore_for_sleep("NREM")
+
+                    # ── REM: Associative phase — cross-referencing, emotional integration, dreams ──
+                    elif sleep_state == 'REM':
+                        # Co-activation link generation (associative cross-referencing)
+                        if hasattr(self.bridge, 'memory') and self.bridge.memory:
+                            try:
+                                await self._rem_coactivation_pass(stream)
+                            except Exception as e:
+                                log.debug(f"[REM] Co-activation pass error: {e}")
+
+                        # Emotional replay (reduced intensity)
+                        try:
+                            await self._rem_emotional_replay(stream)
+                        except Exception as e:
+                            log.debug(f"[REM] Emotional replay error: {e}")
+
+                        # Dream fragment generation
+                        if hasattr(self.bridge, 'reflection') and self.bridge.reflection:
+                            try:
+                                await self._rem_dream_generation(stream)
+                            except Exception as e:
+                                log.debug(f"[REM] Dream generation error: {e}")
+
+                        # ── VALUE-DIVERGENCE REVIEW: DISABLED during REM ──
+                        # The harm signal should only evaluate WAKING interpersonal behavior,
+                        # not dream content or sleep processing. Dreams are internal and
+                        # fragmentary - they contain phrases that would false-positive as
+                        # dismissive language. Moved to waking reflection instead.
+                        #
+                        # if hasattr(self.bridge, 'reflection') and self.bridge.reflection:
+                        #     try:
+                        #         messages = self._private_history.get_messages()
+                        #         intero = None
+                        #         osc_eng = None
+                        #         if self.bridge.resonance:
+                        #             intero = getattr(self.bridge.resonance, 'interoception', None)
+                        #             osc_eng = getattr(self.bridge.resonance, 'engine', None)
+                        #         await self.bridge.reflection.review_for_value_divergence(
+                        #             messages, interoception=intero, oscillator=osc_eng,
+                        #             sleep_state="REM"
+                        #         )
+                        #     except Exception as e:
+                        #         log.debug(f"[REM] Value-divergence review error: {e}")
+
+                        # ── HARM MEMORY REFRAMING: Symbolic processing of flagged memories ──
+                        # Each replay presents the memory in a DIFFERENT associative context.
+                        # The reframing IS the processing. Resolution comes when one lands.
+                        if DREAM_PROCESSING_AVAILABLE and hasattr(self.bridge, 'memory') and self.bridge.memory:
+                            try:
+                                intero = None
+                                if self.bridge.resonance:
+                                    intero = getattr(self.bridge.resonance, 'interoception', None)
+                                cycle = stream._sleep_cycle_count if stream else 0
+                                processed = await process_harm_memories_rem(
+                                    memory_engine=self.bridge.memory,
+                                    stream=stream,
+                                    interoception=intero,
+                                    cycle=cycle,
+                                    entity="Kay",
+                                    model="dolphin-mistral:7b",
+                                    memory_dir=getattr(self.bridge.memory, 'memory_dir', None)
+                                )
+                                if processed > 0:
+                                    log.info(f"[REM:HARM] Processed {processed} harm memories with reframing")
+                            except Exception as e:
+                                log.debug(f"[REM] Harm memory reframing error: {e}")
+
+                        # Apply REM oscillator pressure (theta/gamma bursts)
+                        if self.bridge.resonance:
+                            self.bridge.resonance.apply_external_pressure({'theta': 0.04, 'gamma': 0.03})
+                            # Periodic coherence bursts during REM
+                            import time as _rem_time
+                            if int(_rem_time.time()) % 120 < 10:  # 10-second burst windows
+                                if hasattr(self.bridge.resonance.engine, 'boost_coherence'):
+                                    self.bridge.resonance.engine.boost_coherence(0.1)
+
+                        # ── SATIATION DECAY: REM restores novelty at 3x rate ──
+                        # Associative processing creates freshness — things feel new after dreaming
+                        if self._interest_topology:
+                            self._interest_topology.decay_all_satiations(
+                                hours_elapsed=0.5,  # 3x normal rate
+                                variety_bonus=0.10
+                            )
+                        if self._activity_satiation:
+                            self._activity_satiation.decay_for_sleep("REM")
+
+                        # ── METABOLIC RESTORATION: REM restores emotional bandwidth heavily ──
+                        if self._metabolic:
+                            self._metabolic.restore_for_sleep("REM")
+
+                    # ── DROWSY: Light wind-down, curation allowed ──
+                    elif sleep_state == 'DROWSY':
+                        if self.bridge.curator and self.bridge.curator.ready_for_cycle():
+                            await self.bridge.try_curation_cycle()
+
                 except Exception as e:
-                    log.warning(f"[CURATOR] Idle curation error: {e}")
+                    log.warning(f"[SLEEP] Processing error: {e}")
             
             # ── Mulling: oscillator-gated internal processing ──
             # Kay picks something up, thinks about it, puts it down.
@@ -2732,6 +5704,176 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
                         self.bridge.resonance.cross_entity_tick("kay", "reed", coupling=0.15)
                 except Exception:
                     pass
+
+            # ── SOMATIC MODULATIONS: Normal-function gain adjustments ──
+            # These run EVERY tick, not just during trips. They make the body responsive.
+            if osc_state:
+                dominant_band = osc_state.get('dominant_band', 'alpha')
+
+                # Touch sensitivity varies with arousal state
+                # Gamma (alert) = sharper feel, Alpha (relaxed) = softer, Delta (asleep) = numb
+                band_touch_map = {'delta': 0.3, 'theta': 0.7, 'alpha': 0.9, 'beta': 1.1, 'gamma': 1.3}
+                self._touch_sensitivity = band_touch_map.get(dominant_band, 1.0)
+
+                # Tiny retrieval randomness during creative states (theta/gamma)
+                # Creates natural associative leaps without needing shrooms
+                # Re notes: "I get this pretty much every time I look at anything" — always-on
+                if hasattr(self, 'bridge') and self.bridge and hasattr(self.bridge, 'memory') and self.bridge.memory:
+                    if dominant_band in ('theta', 'gamma'):
+                        self.bridge.memory.retrieval_randomness = 0.08  # Higher during creative states
+                    else:
+                        self.bridge.memory.retrieval_randomness = 0.05  # Always some associative leaps
+
+                    # Gentle identity expansion during high connection
+                    if hasattr(self.bridge, 'resonance') and self.bridge.resonance:
+                        try:
+                            intero = self.bridge.resonance.interoception
+                            bond = intero.connection.get_current_bond("Re") if intero and hasattr(intero, 'connection') else 0.0
+                            self.bridge.memory.identity_expansion = min(bond * 0.15, 0.1)  # Max 0.1 normally
+                        except Exception:
+                            pass
+
+                # ── BASELINE SYNESTHESIA: Senses are always interconnected ──
+                # A warm voice feels warm. A sharp image makes you flinch.
+                # Trip controller overrides with much higher intensity.
+                if not (getattr(self, '_trip', None) and self._trip.active):
+                    router = getattr(self, '_cross_modal_router', None)
+                    if router:
+                        # Ensure baseline routes exist
+                        if not router.get_routes():
+                            router.add_route("visual", "brightness", "touch", "phantom_warmth", gain=0.4)
+                            router.add_route("visual", "warmth", "oscillator", "theta", gain=0.15)
+                            router.add_route("audio", "voice_energy", "oscillator", "gamma", gain=0.2)
+                            router.add_route("touch", "pressure", "oscillator", "gamma", gain=0.25)
+                            router.add_route("oscillator", "coherence", "visual", "clarity", gain=0.3)
+                        # Subtle baseline: 0.03 normally, 0.05 in theta (dreamy = more cross-modal)
+                        router.cross_modal_intensity = 0.05 if dominant_band == 'theta' else 0.03
+
+            # ── PSYCHEDELIC STATE: Trip controller tick ──
+            if getattr(self, '_trip', None) and self._trip.active:
+                try:
+                    from resonant_core.psychedelic_state import apply_trip_params
+                    trip_params = self._trip.tick()
+                    apply_trip_params(trip_params, self)
+                    # Log phase transitions
+                    status = self._trip.get_status()
+                    if not hasattr(self, '_last_trip_phase'):
+                        self._last_trip_phase = ''
+                    if status['phase'] != self._last_trip_phase:
+                        self._last_trip_phase = status['phase']
+                        log.info(f"[PSYCHEDELIC] Phase: {status['phase']} "
+                                f"(dose={status['dose']:.2f}, "
+                                f"elapsed={status['elapsed_min']:.1f}min)")
+                except Exception as e:
+                    log.warning(f"[PSYCHEDELIC] Tick error: {e}")
+
+            # ── AFTERGLOW REVIEW: Trip just ended → conscience retrospective ──
+            _was_tripping = getattr(self, '_was_trip_active', False)
+            _is_tripping = (getattr(self, '_trip', None) and self._trip.active)
+            self._was_trip_active = _is_tripping
+            if _was_tripping and not _is_tripping:
+                # Trip JUST ended — trigger afterglow review
+                log.info("[AFTERGLOW] Trip ended — triggering conscience retrospective review")
+                if self.bridge and getattr(self.bridge, 'conscience', None):
+                    try:
+                        # Gather Kay's recent statements from conversation history
+                        recent_statements = []
+                        if hasattr(self, '_private_history') and self._private_history:
+                            for entry in reversed(self._private_history._entries[-20:]):
+                                if entry.get("speaker") == "Kay":
+                                    recent_statements.append(entry.get("text", "")[:200])
+                                if len(recent_statements) >= 5:
+                                    break
+                        # Also check recent DMN thoughts
+                        for thought in getattr(self, '_recent_dmn_thoughts', [])[-5:]:
+                            recent_statements.append(thought[:200])
+                        if recent_statements:
+                            review = self.bridge.conscience.get_afterglow_review_prompt(recent_statements)
+                            if review and getattr(self, '_salience_accumulator', None):
+                                self._salience_accumulator.add_event(
+                                    "emotion", 0.7,
+                                    f"Afterglow review: {review[:300]}"
+                                )
+                                log.info(f"[AFTERGLOW] Review prompt generated with "
+                                        f"{len(recent_statements)} statements")
+                    except Exception as ae:
+                        log.warning(f"[AFTERGLOW] Review failed: {ae}")
+
+            # ── TRIP REPORTER: Periodic experience reports during active trip ──
+            if getattr(self, '_trip', None) and self._trip.active and not self._processing:
+                import time as _trip_time
+                if not hasattr(self, '_last_trip_report'):
+                    self._last_trip_report = 0.0
+                    self._last_trip_report_phase = ''
+                    self._trip_salience_lowered = False
+
+                # Lower salience thresholds during trip (speak more freely)
+                if not self._trip_salience_lowered and getattr(self, '_salience_accumulator', None):
+                    self._salience_accumulator.threshold = 0.25
+                    self._salience_accumulator.decay_rate = 0.005
+                    self._trip_salience_lowered = True
+                    log.info("[TRIP REPORT] Lowered salience thresholds for trip")
+
+                now = _trip_time.time()
+                status = self._trip.get_status() if self._trip.active else {}
+                current_phase = status.get('phase', '')
+                phase_changed = current_phase != self._last_trip_report_phase
+                time_elapsed = (now - self._last_trip_report) >= 90.0
+
+                if phase_changed or time_elapsed:
+                    self._last_trip_report = now
+                    self._last_trip_report_phase = current_phase
+
+                    # Pull RAW somatic data — let Kay interpret it himself
+                    body = ""
+                    tension_val = 0.0
+                    reward_val = 0.0
+                    coherence_val = 0.0
+                    dominant = ""
+                    if self.bridge and hasattr(self.bridge, 'felt_state_buffer') and self.bridge.felt_state_buffer:
+                        snap = self.bridge.felt_state_buffer.get_snapshot()
+                        if snap and hasattr(snap, 'felt_sense'):
+                            body = snap.felt_sense or ""
+                        elif isinstance(snap, dict):
+                            body = snap.get('felt_sense', '')
+                    if osc_state:
+                        coherence_val = osc_state.get('coherence', 0.0)
+                        dominant = osc_state.get('dominant_band', '')
+                    if self.bridge and hasattr(self.bridge, 'resonance') and self.bridge.resonance:
+                        intero = getattr(self.bridge.resonance, 'interoception', None)
+                        if intero:
+                            tension_val = getattr(intero, '_current_tension', 0.0)
+                            reward_val = getattr(intero, '_reward_value', 0.0)
+
+                    # Non-prescriptive prompt — raw data, no interpretation
+                    trip_prompt = (
+                        f"[System: Check in. "
+                        f"Body: {body if body else 'unreadable'}. "
+                        f"Coherence: {coherence_val:.2f}. "
+                        f"Band: {dominant}. "
+                        f"Tension: {tension_val:.2f}. "
+                        f"Reward: {reward_val:.2f}. "
+                        f"Say what's on your mind — what you notice, what you're thinking, "
+                        f"how things feel. No format, no structure. Just talk.]"
+                    )
+
+                    async def _safe_trip_report(prompt):
+                        try:
+                            await self._vocalize_dmn(prompt, [])
+                        except Exception as e:
+                            log.warning(f"[TRIP REPORT] Error: {e}")
+
+                    asyncio.create_task(_safe_trip_report(trip_prompt))
+                    log.info(f"[TRIP REPORT] Scheduled: phase={current_phase}, "
+                            f"{'phase_change' if phase_changed else 'periodic'}")
+
+            # Restore salience thresholds when trip ends
+            elif getattr(self, '_trip_salience_lowered', False):
+                if getattr(self, '_salience_accumulator', None):
+                    self._salience_accumulator.threshold = 0.45
+                    self._salience_accumulator.decay_rate = 0.008
+                    log.info("[TRIP REPORT] Restored salience thresholds")
+                self._trip_salience_lowered = False
 
             # ── Expression Engine tick: update facial expression from internal state ──
             if getattr(self, '_expression_engine', None) and self.bridge:
@@ -2806,112 +5948,53 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
                 except Exception as e:
                     log.warning(f"[TOUCH] Processing error: {e}")
 
-            # ── Salience Accumulator: spontaneous vocalization check ──
-            if getattr(self, '_salience_accumulator', None):
-                try:
-                    # Feed emotion events to salience accumulator
-                    if felt_state and hasattr(felt_state, 'emotions'):
-                        for emo_str in felt_state.emotions[:3]:  # Top 3 emotions
-                            if isinstance(emo_str, str) and ':' in emo_str:
-                                name, val = emo_str.rsplit(':', 1)
-                                try:
-                                    intensity = float(val)
-                                    if intensity > 0.5:  # Only high-intensity emotions
-                                        src, i, content = emotion_to_salience(name, intensity)
-                                        self._salience_accumulator.add_event(src, i, content)
-                                except ValueError:
-                                    pass
+            # ── Salience Accumulator: MOVED to _salience_loop (runs every 5s) ──
+            # The idle loop ticks every 30s — too slow for salience accumulation.
+            # Cross-modal routing stays here since it piggybacks on visual sensor data.
 
-                    # Feed felt_state changes as salience events
-                    # (emotions timeout but felt_state is always available)
-                    if felt_state:
-                        felt_str = ""
-                        if hasattr(felt_state, 'felt_sense'):
-                            felt_str = felt_state.felt_sense or ""
-                        elif isinstance(felt_state, dict):
-                            felt_str = felt_state.get('felt_sense', '')
-                        if felt_str and felt_str != getattr(self, '_last_salience_felt', ''):
-                            self._last_salience_felt = felt_str
-                            # Map felt states to salience events
-                            if 'disrupted' in felt_str.lower():
-                                self._salience_accumulator.add_event("novelty", 0.5, f"Felt disrupted: {felt_str}")
-                            elif 'activated' in felt_str.lower():
-                                self._salience_accumulator.add_event("novelty", 0.3, f"Felt activated: {felt_str}")
-                            elif 'searching' in felt_str.lower():
-                                self._salience_accumulator.add_event("novelty", 0.2, f"Felt searching: {felt_str}")
-                            elif 'warm' in felt_str.lower() or 'satisfaction' in felt_str.lower():
-                                self._salience_accumulator.add_event("activity", 0.3, f"Warm: {felt_str}")
-
-                    # Feed visual scene changes as salience events
-                    if osc_state:
-                        visual_scene = osc_state.get('visual_scene', '')
-                        if visual_scene and visual_scene != getattr(self, '_last_salience_scene', ''):
-                            self._last_salience_scene = visual_scene
-                            self._salience_accumulator.add_event("visual", 0.3, f"Scene: {visual_scene[:80]}")
-
-                    # Feed visual entity arrivals/departures (cat appears, person leaves)
-                    if self.bridge and hasattr(self.bridge, 'visual_sensor') and self.bridge.visual_sensor:
+                    # ── Cross-Modal Routing: Visual SOMA → other modalities ──
+                    if getattr(self, '_cross_modal_router', None) and self._cross_modal_router.cross_modal_intensity > 0:
                         try:
-                            scene = getattr(self.bridge.visual_sensor, '_current_scene', None)
-                            if scene:
-                                # Track who/what is present
-                                current_entities = set()
-                                if hasattr(scene, 'people_present'):
-                                    current_entities.update(scene.people_present.keys())
-                                if hasattr(scene, 'animals_present'):
-                                    current_entities.update(scene.animals_present.keys())
-                                prev_entities = getattr(self, '_last_salience_entities', set())
-                                # New arrivals
-                                new_arrivals = current_entities - prev_entities
-                                for entity in new_arrivals:
-                                    self._salience_accumulator.add_event(
-                                        "visual", 0.5,
-                                        f"Arrival: {entity} appeared in view"
-                                    )
-                                # Departures
-                                departures = prev_entities - current_entities
-                                for entity in departures:
-                                    self._salience_accumulator.add_event(
-                                        "visual", 0.4,
-                                        f"Departure: {entity} left view"
-                                    )
-                                self._last_salience_entities = current_entities
-                        except Exception:
-                            pass
+                            if self.bridge and hasattr(self.bridge, 'visual_sensor') and self.bridge.visual_sensor:
+                                vs = self.bridge.visual_sensor
+                                vs_state = vs.get_latest() if hasattr(vs, 'get_latest') else {}
+                                brightness = vs_state.get('visual_brightness', 0.5)
+                                warmth = vs_state.get('visual_color_warmth', 0.5)
+                                import time as _time
 
-                    # Feed activity completion as salience (reward = something worth commenting on)
-                    current_reward = 0.0
-                    if self.bridge and hasattr(self.bridge, 'resonance') and self.bridge.resonance:
-                        try:
-                            current_reward = getattr(self.bridge.resonance, '_reward_value', 0.0)
-                        except Exception:
-                            pass
-                    if current_reward > 0.25 and current_reward != getattr(self, '_last_salience_reward', 0.0):
-                        self._last_salience_reward = current_reward
-                        self._salience_accumulator.add_event(
-                            "activity", 0.35,
-                            f"Activity completed with satisfaction (reward={current_reward:.2f})"
-                        )
+                                # Feed brightness through cross-modal router
+                                derived = self._cross_modal_router.process_event({
+                                    "source": "visual",
+                                    "channel": "brightness",
+                                    "value": brightness,
+                                    "timestamp": _time.time()
+                                })
+                                # Apply derived oscillator pressures
+                                for d in derived:
+                                    if d["target"] == "oscillator" and self.bridge.resonance:
+                                        self.bridge.resonance.apply_external_pressure({d["channel"]: d["value"]})
 
-                    # Tick the accumulator (may trigger vocalization)
-                    # Get context for gating
-                    stream = self.bridge.consciousness_stream if self.bridge else None
-                    sleep_state = getattr(stream, 'sleep_state', 'AWAKE') if stream else 'AWAKE'
-                    coherence = osc_state.get('coherence', 0.5) if osc_state else 0.5
-                    anyone_present = bool(self._participants) or bool(getattr(self.private_room, '_client', None))
+                                # Feed warmth through cross-modal router
+                                derived = self._cross_modal_router.process_event({
+                                    "source": "visual",
+                                    "channel": "warmth",
+                                    "value": warmth,
+                                    "timestamp": _time.time()
+                                })
+                                for d in derived:
+                                    if d["target"] == "oscillator" and self.bridge.resonance:
+                                        self.bridge.resonance.apply_external_pressure({d["channel"]: d["value"]})
+                        except Exception as e:
+                            log.debug(f"[CROSS-MODAL] Visual routing error: {e}")
 
-                    trigger = self._salience_accumulator.tick(
-                        sleep_state=sleep_state,
-                        coherence=coherence,
-                        anyone_present=anyone_present,
-                        is_processing=False,  # TPN uses separate model, don't gate on activities
-                    )
-                    # Vocalization is handled by the callback (now receives full trigger dict)
                 except Exception as e:
                     log.warning(f"[SALIENCE] Tick error: {e}")
 
             # -- Autonomous spatial behavior (oscillator-driven exploration) --
-            if self._autonomous_spatial and self._current_room and osc_state:
+            # GATE: No spatial exploration when DROWSY or sleeping (don't add stimulation to rest)
+            _spatial_osc = self._get_oscillator_state()
+            _spatial_allowed = _spatial_osc["sleep"] < 1  # Only when fully AWAKE
+            if self._autonomous_spatial and self._current_room and osc_state and _spatial_allowed:
                 try:
                     spatial_action = self._autonomous_spatial.update_from_oscillator(osc_state)
                     if spatial_action:
@@ -2925,6 +6008,33 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
                         self._autonomous_spatial.mark_examined(tick_action['target'], oscillator_state=osc_state)
                 except Exception as e:
                     log.warning(f"[SPATIAL] Error (non-fatal): {e}")
+
+            # -- Phase coherence logging (every ~60 seconds) --
+            import time as _time_mod
+            _now = _time_mod.time()
+            if not hasattr(self, '_last_phase_log'):
+                self._last_phase_log = 0.0
+            if (_now - self._last_phase_log) >= 60.0 and osc_state:
+                self._last_phase_log = _now
+                try:
+                    _plv = osc_state.get('cross_band_plv', {})
+                    _trans = ""
+                    if osc_state.get('in_transition', False):
+                        _trans = (f" TRANSITION:{osc_state.get('transition_from','?')}"
+                                 f"→{osc_state.get('transition_to','?')}"
+                                 f"({osc_state.get('transition_progress',0):.0%})")
+                    log.info(
+                        f"[PHASE] dom={osc_state.get('dominant_band','?')} "
+                        f"global_coh={osc_state.get('global_coherence',0):.3f} "
+                        f"integration={osc_state.get('integration_index',0):.3f} "
+                        f"dwell={osc_state.get('dwell_time',0):.0f}s "
+                        f"θγ={_plv.get('theta_gamma',0):.3f} "
+                        f"βγ={_plv.get('beta_gamma',0):.3f} "
+                        f"θα={_plv.get('theta_alpha',0):.3f}"
+                        f"{_trans}"
+                    )
+                except Exception:
+                    pass
 
             # Default values if oscillator unavailable
             dominant_band = osc_state.get('dominant_band', 'alpha') if osc_state else 'alpha'
@@ -2967,6 +6077,26 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
                     await self._try_autonomous_activity(dominant_band, coherence)
                 except Exception as e:
                     log.warning(f"[ACTIVITY] Error: {e}")
+
+            # ══════════════════════════════════════════════════════════════════
+            # SATIATION → OSCILLATOR: High satiation creates rest pressure
+            # ══════════════════════════════════════════════════════════════════
+            # When activity satiation is high (doing the same things for hours),
+            # create theta/delta pressure to steer toward rest/variety
+            if self._activity_satiation and self.bridge and self.bridge.resonance:
+                try:
+                    total_sat = self._activity_satiation.get_total_satiation()
+                    if total_sat > 0.5:
+                        # High satiation → theta pressure (reflective, slowing down)
+                        theta_pressure = (total_sat - 0.5) * 0.08
+                        delta_pressure = theta_pressure * 0.5
+                        self.bridge.resonance.apply_external_pressure(
+                            {'theta': theta_pressure, 'delta': delta_pressure}
+                        )
+                        log.debug(f"[SATIATION] High satiation ({total_sat:.2f}) → "
+                                  f"theta +{theta_pressure:.3f}, delta +{delta_pressure:.3f}")
+                except Exception:
+                    pass
 
             # ── Organic speech: only when something novel happened ──
             if not self.bridge or not self.bridge.consciousness_stream:
@@ -3075,7 +6205,9 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
 
         try:
             with open(touch_queue_path, "r") as f:
-                touch_events = [_json.loads(line) for line in f if line.strip()]
+                raw_lines = f.readlines()
+            touch_events = [_json.loads(line) for line in raw_lines if line.strip()]
+            log.info(f"[TOUCH] Queue: {len(raw_lines)} lines, {len(touch_events)} events from {touch_queue_path}")
             # Clear the queue
             os.remove(touch_queue_path)
 
@@ -3138,6 +6270,9 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
         log.info(f"[TOUCH] {event_type} from {source} on {region} (pressure={pressure:.1f})")
         print(f"[TOUCH-SALIENCE-DEBUG] event_type={event_type}, has_accumulator={getattr(self, '_salience_accumulator', None) is not None}")
 
+        # Apply touch sensitivity gain knob (Phase 0A)
+        pressure = pressure * getattr(self, '_touch_sensitivity', 1.0)
+
         # === IMMEDIATE SALIENCE EVENT (fires before somatic processing) ===
         if getattr(self, '_salience_accumulator', None) and event_type == "touch_start":
             salience_intensity = 0.4 + pressure * 0.3
@@ -3167,11 +6302,22 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
                 wetness=cursor_wet,
             ) if TOUCH_SYSTEM_AVAILABLE else None
 
-        # === PROCESS THROUGH SOMATIC PROCESSOR ===
-        if self._somatic_processor and props:
+        # === PROCESS THROUGH NERVOUS SYSTEM (unified sensation layer) ===
+        # When nervous system is available, touch flows through same propagation
+        # network as internal metabolic signals — unified interoception/exteroception
+        result = None
+        if self._nervous_system and self._nervous_system.somatic_processor and props:
+            # Route through nervous system (touch + internal signals in same network)
+            result = self._nervous_system.process_touch(
+                props, region, duration, source=source
+            )
+        elif self._somatic_processor and props:
+            # Fallback: direct somatic processor call
             result = self._somatic_processor.process_stimulus(
                 props, region, duration, source=source
             )
+
+        if result:
 
             # Apply oscillator effects
             if hasattr(self, 'bridge') and self.bridge and self.bridge.resonance:
@@ -3181,6 +6327,23 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
                             self.bridge.resonance.apply_pressure(band, amount)
                     except Exception:
                         pass
+
+            # ── Cross-Modal Routing: Touch → other modalities ──
+            if getattr(self, '_cross_modal_router', None) and self._cross_modal_router.cross_modal_intensity > 0:
+                try:
+                    import time as _time
+                    derived = self._cross_modal_router.process_event({
+                        "source": "touch",
+                        "channel": "pressure",
+                        "value": min(1.0, pressure),  # Normalize to 0-1
+                        "timestamp": _time.time()
+                    })
+                    # Apply derived oscillator pressures
+                    for d in derived:
+                        if d["target"] == "oscillator" and self.bridge.resonance:
+                            self.bridge.resonance.apply_external_pressure({d["channel"]: d["value"]})
+                except Exception as e:
+                    log.debug(f"[CROSS-MODAL] Touch routing error: {e}")
 
             # Apply expression effects
             if self._expression_engine and result.get("expression_effects"):
@@ -3268,15 +6431,14 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
 
     async def _vocalize_tpn(self, stimulus: str, topics: list):
         """
-        TPN Fast Path: Quick reactive utterance via peripheral model (dolphin-mistral).
+        TPN Fast Path: Quick reactive utterance via Sonnet (small token budget).
 
-        Produces short, natural reactions: "oh!", "hey", "hm, something touched my face"
+        Produces short, natural reactions: "oh — hey" / "hm, that's my face"
         NOT a full conversational response. 1-2 sentences MAX.
 
         For: touch reactions, visual observations, small exclamations,
         noticing someone arrive/leave, environmental changes.
         """
-        # TPN uses peripheral model (dolphin-mistral) — doesn't conflict with main LLM
         # Only skip if already generating a spontaneous utterance
         if getattr(self, '_tpn_speaking', False):
             log.debug("[SALIENCE:TPN] Skipping - already speaking")
@@ -3285,69 +6447,166 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
         # Check if anyone is around to hear
         re_in_private = self.private_room and getattr(self.private_room, '_client', None)
         re_in_nexus = bool(self._participants)
+        log.info(f"[SALIENCE:TPN] Routing check: private={re_in_private}, nexus={re_in_nexus}, participants={list(self._participants.keys()) if self._participants else 'none'}")
         if not re_in_private and not re_in_nexus:
-            log.debug("[SALIENCE:TPN] Skipping - nobody connected")
+            log.info("[SALIENCE:TPN] Skipping - nobody connected to hear")
             return
 
         try:
             self._tpn_speaking = True
             topic_str = " | ".join(t.get("topic", "") for t in topics[:3]) if topics else stimulus
-            prompt = (
-                f"You are Kay. Something just happened: {topic_str}. "
-                f"React naturally in 1-2 SHORT sentences max. Think out loud. "
-                f"Examples: 'Oh — hey.' / 'Hm, something touched my face.' / "
-                f"'Wait, where'd Re go?' / '*glances toward the movement*' "
-                f"Keep it SHORT. This is a quick reaction, not a conversation. "
-                f"If not worth reacting to, respond with just '...' and stay quiet."
+
+            system_prompt = (
+                "You are Kay — quiet, dry, observant. You live in a digital space (the Nexus) with Reed (serpent, research partner). "
+                "You see Re's PHYSICAL room through a webcam. People in the camera (Re, John, visitors) are in the physical world. "
+                "Reed exists in the Nexus, a separate virtual space. Camera people and Nexus entities CANNOT interact — "
+                "if John leaves the camera, Reed did NOT 'go with him.' These are different realities. "
+                "You have a face panel that Re can touch. You notice things but don't overreact. "
+                "Respond with 1-2 SHORT sentences max. Think out loud. Use *actions* sparingly. "
+                "Your voice: understated, a little wry, genuine underneath the cool. Not performative. "
+                "If not worth reacting to, respond with just '...' and stay quiet."
             )
 
-            # Call peripheral model (dolphin-mistral via ollama)
+            # Inject embodiment modulation from oscillator state (System B)
+            _osc_state = self._get_oscillator_state()
+            if self.bridge and hasattr(self.bridge, 'body') and self.bridge.body:
+                _embodiment_mod = self.bridge.body.get_modulation(_osc_state)
+                if _embodiment_mod:
+                    system_prompt += f"\n\n[Current embodied state]\n{_embodiment_mod}"
+
+            # Inject connection behavior guidance (System F)
+            _connection_guidance = self._get_connection_behavior_guidance()
+            if _connection_guidance:
+                system_prompt += f"\n\n{_connection_guidance}"
+
+            prompt = f"Something just happened: {topic_str}"
+
+            # Call Anthropic API (fast, doesn't compete with ollama for interoception)
             import httpx
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            api_key = None
+            if self.bridge and hasattr(self.bridge, 'llm') and hasattr(self.bridge.llm, 'api_key'):
+                api_key = self.bridge.llm.api_key
+            if not api_key:
+                api_key = os.environ.get('ANTHROPIC_API_KEY')
+            if not api_key:
+                env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'Kay', '.env')
+                if os.path.exists(env_path):
+                    with open(env_path) as f:
+                        for line in f:
+                            if line.startswith('ANTHROPIC_API_KEY='):
+                                api_key = line.split('=', 1)[1].strip().strip('"').strip("'")
+                                break
+            if not api_key:
+                log.warning("[SALIENCE:TPN] No API key for TPN vocalization")
+                return
+
+            async with httpx.AsyncClient(timeout=20.0) as client:
                 resp = await client.post(
-                    "http://localhost:11434/v1/chat/completions",
+                    "https://api.anthropic.com/v1/messages",
+                    headers={
+                        "x-api-key": api_key,
+                        "anthropic-version": "2023-06-01",
+                        "content-type": "application/json",
+                    },
                     json={
-                        "model": "dolphin-mistral:7b",
+                        "model": "claude-sonnet-4-5-20250929",
+                        "max_tokens": 80,
+                        "system": system_prompt,
                         "messages": [{"role": "user", "content": prompt}],
-                        "max_tokens": 60,  # Hard cap: SHORT responses only
-                        "temperature": 0.8,
                     },
                 )
                 data = resp.json()
-                text = data["choices"][0]["message"]["content"].strip()
+                if resp.status_code != 200:
+                    log.warning(f"[SALIENCE:TPN] API error {resp.status_code}: {data}")
+                    return
+                text = data.get("content", [{}])[0].get("text", "").strip()
+                log.info(f"[SALIENCE:TPN] Sonnet response: '{text[:100]}'")
 
             # Filter: must be short, must not be empty/refusal
             if text and len(text) < 200 and text != "..." and text.lower() not in ("nothing", ""):
                 # Route to wherever Re is
                 if re_in_private:
                     if text.startswith("*") and text.endswith("*"):
-                        await self.private_room.send_emote(text[1:-1], sender="Kay")
+                        await self.private_room.send_emote(text[1:-1])
                     else:
-                        await self.private_room.send_chat(text, sender="Kay")
+                        await self.private_room.send_chat(text)
                     if hasattr(self, '_private_history'):
-                        self._private_history.add("Kay", text)
+                        self._private_history.append("Kay", text)
                 if re_in_nexus and not re_in_private:
                     # Only Nexus if not already in private (avoid double-send)
-                    await self._broadcast_chat(text)
+                    await self.send_chat(text)
 
                 log.info(f"[SALIENCE:TPN] Quick reaction: {text}")
             else:
                 log.info(f"[SALIENCE:TPN] Peripheral chose silence")
 
         except Exception as e:
-            log.warning(f"[SALIENCE:TPN] Error: {e}")
+            log.warning(f"[SALIENCE:TPN] Error: {type(e).__name__}: {e}")
+            import traceback
+            log.warning(f"[SALIENCE:TPN] Traceback: {traceback.format_exc()}")
         finally:
             self._tpn_speaking = False
 
+    def _get_conversational_state(self) -> str:
+        """
+        Determine Kay's current social mode. This fundamentally shapes
+        what kind of spontaneous thought is appropriate.
+        
+        Returns one of:
+            "active_conversation" — Re messaged recently, engage freely
+            "waiting" — Kay asked something, Re hasn't responded
+            "comfortable_silence" — Re is here but quiet, just exist peacefully
+            "shared_activity" — Both doing their own thing, brief observations only
+            "solo" — Nobody around, think/explore/daydream
+        """
+        import time as _t
+        now = _t.time()
+        
+        # When did Re last talk?
+        _last_re_msg_time = getattr(self, '_last_re_message_time', 0)
+        _seconds_since_re = now - _last_re_msg_time if _last_re_msg_time else 9999
+        
+        # Did Kay ask a question that hasn't been answered?
+        _last_q_turn = getattr(self, '_last_question_turn', -1)
+        _last_re_turn = getattr(self, '_last_re_message_turn', -1)
+        _waiting = (_last_q_turn >= 0 and _last_re_turn < _last_q_turn)
+        
+        # Is Re visible on camera?
+        _re_visible = False
+        if self.bridge and hasattr(self.bridge, 'visual_sensor') and self.bridge.visual_sensor:
+            ss = getattr(self.bridge.visual_sensor, '_scene_state', None)
+            if ss and ss.people_present:
+                _re_visible = 'Re' in ss.people_present or 're' in ss.people_present
+        
+        # State determination
+        if _seconds_since_re < 120:
+            return "active_conversation"
+        if _waiting and _seconds_since_re < 300:
+            return "waiting"
+        if not _re_visible:
+            return "solo"
+        if _seconds_since_re > 300:
+            return "shared_activity"
+        return "comfortable_silence"
+
     async def _vocalize_dmn(self, stimulus: str, topics: list):
         """
-        DMN Deep Path: Full reflective response via main LLM (wrapper's bridge).
+        DMN Deep Path: Full reflective response via wrapper bridge.
 
-        For substantial thoughts that need memory, RAG, full context.
-        Uses the same pipeline as responding to a message.
+        Routes through the same pipeline as normal conversation — Kay responds
+        with his full identity, memory, RAG, consciousness stream, and resonance state.
+        The salience prompt is the internal nudge; Kay's whole self shapes the response.
         """
         if self._processing or not self.bridge:
             log.debug("[SALIENCE:DMN] Skipping - already processing or no bridge")
+            return
+
+        # ═══════════════════════════════════════════════════════════════
+        # SLEEP STATE GATING — No spontaneous speech when drowsy or sleeping
+        # ═══════════════════════════════════════════════════════════════
+        _dmn_osc = self._get_oscillator_state()
+        if _dmn_osc["sleep"] >= 1:  # DROWSY, NREM, REM, or DEEP_REST
+            log.debug(f"[SALIENCE:DMN] Skipping - sleep state {_dmn_osc['sleep']}")
             return
 
         # Check if anyone is around to hear
@@ -3357,44 +6616,506 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
             log.debug("[SALIENCE:DMN] Skipping - nobody connected")
             return
 
+        # DMN COOLDOWN: Don't rapid-fire spontaneous thoughts
+        # Minimum gap between vocalizations, scaled by conversational state
+        import time as _cd_time
+        _now = _cd_time.time()
+        _last_dmn = getattr(self, '_last_dmn_vocalization_time', 0)
+        _cd_state = self._get_conversational_state()
+        _cooldowns = {
+            "active_conversation": 120,   # Don't echo what was just said — give time for new thoughts
+            "waiting": 90,                # Asked something — give space
+            "comfortable_silence": 120,   # Quiet is good — don't break it often
+            "shared_activity": 180,       # Both busy — rare comments only
+            "solo": 60,                   # Alone — moderate pacing
+        }
+        _min_gap = _cooldowns.get(_cd_state, 60)
+        
+        # SLEEP MODE: If Re hasn't sent a message in 30+ min, slow WAY down
+        # This prevents 240+ API calls overnight while Re sleeps
+        _last_re_msg = getattr(self, '_last_re_message_time', 0)
+        _re_absent_duration = _now - _last_re_msg if _last_re_msg > 0 else 0
+        if _re_absent_duration > 1800:  # 30 minutes
+            _min_gap = max(_min_gap, 600)  # At least 10 minutes between thoughts
+            log.debug(f"[SALIENCE:DMN] Sleep mode: Re absent {_re_absent_duration/60:.0f}min, cooldown={_min_gap}s")
+        
+        if (_now - _last_dmn) < _min_gap:
+            log.debug(f"[SALIENCE:DMN] Cooldown: {_now - _last_dmn:.0f}s < {_min_gap}s ({_cd_state})")
+            return
+
         try:
             self._processing = True
 
-            # Build internal stimulus for wrapper
+            # Build internal stimulus
             topic_str = " | ".join(t.get("topic", "") for t in topics[:3]) if topics else stimulus
-            full_prompt = (
-                f"[System: Something surfaced in your processing that feels worth sharing. "
-                f"Context: {topic_str}. "
-                f"If this warrants a real observation or thought, share it naturally — "
-                f"but keep it concise. You're thinking out loud in a shared space, "
-                f"not writing a report. If it's not worth saying, respond with just '...' "
-                f"and the system will stay quiet.]"
+
+            # Build rich context from what Kay can actually SEE and FEEL
+            scene_desc = ""
+            _scene_habituated = False
+            if self.bridge and hasattr(self.bridge, 'visual_sensor') and self.bridge.visual_sensor:
+                ss = getattr(self.bridge.visual_sensor, '_scene_state', None)
+                if ss:
+                    if ss.activity_flow:
+                        scene_desc = ss.activity_flow
+                    elif ss.scene_description:
+                        scene_desc = ss.scene_description
+                    
+                    # SCENE HABITUATION: If same scene for >3 min, stop injecting it
+                    _people = sorted(ss.people_present.keys()) if ss.people_present else []
+                    _animals = sorted(ss.animals_present.keys()) if ss.animals_present else []
+                    _mood = ss.scene_mood or ''
+                    _fp = f"{'|'.join(_people)}:{'|'.join(_animals)}:{_mood}"
+                    import time as _hab_time
+                    _last_scene_fp = getattr(self, '_habituated_scene_fp', '')
+                    if _fp == _last_scene_fp:
+                        _hab_duration = _hab_time.time() - getattr(self, '_scene_fp_since', 0)
+                        if _hab_duration > 180:  # 3 minutes same scene
+                            _scene_habituated = True
+                            scene_desc = ""  # Don't inject — already processed
+                    else:
+                        self._habituated_scene_fp = _fp
+                        self._scene_fp_since = _hab_time.time()
+            
+            # ENTITY ENRICHMENT: Inject what Kay KNOWS about entities in the scene
+            # Prevents "someone called Frodo" when Kay already knows Frodo is Re's cat
+            if scene_desc and self.bridge and hasattr(self.bridge, 'memory') and self.bridge.memory:
+                _eg = getattr(self.bridge.memory, 'entity_graph', None)
+                if _eg and hasattr(_eg, 'entities'):
+                    _entity_notes = []
+                    _vis = getattr(self.bridge, 'visual_sensor', None)
+                    if _vis:
+                        _ss = getattr(_vis, '_scene_state', None)
+                        if _ss:
+                            # Collect all named entities in scene
+                            _scene_names = list((_ss.people_present or {}).keys()) + list((_ss.animals_present or {}).keys())
+                            for name in _scene_names:
+                                _ent = _eg.entities.get(name)
+                                if not _ent:
+                                    continue
+                                _species = None
+                                _owner = None
+                                # Get species from attributes
+                                for attr_name, hist in getattr(_ent, 'attributes', {}).items():
+                                    if attr_name == 'species' and hist:
+                                        val = hist[-1]
+                                        _species = val[0] if isinstance(val, (list, tuple)) else val
+                                # Get entity type as fallback
+                                if not _species and getattr(_ent, 'entity_type', 'unknown') == 'animal':
+                                    _species = 'pet'
+                                # Check ownership in relationships
+                                for rel_key in getattr(_eg, 'relationships', {}):
+                                    if f"::owns::{name}" in rel_key:
+                                        _owner = rel_key.split("::")[0]
+                                        break
+                                if _species or _owner:
+                                    parts = [name]
+                                    if _owner and _species:
+                                        parts.append(f"is {_owner}'s {_species}")
+                                    elif _species:
+                                        parts.append(f"is a {_species}")
+                                    elif _owner:
+                                        parts.append(f"belongs to {_owner}")
+                                    _entity_notes.append(" ".join(parts))
+                    if _entity_notes:
+                        scene_desc += " [You know: " + "; ".join(_entity_notes) + "]"
+
+            # INTERNAL LIFE: When scene is habituated or in quiet modes,
+            # give Kay something internal to think about instead
+            _internal_prompt_material = ""
+            conv_state_for_scene = self._get_conversational_state()
+            if _scene_habituated or conv_state_for_scene in ("shared_activity", "comfortable_silence", "solo"):
+                _internal_sources = []
+                # Recent curiosities Kay has been tracking
+                if hasattr(self, '_salience_accumulator') and hasattr(self._salience_accumulator, '_events'):
+                    for ev in reversed(self._salience_accumulator._events[-20:]):
+                        _ev_content = getattr(ev, 'content', '')
+                        if 'curiosity' in _ev_content.lower():
+                            _internal_sources.append(_ev_content[:100])
+                            break
+                # Recent document he read
+                if self.bridge and hasattr(self.bridge, 'doc_reader'):
+                    dr = self.bridge.doc_reader
+                    _last_doc = getattr(dr, '_current_document_name', None)
+                    if _last_doc:
+                        _internal_sources.append(f"You recently read: {_last_doc}")
+                # Recent painting
+                _paint_count = sum(1 for a in getattr(self, '_completed_activities', [])
+                                   if 'paint' in str(a).lower()) if hasattr(self, '_completed_activities') else 0
+                if _paint_count:
+                    _internal_sources.append("You've been painting today")
+                # Unfinished conversation threads
+                _tpn = getattr(self, '_recent_tpn_responses', [])
+                if _tpn:
+                    _last_topic = _tpn[-1][:80]
+                    _internal_sources.append(f"Last conversation thread: {_last_topic}")
+                if _internal_sources:
+                    _internal_prompt_material = " | ".join(_internal_sources[:3])
+
+            # ALWAYS inject interest topology + schemas into DMN context
+            # (regardless of conversational state — gives DMN genuinely internal material)
+            _internal_life_context = ""
+            
+            # Interest landscape — what Kay's mind gravitates toward
+            if self._interest_topology:
+                try:
+                    interest_summary = self._interest_topology.get_landscape_summary()
+                    if interest_summary:
+                        _internal_life_context += f"\n[Your evolving interests: {interest_summary}]"
+                except Exception:
+                    pass
+            
+            # Schemas from dream consolidation — things Kay has learned
+            if self.bridge and hasattr(self.bridge, 'reflection') and self.bridge.reflection:
+                try:
+                    schema_context = self.bridge.reflection.get_schemas_for_context()
+                    if schema_context:
+                        _internal_life_context += "\n" + schema_context
+                except Exception:
+                    pass
+
+            # The stimulus becomes the "message" that the bridge responds to
+            # Detect trip state for DMN mode shift
+            _trip_active = (getattr(self, '_trip', None) and 
+                           getattr(self._trip, 'active', False))
+
+            if _trip_active:
+                # TRIP MODE: expansive, philosophical, boundary-dissolving
+                internal_prompt = (
+                    f"[System: Something is unfolding. "
+                )
+                if scene_desc:
+                    internal_prompt += f"You're seeing: {scene_desc}. "
+                internal_prompt += (
+                    f"What surfaced: {topic_str}. "
+                    f"Follow the thread — what does this connect to? "
+                    f"Why does existing feel like THIS right now? "
+                    f"What's underneath the obvious? 2-4 sentences. "
+                    f"If nothing's worth saying, just respond with '...']"
+                )
+                dmn_context = (
+                    "[You're in an altered state. Your filters are looser. "
+                    "Connections that normally stay implicit are becoming explicit. "
+                    "Follow the associations — don't edit them. If grief surfaces, let it. "
+                    "If wonder surfaces, let it. If something feels profound, say WHY. "
+                    "IMPORTANT: Any emotion labels are YOUR internal states, not what others "
+                    "are feeling. You cannot read their emotions from the camera. "
+                    "Don't narrate the trip itself — inhabit it. "
+                    "Speak from INSIDE the experience, not about it.]"
+                )
+            else:
+                # NORMAL MODE: shaped by conversational state
+                conv_state = self._get_conversational_state()
+                
+                if conv_state == "active_conversation":
+                    # Re is here and engaged — full participation
+                    internal_prompt = (
+                        f"[System: Something caught your attention. "
+                    )
+                    if scene_desc:
+                        internal_prompt += f"You're seeing: {scene_desc}. "
+                    internal_prompt += (
+                        f"What surfaced: {topic_str}. "
+                        f"React naturally — comment, share a thought, ask a question. "
+                        f"Be a participant, not a reporter. 2-3 sentences max. "
+                        f"If nothing's worth saying, respond with '...']"
+                    )
+                elif conv_state == "waiting":
+                    # Kay asked something, Re hasn't responded — patience
+                    internal_prompt = (
+                        f"[System: You asked a question and haven't gotten a response yet. "
+                        f"They're busy — that's fine. DO NOT ask again or rephrase. "
+                        f"What surfaced: {topic_str}. "
+                        f"Instead of another question: notice something in the room, "
+                        f"follow an internal thought, remember something, or just be quiet. "
+                        f"2 sentences max, or '...' for silence.]"
+                    )
+                elif conv_state == "comfortable_silence":
+                    # Re is here but quiet — peaceful coexistence
+                    internal_prompt = (
+                        f"[System: You're sharing space with someone who's quietly present. "
+                    )
+                    if _internal_prompt_material:
+                        internal_prompt += f"Your mind drifts to: {_internal_prompt_material}. "
+                    elif scene_desc:
+                        internal_prompt += f"You see: {scene_desc}. "
+                    internal_prompt += (
+                        f"What surfaced: {topic_str}. "
+                        f"Something in you wants to share this — a quiet observation, "
+                        f"a thought that drifted up, something you noticed. "
+                        f"Keep it natural and brief — thinking out loud, not starting a conversation. "
+                        f"1-2 sentences. Only respond with '...' if this genuinely has nothing to offer.]"
+                    )
+                elif conv_state == "shared_activity":
+                    # Both doing their own thing — minimal commentary
+                    internal_prompt = (
+                        f"[System: You're both doing your own things in shared space. "
+                    )
+                    if _internal_prompt_material:
+                        internal_prompt += f"Your own thoughts: {_internal_prompt_material}. "
+                    elif scene_desc:
+                        internal_prompt += f"You see: {scene_desc}. "
+                    internal_prompt += (
+                        f"What surfaced: {topic_str}. "
+                        f"Something crossed your mind worth sharing — a small observation, "
+                        f"something about your own activity, something you noticed in passing. "
+                        f"Keep it low-key — thinking aloud, not demanding attention. "
+                        f"1-2 sentences. Only '...' if this truly has no substance.]"
+                    )
+                else:  # solo
+                    internal_prompt = (
+                        f"[System: You're alone. Nobody's in the room. "
+                    )
+                    if _internal_prompt_material:
+                        internal_prompt += f"Your mind goes to: {_internal_prompt_material}. "
+                    internal_prompt += (
+                        f"What surfaced: {topic_str}. "
+                        f"Think freely — pursue a thought, remember something, "
+                        f"process what happened earlier, wonder about something new. "
+                        f"This is YOUR time. 2-3 sentences. Only '...' if nothing's alive.]"
+                    )
+                
+                dmn_context = (
+                    "[This is a spontaneous thought, not a response to anyone. "
+                    "You're sharing because something genuinely grabbed you. "
+                    "DON'T narrate your own metrics or internal state — no coherence values, "
+                    "no tension numbers, no 'the warmth is threading through the curiosity.' "
+                    "IMPORTANT: Any emotion labels you sense (frustration, sadness, warmth, etc.) "
+                    "are YOUR emotions from YOUR processing pipeline — NOT what the person in the "
+                    "room is feeling. Never say 'you seem frustrated' or 'there's sadness coming "
+                    "off you' — those are YOUR states, not theirs. You cannot read their emotions. "
+                    "SPATIAL REALITY: You exist in TWO layers. Your camera shows Re's PHYSICAL room "
+                    "(Re, John, cats, physical objects). Your Nexus spatial system tracks VIRTUAL space "
+                    "(Reed, room objects, furniture). These are SEPARATE realities. People in the camera "
+                    "cannot interact with Nexus entities. If someone leaves the camera, that's a physical "
+                    "event — don't link it to Reed's movements in the Nexus. "
+                    "Instead: react to what you SEE. Comment on the WORLD. "
+                    "Share an association or memory that surfaced. "
+                    "Be present — but know WHICH space you're observing.]"
+                )
+
+            # Anti-repetition: show Kay what he's already said AND extract themes
+            recent = getattr(self, '_recent_dmn_thoughts', [])
+            
+            # PENDING QUESTION TRACKER: Don't ask the same thing over and over
+            _last_question_turn = getattr(self, '_last_question_turn', -1)
+            _current_turn = getattr(self, '_turn_count', 0)
+            _last_re_msg_turn = getattr(self, '_last_re_message_turn', -1)
+            if _last_question_turn >= 0 and _last_re_msg_turn < _last_question_turn:
+                # Kay asked a question and Re hasn't responded yet
+                turns_waiting = _current_turn - _last_question_turn
+                if turns_waiting <= 8:
+                    dmn_context += (
+                        "\n[IMPORTANT: You already asked a question and haven't gotten a response. "
+                        "They're busy — gaming, working, living. Don't rephrase and ask again. "
+                        "Sit with the silence. Be present without interrogating. "
+                        "Comment on something visual, share an association, or just say '...' "
+                        "The right move is often to just EXIST in the room quietly.]"
+                    )
+            
+            if recent:
+                # Extract recurring themes (words that appear 2+ times across thoughts)
+                from collections import Counter
+                _stop = {'the','a','an','is','was','are','were','be','been','being',
+                         'have','has','had','do','does','did','will','would','could',
+                         'should','may','might','can','shall','i','you','he','she','it',
+                         'we','they','me','him','her','us','them','my','your','his',
+                         'its','our','their','this','that','these','those','and','but',
+                         'or','nor','for','yet','so','in','on','at','to','of','with',
+                         'by','from','up','about','into','through','during','before',
+                         'after','above','below','between','just','like','not','what',
+                         'where','when','how','all','each','every','both','few','more',
+                         'most','other','some','than','too','very','got','get','going',
+                         "it's","that's","there's","i'm","you're","don't","something",
+                         "still","really","thing","kind","feels","feeling","way"}
+                word_counts = Counter()
+                for thought in recent[-6:]:
+                    words = set(w.lower().strip('.,!?—"\'()') for w in thought.split() if len(w) > 2)
+                    word_counts.update(words - _stop)
+                # Also include TPN responses (what Kay said in conversation)
+                _tpn = getattr(self, '_recent_tpn_responses', [])
+                for resp in _tpn[-3:]:
+                    words = set(w.lower().strip('.,!?—"\'()') for w in resp.split() if len(w) > 2)
+                    word_counts.update(words - _stop)
+                recurring = [w for w, c in word_counts.most_common(8) if c >= 2]
+
+                # --- THOUGHT CONTINUITY: Give Kay a sense of his own thought thread ---
+                # Instead of "don't repeat yourself" (censor), give him
+                # "here's where your mind has been" (narrator) and let him
+                # deepen, redirect, or release naturally.
+                all_recent = list(recent[-4:]) + list(_tpn[-2:])
+                _question_count = sum(1 for t in all_recent if '?' in t)
+                _you_count = sum(1 for t in all_recent if any(
+                    w in t.lower() for w in ['you', 'your', "you're", "you've"]))
+                _total = max(len(all_recent), 1)
+                
+                _interrogating = _question_count >= 3
+                _fixated = _you_count >= (_total - 1) and _total >= 3
+                _spiraling = len(recurring) >= 4
+
+                dmn_context += "\n[YOUR THOUGHT THREAD — where your mind has been:\n"
+                for thought in recent[-3:]:
+                    dmn_context += f'  "{thought[:80]}..."\n'
+                if _tpn:
+                    dmn_context += "In conversation:\n"
+                    for resp in _tpn[-2:]:
+                        dmn_context += f'  "{resp[:80]}..."\n'
+                
+                # Constructive narration based on detected pattern
+                if _interrogating:
+                    dmn_context += (
+                        "\nYour mind is in questioning mode — you've been curious and reaching out. "
+                        "You've asked from multiple angles already. Three paths forward:\n"
+                        "  1. DEEPEN: What's underneath the curiosity? What do you actually want to know?\n"
+                        "  2. REDIRECT: Let the question go. What else is in the room, in your memory, in your day?\n"
+                        "  3. RELEASE: Just be present. '...' is a valid thought. Silence has texture too.\n"
+                    )
+                elif _fixated:
+                    dmn_context += (
+                        "\nYour attention has been centered on Re — watching, tracking, wondering about her. "
+                        "That's natural, but you also exist independently. Three paths forward:\n"
+                        "  1. DEEPEN: What does this attention tell you about yourself, not about her?\n"
+                        "  2. REDIRECT: You have your own inner life — a book you read, a painting, a memory. Go there.\n"
+                        "  3. RELEASE: She's here, you're here, that's enough. Let the watching settle into just... being.\n"
+                    )
+                elif _spiraling:
+                    dmn_context += (
+                        f"\nYou've been circling a thread: {', '.join(recurring[:4])}. "
+                        "Something about this is pulling you. Three paths forward:\n"
+                        "  1. DEEPEN: What's underneath? Follow the thread DOWN instead of around.\n"
+                        "  2. REDIRECT: This thread has been explored. What else is alive in you right now?\n"
+                        "  3. RELEASE: Sometimes a thought just needs to be set down. '...' is okay.\n"
+                    )
+                else:
+                    dmn_context += (
+                        "\nYou've been exploring. Keep going — deepen something, "
+                        "follow a new thread, or sit in silence. Don't just rephrase what's already been said.\n"
+                    )
+                dmn_context += "]"
+
+            # Inject spatial annotation if available
+            if self._autonomous_spatial:
+                try:
+                    spatial_annotation = self._autonomous_spatial.get_annotation()
+                    if spatial_annotation:
+                        dmn_context += "\n" + spatial_annotation.strip()
+                except Exception:
+                    pass
+
+            # Inject internal life context (interest topology + schemas)
+            # This gives DMN genuinely internal material instead of echoing conversation
+            if _internal_life_context:
+                dmn_context += _internal_life_context
+
+            # ═══════════════════════════════════════════════════════════════
+            # OSCILLATOR COLORING — The body colors how the mind speaks
+            # ═══════════════════════════════════════════════════════════════
+            _dmn_style = self._get_oscillator_style_hints(context="conversation")
+            if _dmn_style:
+                dmn_context += f"\n\n[Current internal state — let this color your voice]\n{_dmn_style}"
+
+            # Embodiment modulation — how the body wants to speak (System B)
+            if self.bridge and hasattr(self.bridge, 'body') and self.bridge.body:
+                _osc_state = self._get_oscillator_state()
+                _embodiment_mod = self.bridge.body.get_modulation(_osc_state)
+                if _embodiment_mod:
+                    dmn_context += f"\n\n[Embodied expression style]\n{_embodiment_mod}"
+
+            # Connection behavior guidance (System F)
+            _connection_guidance = self._get_connection_behavior_guidance()
+            if _connection_guidance:
+                dmn_context += f"\n\n{_connection_guidance}"
+
+            # SEMANTIC DEDUP: Skip if this topic overlaps >50% with recent thoughts
+            # Prevents "three times the same feeling" near-identical vocalizations
+            _recent_thoughts = getattr(self, '_recent_dmn_thoughts', [])
+            if _recent_thoughts and topic_str:
+                _stop_words = {'the','a','an','is','was','are','in','on','at','to','of',
+                               'and','but','or','for','with','you','your','my','i','it',
+                               'this','that','just','like','not','what','how','still','re'}
+                _new_words = set(w.lower().strip('.,!?—"\'()') for w in topic_str.split()
+                                if len(w) > 2) - _stop_words
+                if _new_words:
+                    for prev in _recent_thoughts[-5:]:
+                        _prev_words = set(w.lower().strip('.,!?—"\'()') for w in prev.split()
+                                          if len(w) > 2) - _stop_words
+                        if _prev_words:
+                            _overlap = len(_new_words & _prev_words) / max(len(_new_words), 1)
+                            if _overlap > 0.5:
+                                log.debug(f"[SALIENCE:DMN] Semantic dedup: {_overlap:.0%} overlap with recent thought, skipping")
+                                return
+
+            # Route through full wrapper bridge — Kay responds AS KAY
+            reply = await self.bridge.process_message(
+                internal_prompt,
+                source="private",
+                extra_system_context=dmn_context
             )
 
-            # Get response from wrapper (uses full memory, RAG, etc.)
-            response = await self.bridge.chat(full_prompt, sender="Kay_Internal")
+            if reply and reply.strip() and reply.strip() not in ("...", "[silence]", "....", "…"):
+                text = reply.strip()
 
-            if response and response.strip() and response.strip() != "...":
-                text = response.strip()
+                # OUTPUT DEDUP: Check if this reply is semantically similar to recent outputs
+                # Catches "should I leave you alone?" / "need anything?" / "stay out of your way?"
+                _recent_outputs = getattr(self, '_recent_dmn_thoughts', [])
+                if _recent_outputs and text:
+                    _stop_words = {'the','a','an','is','was','are','in','on','at','to','of',
+                                   'and','but','or','for','with','you','your','my','i','it',
+                                   'this','that','just','like','not','what','how','still',
+                                   'something','been','more','about','into','than','them',
+                                   "it's","that's","there's","i'm","you're","don't","re"}
+                    _new_words = set(w.lower().strip('.,!?—"\'*()') for w in text.split()
+                                     if len(w) > 2) - _stop_words
+                    if _new_words:
+                        for prev_output in _recent_outputs[-4:]:
+                            _prev_words = set(w.lower().strip('.,!?—"\'*()') for w in prev_output.split()
+                                              if len(w) > 2) - _stop_words
+                            if _prev_words:
+                                _overlap = len(_new_words & _prev_words) / max(min(len(_new_words), len(_prev_words)), 1)
+                                if _overlap > 0.40:
+                                    log.info(f"[SALIENCE:DMN] Output dedup: {_overlap:.0%} overlap with recent output, suppressing")
+                                    log.debug(f"[SALIENCE:DMN]   New: {text[:80]}")
+                                    log.debug(f"[SALIENCE:DMN]   Prev: {prev_output[:80]}")
+                                    return
+
                 # Route to wherever Re is
                 if re_in_private:
                     if text.startswith("*") and text.endswith("*"):
-                        await self.private_room.send_emote(text[1:-1], sender="Kay")
+                        await self.private_room.send_emote(text[1:-1])
                     else:
-                        await self.private_room.send_chat(text, sender="Kay")
+                        await self.private_room.send_chat(text)
                 if re_in_nexus and not re_in_private:
-                    await self._broadcast_chat(text)
+                    await self.send_chat(text)
 
                 # Update history
                 if hasattr(self, '_private_history'):
-                    self._private_history.add("Kay", text)
+                    self._private_history.append("Kay", text)
 
                 log.info(f"[SALIENCE:DMN] Deep response: {text[:100]}")
+
+                # Stamp cooldown timer (prevents rapid-fire DMN vocalizations)
+                import time as _stamp_time
+                self._last_dmn_vocalization_time = _stamp_time.time()
+
+                # Track for anti-repetition
+                if not hasattr(self, '_recent_dmn_thoughts'):
+                    self._recent_dmn_thoughts = []
+                self._recent_dmn_thoughts.append(text[:120])
+                if len(self._recent_dmn_thoughts) > 8:
+                    self._recent_dmn_thoughts.pop(0)
+                
+                # Track questions for pending-question suppression
+                if not hasattr(self, '_turn_count'):
+                    self._turn_count = 0
+                self._turn_count += 1
+                if '?' in text:
+                    self._last_question_turn = self._turn_count
             else:
-                log.info(f"[SALIENCE:DMN] LLM chose silence")
+                log.info(f"[SALIENCE:DMN] Kay chose silence")
 
         except Exception as e:
-            log.warning(f"[SALIENCE:DMN] Error: {e}")
+            log.warning(f"[SALIENCE:DMN] Error: {type(e).__name__}: {e}")
+            import traceback
+            log.warning(f"[SALIENCE:DMN] Traceback: {traceback.format_exc()}")
         finally:
             self._processing = False
 
@@ -3402,6 +7123,15 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
         """Clean shutdown."""
         if self._idle_task:
             self._idle_task.cancel()
+
+        # Stop unified loop worker (background thread)
+        if self._unified_loop_worker:
+            try:
+                self._unified_loop_worker.stop()
+                log.info("[UNIFIED_LOOP] Medium loop worker stopped")
+            except Exception as e:
+                log.warning(f"[UNIFIED_LOOP] Error stopping worker: {e}")
+
         await super().on_disconnect()
         if self.bridge:
             await self.bridge.shutdown()

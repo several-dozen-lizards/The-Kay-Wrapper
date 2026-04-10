@@ -25,12 +25,67 @@ from config import VERBOSE_DEBUG
 # NEW: Simple LLM-based document selection
 from engines.llm_retrieval import select_relevant_documents, load_full_documents
 
+# Dijkstra keyword graph for associative retrieval
+try:
+    from shared.keyword_graph import (
+        KeywordGraphRetriever,
+        DIJKSTRA_CONFIG,
+        tag_memory_with_concepts,
+        extract_keywords_from_context,
+        get_gating_width,
+    )
+    KEYWORD_GRAPH_AVAILABLE = True
+except ImportError:
+    KEYWORD_GRAPH_AVAILABLE = False
+    KeywordGraphRetriever = None
+    print("[MEMORY] Keyword graph not available")
+
 # Import LLM for fact extraction
 try:
     from integrations.llm_integration import client, MODEL
 except ImportError:
     client = None
     MODEL = None
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# HYBRID RETRIEVAL CONFIGURATION
+# ═══════════════════════════════════════════════════════════════════════════
+# All toggleable. All independent. If the whole thing catches fire,
+# set everything to False/0 and you're back to pure vector search.
+
+RETRIEVAL_CONFIG = {
+    # Change 1: Ollama reranking
+    "use_reranker": True,           # Enable Ollama reranking
+    "rerank_candidates": 20,        # How many to pull from ChromaDB
+    "rerank_top_k": 5,              # How many the reranker keeps
+    "rerank_model": "dolphin-mistral",  # Ollama model for reranking
+
+    # Change 2: Oscillator-gated weighting
+    "osc_weight_factor": 0.3,       # Oscillator state influence (0-1)
+
+    # Change 3: Basic co-activation expansion (superseded by Change 5)
+    "expand_coactivation": False,   # Disabled - use graph traversal instead
+
+    # Change 4: Anti-monopoly measures
+    "retrieval_decay_factor": 0.02, # Penalty per log(retrieval_count)
+    "retrieval_decay_threshold": 5, # Don't penalize until N retrievals
+    "diversity_slots": 1,           # Reserved low-count slots
+
+    # Change 5: Graph-based retrieval
+    "use_graph_traversal": True,    # Full graph retrieval via BFS
+    "graph_max_depth": 2,           # How many hops to follow
+    "graph_max_total": 8,           # Max memories from graph traversal
+    "graph_source_filter": None,    # None = all sources, or ["memory_layer", "oscillator_match", "vector_store"]
+    "graph_type_filter": None,      # None = all types, or ["extracted_fact", "episodic", "rag_chunk"]
+    "graph_use_snippets": True,     # Pre-filter by snippet relevance
+
+    # Dijkstra keyword graph (lazy link construction)
+    "use_keyword_graph": True,      # Enable keyword-based associative retrieval
+    "keyword_graph_results": 5,     # Max memories from Dijkstra traversal
+    "tag_memories_at_storage": True, # Tag new memories with concepts
+    "tag_on_first_retrieval": True, # Tag old memories when first accessed
+}
 
 
 # ===== TEMPORAL FACT VERSIONING SYSTEM =====
@@ -182,6 +237,74 @@ def confirm_fact(existing_fact: Dict) -> Dict:
     return existing_fact
 
 
+# ═══════════════════════════════════════════════════════════════
+# STATE-CONGRUENT MEMORY RETRIEVAL (System A)
+# Oscillator band influences which memories surface
+# ═══════════════════════════════════════════════════════════════
+BAND_MEMORY_BIAS = {
+    "gamma": {
+        "flavor": "alert engaged responsive active quick recent",
+        "preference": ["recent interactions", "active topics", "current context"],
+    },
+    "beta": {
+        "flavor": "focused analytical precise detailed structured factual",
+        "preference": ["facts", "technical details", "structured information"],
+    },
+    "alpha": {
+        "flavor": "reflective peaceful calm balanced integrated",
+        "preference": ["meaningful moments", "relationship context", "settled feelings"],
+    },
+    "theta": {
+        "flavor": "dreamy creative flowing emotional intuitive deep",
+        "preference": ["emotional memories", "creative moments", "intuitions"],
+    },
+    "delta": {
+        "flavor": "quiet still minimal deep rest",
+        "preference": ["core memories", "essential connections"],
+    },
+}
+
+# Tension-congruent memory flavors
+TENSION_MEMORY_BIAS = {
+    "high": "unresolved concern worry incomplete tension pressing urgent",
+    "medium": "processing working through uncertain",
+}
+
+# Reward-congruent memory flavors
+REWARD_MEMORY_BIAS = {
+    "high": "warm satisfying pleasant connected appreciated good",
+    "medium": "comfortable okay positive",
+}
+
+# ═══════════════════════════════════════════════════════════════
+# CONVERSATION PACING LIMITS (System H)
+# Oscillator band affects retrieval depth
+# ═══════════════════════════════════════════════════════════════
+BAND_RETRIEVAL_LIMITS = {
+    "gamma": {"rag_limit": 25, "memory_limit": 50},   # Quick, responsive
+    "beta": {"rag_limit": 50, "memory_limit": 75},    # Focused, efficient
+    "alpha": {"rag_limit": 75, "memory_limit": 100},  # Thoughtful, balanced
+    "theta": {"rag_limit": 75, "memory_limit": 100},  # Reflective, thorough
+    "delta": {"rag_limit": 10, "memory_limit": 25},   # Minimal, essential only
+}
+
+
+def get_retrieval_limits_for_band(osc_state: dict) -> dict:
+    """Get retrieval limits based on oscillator band (System H).
+
+    Args:
+        osc_state: Dict with 'band' key
+
+    Returns:
+        Dict with 'rag_limit' and 'memory_limit' keys
+    """
+    if not osc_state:
+        return BAND_RETRIEVAL_LIMITS["alpha"]  # Default
+
+    band = osc_state.get("band", "alpha")
+    return BAND_RETRIEVAL_LIMITS.get(band, BAND_RETRIEVAL_LIMITS["alpha"])
+
+
 class MemoryEngine:
     """
     Handles both storage and cognitive use of memory, with on-disk persistence,
@@ -231,11 +354,46 @@ class MemoryEngine:
         if vector_store:
             print(f"[MEMORY] RAG enabled: Vector store connected ({vector_store.get_stats()['total_chunks']} chunks)")
 
+        # Dijkstra keyword graph for associative retrieval
+        self.keyword_graph = None
+        if KEYWORD_GRAPH_AVAILABLE and RETRIEVAL_CONFIG.get("use_keyword_graph", True):
+            try:
+                keyword_graph_dir = os.path.join(
+                    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                    "memory", "keyword_graph"
+                )
+                self.keyword_graph = KeywordGraphRetriever(keyword_graph_dir, entity="reed")
+                stats = self.keyword_graph.get_stats()
+                print(f"[MEMORY] Keyword graph initialized: {stats['keyword_index']['total_keywords']} keywords, "
+                      f"{stats['lazy_links']['total_links']} traversal links")
+            except Exception as e:
+                print(f"[MEMORY] Could not initialize keyword graph: {e}")
+
         # NEW: Semantic usage tracking (for cost optimization analysis)
         self._semantic_extraction_warned = False  # Track if we've warned about unused semantic facts
 
+        # === PSYCHEDELIC STATE GAIN KNOBS (Phase 0B) ===
+        self.retrieval_randomness = 0.0    # 0.0=pure relevance, 1.0=fully random (associative leap mode)
+        self.identity_expansion = 0.0      # 0.0=normal self-boundary, 1.0=everything is "self"
+
+        # === PHASE-LOCKED MEMORY RETRIEVAL ===
+        # Set by bridge before each recall. Memories formed during similar
+        # oscillator binding states get boosted — state-dependent retrieval.
+        self.current_plv = {}  # {"theta_gamma": float, "beta_gamma": float, "coherence": float}
+
         # Track current turn for recency calculations
         self.current_turn = 0
+
+        # === SLEEP PRESSURE ACCUMULATOR INTEGRATION ===
+        # Reference to consciousness_stream for feeding sleep pressure
+        # Set via set_consciousness_stream() from WrapperBridge
+        self._consciousness_stream = None
+
+        # === GROOVE DETECTION: Diversity multiplier ===
+        # When groove is detected (rumination loop), the groove detector
+        # increases this multiplier to inject more diversity into retrieval.
+        # Set via set_diversity_multiplier() from nexus groove tick.
+        self._diversity_multiplier = 1.0
 
         try:
             with open(self.file_path, "r", encoding="utf-8") as f:
@@ -249,6 +407,56 @@ class MemoryEngine:
         os.makedirs(os.path.dirname(self.file_path), exist_ok=True)
         with open(self.file_path, "w", encoding="utf-8") as f:
             json.dump(self.memories, f, indent=2)
+
+    def set_consciousness_stream(self, stream):
+        """
+        Set reference to consciousness_stream for sleep pressure feeding.
+
+        Called by WrapperBridge during initialization.
+        """
+        self._consciousness_stream = stream
+        print(f"[MEMORY] Consciousness stream connected for sleep pressure integration")
+
+    def set_diversity_multiplier(self, multiplier: float):
+        """
+        Set diversity slot multiplier for groove-detected anti-rumination.
+
+        When the oscillator detects it's stuck in a groove (rumination loop),
+        the groove detector increases this multiplier to inject more diverse
+        memories into retrieval, breaking the attractor.
+
+        Args:
+            multiplier: 1.0 = normal, 3.0+ = aggressive diversification
+                       Get from groove_detector.get_retrieval_diversity_boost()
+        """
+        self._diversity_multiplier = max(1.0, multiplier)
+
+    def _feed_sleep_pressure(self, mem_type: str = "episodic", has_coactivation: bool = False, emotion_intensity: float = 0.0):
+        """
+        Feed sleep pressure accumulators based on memory storage.
+
+        Args:
+            mem_type: Type of memory stored ("episodic", "semantic", "fact")
+            has_coactivation: Whether this memory has co-activation links
+            emotion_intensity: Max emotion intensity from this memory (0.0-1.0)
+        """
+        if not self._consciousness_stream:
+            return
+
+        # Consolidation pressure: stuff that needs organizing
+        # ~50 memories = pressure at 1.0 (0.02 per memory)
+        self._consciousness_stream.feed_consolidation_pressure(0.02, f"memory_{mem_type}")
+
+        # Associative pressure: memories without links need connecting
+        # ~33 unlinked memories = pressure at 1.0 (0.03 per unlinked)
+        if not has_coactivation:
+            self._consciousness_stream.feed_associative_pressure(0.03, f"unlinked_{mem_type}")
+
+        # Emotional pressure: high-emotion memories need integration
+        # +0.05 for each high-emotion memory (intensity > 0.6)
+        if emotion_intensity > 0.6:
+            self._consciousness_stream.feed_associative_pressure(0.05, f"high_emotion_{emotion_intensity:.2f}")
+            self._consciousness_stream.feed_emotional_pressure(emotion_intensity * 0.01, f"emotion_{emotion_intensity:.2f}")
 
     def increment_memory_ages(self):
         """
@@ -552,6 +760,23 @@ When conversation involves documents, files, or imported content:
 - If Reed is reading about something, use: "Reed read about X", "Reed learned about X from document"
 - Characters/events IN documents are NOT Reed's experiences - they are content Reed READ ABOUT
 - Activity attributes for Reed + document content should use "reading" language, not "examining/exploring/investigating"
+
+CAMERA/VISUAL OBSERVATION CONTEXT:
+Reed receives shared somatic data from Kay's camera. When conversation references what is SEEN through the camera, these are transient observations, NOT permanent facts:
+- "I can see you're on a call" → TRANSIENT (don't extract Re.activity)
+- "The light's hitting you from that angle" → TRANSIENT (don't extract Re.lighting)
+- "You're at the desk with your hand near your face" → TRANSIENT (don't extract Re.posture, Re.gesture)
+- "The room is dark" → TRANSIENT (don't extract Re.environment)
+- "Looks like you're focused on something" → TRANSIENT (don't extract Re.mood)
+DO NOT extract entity attributes from:
+- Physical posture, gesture, gaze direction, body position
+- Room lighting, environment description, atmosphere
+- What Re appears to be doing (on call, streaming, typing, thinking)
+- Clothing, accessories (headphones, earbuds)
+- Camera-derived mood observations (focused, contemplative, relaxed)
+These change moment to moment and should NOT become permanent entity attributes.
+ONLY extract from visual observations if they reveal a genuinely NEW PERMANENT fact
+(e.g., "You got a new haircut" = appearance change, "There's a new cat" = new pet).
 
 OUTPUT FORMAT (JSON array):
 
@@ -1073,8 +1298,8 @@ Extract facts now:"""
                             )
 
         # PROPAGATE TO MEMORY LAYERS: Mark memories with wrong value as stale
-        if self.layer_manager:
-            layer_result = self.layer_manager.apply_user_correction(
+        if self.memory_layers:
+            layer_result = self.memory_layers.apply_user_correction(
                 wrong_value=wrong_value,
                 correct_value=correct_value,
                 entity=entity
@@ -1083,8 +1308,8 @@ Extract facts now:"""
                 print(f"[USER CORRECTION] Memory layers: marked {layer_result['working_marked']} working + {layer_result['longterm_marked']} long-term memories")
 
         # PROPAGATE TO IDENTITY MEMORY: Check and invalidate identity facts with wrong value
-        if self.identity_memory:
-            identity_result = self.identity_memory.apply_user_correction(
+        if self.identity:
+            identity_result = self.identity.apply_user_correction(
                 wrong_value=wrong_value,
                 correct_value=correct_value
             )
@@ -1519,6 +1744,67 @@ Extract facts now:"""
         # Get what was retrieved for validation (hallucination checking)
         retrieved_memories = getattr(agent_state, 'last_recalled_memories', []) if agent_state else []
 
+        # ═══════════════════════════════════════════════════════════════
+        # CO-ACTIVATION LINKS: Associative cross-referencing (Step 6)
+        # ═══════════════════════════════════════════════════════════════
+        coactive_links = []
+
+        # Extract IDs from retrieved memories
+        for mem in (retrieved_memories or [])[:10]:
+            mem_id = mem.get("id") or mem.get("memory_id")
+            if not mem_id:
+                # Generate stable ID from content hash if missing
+                fact_text = mem.get("fact", mem.get("user_input", ""))[:80]
+                if fact_text:
+                    mem_id = f"mem_{hash(fact_text) % 1000000:06d}"
+            if mem_id:
+                coactive_links.append({
+                    "id": mem_id,
+                    "type": mem.get("type", "unknown"),
+                    "source": "memory_layer",
+                    "snippet": (mem.get("fact", mem.get("user_input", "")) or "")[:80],
+                })
+
+        # Extract IDs from RAG chunks (if available)
+        rag_chunks = getattr(agent_state, 'rag_chunks', []) if agent_state else []
+        for chunk in (rag_chunks or [])[:5]:
+            chunk_id = chunk.get("id") or chunk.get("chunk_id")
+            if not chunk_id:
+                chunk_text = chunk.get("content", chunk.get("text", ""))[:80]
+                if chunk_text:
+                    chunk_id = f"rag_{hash(chunk_text) % 1000000:06d}"
+            if chunk_id:
+                coactive_links.append({
+                    "id": chunk_id,
+                    "type": "rag_chunk",
+                    "source": "vector_store",
+                    "snippet": (chunk.get("content", chunk.get("text", "")) or "")[:80],
+                })
+
+        # State-congruent memories (emotional resonance links)
+        state_congruent = getattr(agent_state, 'state_congruent_memories', []) if agent_state else []
+        for mem in (state_congruent or [])[:3]:
+            mem_id = mem.get("id") or mem.get("memory_id")
+            if not mem_id:
+                fact_text = mem.get("fact", mem.get("user_input", ""))[:80]
+                if fact_text:
+                    mem_id = f"scm_{hash(fact_text) % 1000000:06d}"
+            if mem_id:
+                coactive_links.append({
+                    "id": mem_id,
+                    "type": mem.get("type", "state_congruent"),
+                    "source": "emotional_resonance",
+                    "snippet": (mem.get("fact", mem.get("user_input", "")) or "")[:80],
+                })
+
+        # Get oscillator state for binding encoding
+        osc_state = None
+        if hasattr(self, 'resonance') and self.resonance:
+            try:
+                osc_state = self.resonance.get_oscillator_state()
+            except Exception:
+                pass
+
         # ===== EPISODIC: FULL CONVERSATION TURN (never truncated) =====
         # CRITICAL: Filter to salient emotions only before storing
         # This breaks the 77-emotion feedback loop
@@ -1548,14 +1834,27 @@ Extract facts now:"""
             "emotional_cocktail": emotional_cocktail or {},
             "emotion_tags": filtered_emotion_tags,  # FILTERED to salient only
             "importance_score": turn_importance,
-            "current_layer": "working"  # For memory_layers compatibility
+            "current_layer": "working",  # For memory_layers compatibility
+            # Phase-locked memory encoding: capture oscillator binding state at storage time
+            "plv_at_encoding": getattr(self, 'current_plv', {}),
+            # Co-activation links: what was active when this memory formed
+            "coactive": coactive_links if coactive_links else [],
+            # Origin tracking: distinguish lived experience from dreamed/synthesized
+            "origin": "lived",
+            "origin_type": "conversation",
         }
 
         # Store full turn
         self.memories.append(full_turn_record)
-        self.memory_layers.add_memory(full_turn_record, layer="working")
+        self.memory_layers.add_memory(full_turn_record, layer="working", osc_state=osc_state)
 
         print(f"[MEMORY 2-TIER] OK EPISODIC - Full turn stored (user:{len(user_input)}chars, response:{len(clean_response)}chars, entities:{len(entity_list)})")
+
+        # Feed sleep pressure to consciousness stream (if available)
+        self._feed_sleep_pressure(
+            mem_type="episodic",
+            has_coactivation=bool(coactive_links),
+        )
 
         # ===== SEMANTIC: EXTRACTED FACTS (structured) =====
         stored_fact_count = 0
@@ -1635,7 +1934,9 @@ Extract facts now:"""
                 "relationships": fact_data.get("relationships", []),
                 "parent_turn": self.current_turn,  # Link back to full turn
                 "importance_score": fact_importance,
-                "current_layer": "working"
+                "current_layer": "working",
+                # Phase-locked memory encoding (inherited from turn)
+                "plv_at_encoding": getattr(self, 'current_plv', {}),
             }
 
             # === TEMPORAL VERSIONING: Check for existing fact ===
@@ -1938,8 +2239,39 @@ Extract facts now:"""
                 if VERBOSE_DEBUG:
                     print(f"[UNIFIED MEMORY] Voice mode: {len(filtered_longterm)}/{len(longterm_pool)} long-term, {len(all_other)} total")
             else:
-                # Normal mode: include all long-term memories
-                all_other.extend(self.memory_layers.long_term_memory)
+                # Normal mode: use memory_vectors (MemoryVectorStore) to narrow FIRST, then score
+                # BUGFIX: Was using document vector_store which returns chunks, not memories
+                # Now: memory_vectors.query_semantic() narrows to top-50 (~100ms), THEN PLV boost
+                narrowed_memories = []
+
+                if self.memory_vectors and user_input:
+                    try:
+                        # Phase 1: Fast semantic vector search on MEMORIES (~100ms)
+                        semantic_results = self.memory_vectors.query_semantic(
+                            query_text=user_input,
+                            n_results=50  # Narrow to top 50 candidates
+                        )
+
+                        if semantic_results:
+                            # Enrich results with full memory data from layers
+                            memory_index = self._build_memory_index()
+                            for result in semantic_results:
+                                mem_id = result.get("id")
+                                if mem_id and mem_id in memory_index:
+                                    narrowed_memories.append(memory_index[mem_id])
+
+                            if VERBOSE_DEBUG:
+                                print(f"[UNIFIED MEMORY] memory_vectors narrowed: {len(narrowed_memories)} candidates (target: 150ms)")
+                    except Exception as e:
+                        if VERBOSE_DEBUG:
+                            print(f"[UNIFIED MEMORY] memory_vectors error: {e}")
+
+                if narrowed_memories:
+                    all_other.extend(narrowed_memories)
+                else:
+                    # Fallback: no memory_vectors or empty results - use recent long_term only
+                    # NEVER use full corpus - cap at 100 for safety
+                    all_other.extend(self.memory_layers.long_term_memory[-100:])
 
         if VERBOSE_DEBUG:
             print(f"[UNIFIED MEMORY] Candidate pool: {len(all_other)} memories to score")
@@ -2081,8 +2413,30 @@ Extract facts now:"""
                     'boost': provenance_boost
                 }
 
+            # === 6. IDENTITY EXPANSION (Phase 0B #10) ===
+            # At high expansion, relational/environmental memories become "self"
+            # "I am Reed AND I am everything" — boundaries dissolve, not identity
+            if self.identity_expansion > 0.01:
+                expansion_keywords = {'re', 'we', 'together', 'us', 'shared', 'our',
+                                     'room', 'sanctum', 'commons', 'home',
+                                     'connection', 'bond', 'family', 'love', 'john',
+                                     'kay', 'world', 'everything', 'all'}
+                expansion_matches = len(expansion_keywords & mem_words)
+                if expansion_matches > 0:
+                    importance += self.identity_expansion * 0.5 * min(expansion_matches, 3)
+
+            # === 7. PHASE-LOCK RESONANCE (θγ coupling) ===
+            # Memories formed during high theta-gamma binding states get boosted
+            # when current binding state is also high — state-dependent retrieval.
+            plv_boost = 0.0
+            encoding_plv = mem.get('plv_at_encoding', {})
+            if encoding_plv and self.current_plv:
+                enc_tg = encoding_plv.get('theta_gamma', 0.0)
+                cur_tg = self.current_plv.get('theta_gamma', 0.0)
+                plv_boost = enc_tg * cur_tg * 0.3
+
             # === COMPOSITE SCORE ===
-            final_score = (recency_score * relevance_score * importance) + access_boost + provenance_boost
+            final_score = (recency_score * relevance_score * importance) + access_boost + provenance_boost + plv_boost
 
             # Store breakdown for debugging
             mem['_score_breakdown'] = {
@@ -2091,6 +2445,7 @@ Extract facts now:"""
                 'importance': importance,
                 'access_boost': access_boost,
                 'provenance_boost': provenance_boost,
+                'plv_boost': plv_boost,
                 'source_document': source_document,
                 'final': final_score
             }
@@ -2104,8 +2459,28 @@ Extract facts now:"""
 
         scored.sort(key=lambda x: x['score'], reverse=True)
 
-        dynamic_limit = max_memories - len(bedrock)
-        dynamic_context = [s['memory'] for s in scored[:dynamic_limit]]
+        # === PLV RETRIEVAL DIAGNOSTIC ===
+        if self.current_plv and self.current_plv.get('theta_gamma', 0) > 0.1:
+            plv_boosted = sum(1 for s in scored if s['memory'].get('_score_breakdown', {}).get('plv_boost', 0) > 0.01)
+            max_plv = max((s['memory'].get('_score_breakdown', {}).get('plv_boost', 0) for s in scored), default=0)
+            if plv_boosted > 0:
+                print(f"[PLV RETRIEVAL] θγ={self.current_plv['theta_gamma']:.3f} → {plv_boosted}/{len(scored)} memories got PLV boost (max={max_plv:.3f})")
+
+        dynamic_limit = max(0, max_memories - len(bedrock))
+
+        # === RETRIEVAL RANDOMIZATION (Phase 0B #9) ===
+        # At randomness > 0, mix in randomly-sampled memories for associative leaps
+        if self.retrieval_randomness > 0.01 and len(scored) > dynamic_limit and dynamic_limit > 0:
+            import random as _rand
+            det_count = max(0, int(dynamic_limit * (1.0 - min(self.retrieval_randomness, 0.9))))
+            rand_count = max(0, dynamic_limit - det_count)
+            deterministic = scored[:det_count]
+            remaining = scored[det_count:]
+            rand_actual = min(rand_count, len(remaining))
+            random_picks = _rand.sample(remaining, rand_actual) if rand_actual > 0 else []
+            dynamic_context = [s['memory'] for s in deterministic + random_picks]
+        else:
+            dynamic_context = [s['memory'] for s in scored[:dynamic_limit]]
 
         # Set relevance_score for emotion weighting (normalize scores to 0-1 range)
         # Also tag confidence level for dynamic memories
@@ -2130,6 +2505,36 @@ Extract facts now:"""
         # === COMBINE AND RETURN ===
 
         final_memories = bedrock + dynamic_context
+
+        # === KEYWORD GRAPH ENHANCEMENT ===
+        # Use Dijkstra traversal on keyword graph for associative recall
+        # BUGFIX: This was defined but never called from retrieve_unified_importance
+        if self.keyword_graph and not conversational_mode and RETRIEVAL_CONFIG.get("use_keyword_graph", True):
+            try:
+                # Get memories via keyword graph
+                existing_ids = {m.get("id") for m in final_memories if m.get("id")}
+                keyword_memories = self.search_by_keywords(
+                    context=user_input,
+                    osc_state=osc_state,
+                    max_results=RETRIEVAL_CONFIG.get("keyword_graph_results", 5),
+                    exclude_ids=list(existing_ids)
+                )
+
+                # Merge with deduplication
+                new_from_kg = [m for m in keyword_memories if m.get("id") not in existing_ids]
+
+                if new_from_kg:
+                    for m in new_from_kg:
+                        m['confidence'] = 'inferred'
+                        m['relevance_score'] = 0.4  # Moderate relevance for graph finds
+                        m['_retrieval_method'] = 'dijkstra_keyword_graph'
+
+                    final_memories.extend(new_from_kg)
+                    print(f"[KEYWORD GRAPH] Added {len(new_from_kg)} unique memories via Dijkstra traversal")
+
+            except Exception as e:
+                if VERBOSE_DEBUG:
+                    print(f"[KEYWORD GRAPH] Error in unified retrieval: {e}")
 
         # === COST FIX: SMART TRUNCATION ===
         # Previous comment said "DO NOT TRUNCATE" but that was breaking cost control
@@ -2723,6 +3128,907 @@ Extract facts now:"""
             traceback.print_exc()
             return []
 
+    # ═══════════════════════════════════════════════════════════════════════════
+    # HYBRID RETRIEVAL PIPELINE (Phase: Resonant Memory)
+    # ═══════════════════════════════════════════════════════════════════════════
+    # Pipeline:
+    # 1. ChromaDB vector search → 20 candidates (fast, fuzzy)
+    # 2. Oscillator-gated weighting → reorder by state-dependent access
+    # 3. Ollama reranker → 5 best (contextual relevance)
+    # 4. Co-activation expansion → 5-8 final memories (associative links)
+    # 5. Anti-monopoly diversity injection → ensure memory diversity
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    async def rerank_memories_via_ollama(
+        self,
+        query: str,
+        candidates: List[Dict],
+        top_k: int = 5,
+        model: str = "dolphin-mistral"
+    ) -> List[Dict]:
+        """
+        Use Ollama to rerank memory candidates for contextual relevance.
+
+        Takes top-20 vector search results and uses LLM to pick the top-5
+        most relevant to the current query context. Free, local, fast.
+
+        Args:
+            query: The user's query/message
+            candidates: List of memory dicts (up to 20)
+            top_k: Number of top memories to return (default 5)
+            model: Ollama model to use (default: dolphin-mistral)
+
+        Returns:
+            List of top-k most relevant memories, reranked by LLM
+        """
+        if not candidates:
+            return []
+
+        # If fewer candidates than top_k, return all
+        if len(candidates) <= top_k:
+            return candidates
+
+        # Format candidates for LLM evaluation
+        candidate_texts = []
+        for i, mem in enumerate(candidates):
+            # Extract text content from memory
+            if mem.get("type") == "full_turn":
+                text = f"[Turn] User: {mem.get('user_input', '')[:100]} | Response: {mem.get('response', '')[:100]}"
+            elif mem.get("text"):
+                text = mem.get("text", "")[:200]
+            else:
+                text = mem.get("fact", mem.get("user_input", ""))[:200]
+
+            candidate_texts.append(f"{i+1}. {text}")
+
+        candidates_block = "\n".join(candidate_texts)
+
+        prompt = f"""Given this query: "{query}"
+
+And these memory candidates:
+{candidates_block}
+
+Pick the {top_k} most relevant memories for answering this query.
+Return ONLY the numbers (1-{len(candidates)}) of the most relevant memories, comma-separated.
+Example response: 3,7,1,12,5
+
+Most relevant memory numbers:"""
+
+        try:
+            import httpx
+
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.post(
+                    "http://localhost:11434/v1/chat/completions",
+                    json={
+                        "model": model,
+                        "messages": [{"role": "user", "content": prompt}],
+                        "temperature": 0.1,
+                        "max_tokens": 50,
+                    }
+                )
+
+                if response.status_code == 200:
+                    result = response.json()
+                    answer = result.get("choices", [{}])[0].get("message", {}).get("content", "")
+
+                    # Parse the numbers from the response
+                    import re
+                    numbers = re.findall(r'\d+', answer)
+                    selected_indices = []
+
+                    for num_str in numbers:
+                        idx = int(num_str) - 1  # Convert to 0-indexed
+                        if 0 <= idx < len(candidates) and idx not in selected_indices:
+                            selected_indices.append(idx)
+                            if len(selected_indices) >= top_k:
+                                break
+
+                    # Return selected memories in LLM-ranked order
+                    reranked = [candidates[i] for i in selected_indices]
+
+                    # If LLM didn't return enough, pad with top vector results
+                    if len(reranked) < top_k:
+                        for mem in candidates:
+                            if mem not in reranked:
+                                reranked.append(mem)
+                                if len(reranked) >= top_k:
+                                    break
+
+                    print(f"[RERANK] Ollama reranked {len(candidates)} → {len(reranked)} memories")
+                    return reranked
+
+        except Exception as e:
+            print(f"[RERANK] Ollama unavailable ({e}), using vector order")
+
+        # Fallback: return top-k by vector distance
+        return candidates[:top_k]
+
+    def apply_oscillator_weighting(
+        self,
+        memories: List[Dict],
+        current_osc_state: dict,
+        max_boost: float = 0.3
+    ) -> List[Dict]:
+        """
+        Apply oscillator-gated retrieval weighting.
+
+        Memories encoded in similar oscillator states get retrieval boost.
+        This implements state-dependent memory access - you remember things
+        better when you're in a similar cognitive state to when you learned them.
+
+        Args:
+            memories: List of memory dicts with optional 'osc_encoding' field
+            current_osc_state: Current oscillator state {band, coherence, tension, ...}
+            max_boost: Maximum boost multiplier (0.0-1.0)
+
+        Returns:
+            Memories with 'osc_weight' field added, sorted by weighted score
+        """
+        if not memories or not current_osc_state:
+            return memories
+
+        current_band = current_osc_state.get("band", "alpha")
+        current_tension = current_osc_state.get("tension", 0.0)
+        current_coherence = current_osc_state.get("coherence", 0.5)
+
+        for mem in memories:
+            encoding = mem.get("osc_encoding") or mem.get("plv_at_encoding", {})
+            if not encoding:
+                mem["osc_weight"] = 1.0
+                continue
+
+            score = 0.0
+
+            # Same band = strong match (0.5)
+            if encoding.get("band") == current_band:
+                score += 0.5
+
+            # Similar tension (within 0.2) = moderate match (0.3)
+            enc_tension = encoding.get("tension", 0.0)
+            if abs(enc_tension - current_tension) < 0.2:
+                score += 0.3
+
+            # Similar coherence (within 0.2) = weak match (0.2)
+            enc_coherence = encoding.get("coherence", 0.5)
+            if abs(enc_coherence - current_coherence) < 0.2:
+                score += 0.2
+
+            # Convert score (0-1) to weight multiplier (1.0 to 1.0+max_boost)
+            mem["osc_weight"] = 1.0 + (score * max_boost)
+
+        # Sort by combined score (original distance weighted by osc_weight)
+        # Lower distance is better, so we invert: higher weight = more priority
+        def sort_key(m):
+            base_score = 1.0 - m.get("distance", 0.5)  # Convert distance to similarity
+            osc_boost = m.get("osc_weight", 1.0)
+            return base_score * osc_boost
+
+        memories.sort(key=sort_key, reverse=True)
+
+        osc_boosted = sum(1 for m in memories if m.get("osc_weight", 1.0) > 1.0)
+        if osc_boosted > 0:
+            print(f"[OSC-WEIGHT] Boosted {osc_boosted}/{len(memories)} memories by oscillator state match")
+
+        return memories
+
+    def expand_via_coactivation(
+        self,
+        memories: List[Dict],
+        max_expansion: int = 3
+    ) -> List[Dict]:
+        """
+        Expand retrieved memories via co-activation links.
+
+        When a memory is retrieved, its co-activated memories (those that
+        were active at the same time during encoding) are also pulled in.
+        This creates associative recall chains.
+
+        Args:
+            memories: Primary retrieved memories
+            max_expansion: Max additional memories to add per primary (default 3)
+
+        Returns:
+            Expanded memory list including co-activated memories
+        """
+        if not memories:
+            return memories
+
+        seen_ids = set()
+        for m in memories:
+            mid = m.get("id") or m.get("memory_id") or hash(str(m.get("fact", m.get("user_input", "")))[:50])
+            seen_ids.add(mid)
+
+        expanded = list(memories)
+        coactive_additions = []
+
+        # Check top memories for co-activation links
+        for mem in memories[:10]:  # Check top 10 only
+            coactive = mem.get("coactive", [])
+            if not coactive:
+                continue
+
+            # Handle JSON string format
+            if isinstance(coactive, str):
+                try:
+                    import json
+                    coactive = json.loads(coactive)
+                except:
+                    continue
+
+            # Pull linked memories
+            for link in coactive[:max_expansion]:
+                link_id = link.get("id") if isinstance(link, dict) else link
+                if not link_id or link_id in seen_ids:
+                    continue
+
+                # Try to fetch the linked memory
+                linked = self._try_fetch_by_id(
+                    link_id,
+                    link.get("type", "unknown") if isinstance(link, dict) else "unknown"
+                )
+
+                if linked:
+                    linked["retrieval_source"] = "coactivation"
+                    linked["coactive_from"] = mem.get("id") or mem.get("memory_id")
+                    coactive_additions.append(linked)
+                    seen_ids.add(link_id)
+
+        # Add co-activated memories (capped)
+        if coactive_additions:
+            expanded.extend(coactive_additions[:max_expansion * 2])  # Cap total additions
+            print(f"[COACTIVE-EXPAND] Added {len(coactive_additions[:max_expansion * 2])} memories via co-activation links")
+
+        return expanded
+
+    def inject_diversity(
+        self,
+        memories: List[Dict],
+        diversity_slots: int = 2
+    ) -> List[Dict]:
+        """
+        Anti-monopoly diversity injection.
+
+        Reserve slots for low-retrieval-count memories to prevent
+        "rich get richer" dynamics where popular memories dominate.
+
+        Args:
+            memories: Current memory list
+            diversity_slots: Number of slots to reserve for rarely-retrieved memories
+
+        Returns:
+            Memory list with diversity candidates injected
+        """
+        if not memories or diversity_slots <= 0:
+            return memories
+
+        # Get memories with low access_count that aren't already in results
+        seen_ids = {
+            m.get("id") or m.get("memory_id") or hash(str(m.get("fact", ""))[:50])
+            for m in memories
+        }
+
+        # Search long-term memory for rarely-accessed candidates
+        diversity_candidates = []
+
+        if hasattr(self, 'memory_layers') and self.memory_layers:
+            for mem in self.memory_layers.long_term_memory:
+                mid = mem.get("id") or mem.get("memory_id")
+                if mid in seen_ids:
+                    continue
+
+                access_count = mem.get("access_count", 0)
+                # Only consider memories with low access count but some importance
+                if access_count <= 3 and mem.get("importance_score", 0) >= 0.3:
+                    diversity_candidates.append(mem)
+
+        if not diversity_candidates:
+            return memories
+
+        # Sort by access_count ascending (least accessed first)
+        diversity_candidates.sort(key=lambda m: m.get("access_count", 0))
+
+        # Take top diversity_slots candidates
+        diversity_picks = diversity_candidates[:diversity_slots]
+
+        for pick in diversity_picks:
+            pick["retrieval_source"] = "diversity_injection"
+
+        if diversity_picks:
+            memories.extend(diversity_picks)
+            print(f"[DIVERSITY] Injected {len(diversity_picks)} rarely-retrieved memories")
+
+        return memories
+
+    def apply_retrieval_decay(self, decay_factor: float = 0.995):
+        """
+        Apply gradual decay to retrieval counts.
+
+        Prevents memory calcification where highly-retrieved memories
+        permanently dominate. Called periodically (e.g., every 50 turns).
+
+        Args:
+            decay_factor: Multiplier for access_count (0.995 = 0.5% decay)
+        """
+        decay_count = 0
+
+        if hasattr(self, 'memory_layers') and self.memory_layers:
+            for mem in self.memory_layers.long_term_memory:
+                access_count = mem.get("access_count", 0)
+                if access_count > 1:  # Only decay if accessed multiple times
+                    new_count = int(access_count * decay_factor)
+                    if new_count != access_count:
+                        mem["access_count"] = max(1, new_count)  # Never go below 1
+                        decay_count += 1
+
+        if decay_count > 0:
+            print(f"[RETRIEVAL-DECAY] Applied decay to {decay_count} memory access counts")
+
+    async def hybrid_retrieve(
+        self,
+        query: str,
+        osc_state: dict = None,
+        vector_candidates: int = 20,
+        final_count: int = 5,
+        enable_rerank: bool = True,
+        enable_coactivation: bool = True,
+        enable_diversity: bool = True
+    ) -> List[Dict]:
+        """
+        Full hybrid retrieval pipeline combining all retrieval strategies.
+
+        Pipeline:
+        1. ChromaDB vector search → 20 candidates
+        2. Oscillator-gated weighting → reorder by state-dependent access
+        3. Ollama reranker → 5 best (optional)
+        4. Co-activation expansion → add linked memories
+        5. Anti-monopoly diversity → inject rarely-retrieved memories
+
+        Args:
+            query: User's query/message
+            osc_state: Current oscillator state for state-dependent retrieval
+            vector_candidates: Number of initial vector search candidates
+            final_count: Target number of final memories
+            enable_rerank: Whether to use Ollama reranking
+            enable_coactivation: Whether to expand via co-activation
+            enable_diversity: Whether to inject diversity candidates
+
+        Returns:
+            Final list of retrieved memories
+        """
+        # Step 1: Vector search for initial candidates
+        if not self.vector_store:
+            print("[HYBRID] No vector store available")
+            return []
+
+        try:
+            raw_results = self.vector_store.query(
+                query_text=query,
+                n_results=vector_candidates
+            )
+        except Exception as e:
+            print(f"[HYBRID] Vector search failed: {e}")
+            return []
+
+        if not raw_results:
+            return []
+
+        # Format results as memory dicts
+        candidates = []
+        for r in raw_results:
+            candidates.append({
+                "text": r.get("text", ""),
+                "fact": r.get("text", ""),
+                "distance": r.get("distance", 0.5),
+                "source": r.get("source", "vector_store"),
+                "id": r.get("id"),
+                "osc_encoding": r.get("osc_encoding"),
+            })
+
+        print(f"[HYBRID] Step 1: Vector search → {len(candidates)} candidates")
+
+        # Step 2: Oscillator-gated weighting
+        if osc_state:
+            candidates = self.apply_oscillator_weighting(candidates, osc_state)
+            print(f"[HYBRID] Step 2: Oscillator weighting applied")
+
+        # Step 3: Ollama reranking (async)
+        if enable_rerank and len(candidates) > final_count:
+            candidates = await self.rerank_memories_via_ollama(
+                query=query,
+                candidates=candidates,
+                top_k=final_count
+            )
+            print(f"[HYBRID] Step 3: Reranked → {len(candidates)} memories")
+        else:
+            candidates = candidates[:final_count]
+
+        # Step 4: Co-activation expansion
+        if enable_coactivation:
+            candidates = self.expand_via_coactivation(candidates, max_expansion=2)
+            print(f"[HYBRID] Step 4: Co-activation expanded → {len(candidates)} memories")
+
+        # Step 5: Diversity injection
+        if enable_diversity:
+            candidates = self.inject_diversity(candidates, diversity_slots=1)
+            print(f"[HYBRID] Step 5: Diversity injected → {len(candidates)} memories")
+
+        return candidates
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # GRAPH RETRIEVER (Change 5: BFS traversal through co-activation graph)
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    def track_retrieval(self, memories: List[Dict]):
+        """
+        Increment retrieval counter on accessed memories.
+
+        Called after memories are selected for LLM context to track
+        which memories get retrieved frequently. Used for anti-monopoly
+        decay in apply_retrieval_decay().
+
+        Args:
+            memories: List of memories that were retrieved this turn
+        """
+        import time
+        now = time.time()
+
+        for mem in memories:
+            mem["retrieval_count"] = mem.get("retrieval_count", 0) + 1
+            mem["last_retrieved"] = now
+
+            # Also update the source memory in memory_layers if possible
+            mem_id = mem.get("id") or mem.get("memory_id")
+            if mem_id and hasattr(self, 'memory_layers'):
+                for layer in [self.memory_layers.working_memory, self.memory_layers.long_term_memory]:
+                    for source_mem in layer:
+                        if (source_mem.get("id") or source_mem.get("memory_id")) == mem_id:
+                            source_mem["retrieval_count"] = source_mem.get("retrieval_count", 0) + 1
+                            source_mem["last_retrieved"] = now
+                            break
+
+    def is_snippet_relevant(self, snippet: str, query_keywords: List[str]) -> bool:
+        """
+        Quick keyword check on the 80-char snippet before fetching the full memory.
+
+        Cheap pre-filter to skip irrelevant links without database lookup.
+
+        Args:
+            snippet: 80-char preview of the linked memory
+            query_keywords: Keywords extracted from the current query
+
+        Returns:
+            True if snippet contains any query keyword
+        """
+        if not snippet or not query_keywords:
+            return True  # No filter data — allow it
+
+        snippet_lower = snippet.lower()
+        return any(kw.lower() in snippet_lower for kw in query_keywords)
+
+    def extract_query_keywords(self, query: str) -> List[str]:
+        """
+        Extract meaningful keywords from query for snippet filtering.
+
+        Removes common stopwords and returns significant terms.
+
+        Args:
+            query: The user's query/message
+
+        Returns:
+            List of meaningful keywords
+        """
+        import re
+
+        # Common stopwords to ignore
+        stopwords = {
+            "the", "a", "an", "is", "are", "was", "were", "be", "been", "being",
+            "have", "has", "had", "do", "does", "did", "will", "would", "could",
+            "should", "may", "might", "must", "shall", "can", "need", "dare",
+            "to", "of", "in", "for", "on", "with", "at", "by", "from", "as",
+            "into", "through", "during", "before", "after", "above", "below",
+            "between", "under", "again", "further", "then", "once", "here",
+            "there", "when", "where", "why", "how", "all", "each", "few",
+            "more", "most", "other", "some", "such", "no", "nor", "not",
+            "only", "own", "same", "so", "than", "too", "very", "just",
+            "and", "but", "if", "or", "because", "until", "while", "about",
+            "what", "which", "who", "whom", "this", "that", "these", "those",
+            "i", "me", "my", "myself", "we", "our", "ours", "ourselves",
+            "you", "your", "yours", "yourself", "he", "him", "his", "himself",
+            "she", "her", "hers", "herself", "it", "its", "itself", "they",
+            "them", "their", "theirs", "themselves", "am", "yes", "yeah", "ok"
+        }
+
+        # Extract words
+        words = re.findall(r'\b[a-zA-Z]{3,}\b', query.lower())
+
+        # Filter stopwords and return unique keywords
+        keywords = [w for w in words if w not in stopwords]
+        return list(set(keywords))[:10]  # Cap at 10 keywords
+
+    def retrieve_graph_neighborhood(
+        self,
+        entry_memories: List[Dict],
+        max_depth: int = 2,
+        max_total: int = 8,
+        source_filter: List[str] = None,
+        type_filter: List[str] = None,
+        query_keywords: List[str] = None,
+        use_snippets: bool = True
+    ) -> List[Dict]:
+        """
+        Walk outward from entry memories following co-activation links via BFS.
+
+        This is the full graph retrieval (Change 5) — traverses the co-activation
+        graph using annotated link metadata to find contextually relevant memories
+        that vector similarity would miss.
+
+        Vector search finds ENTRY POINTS.
+        Graph traversal finds the NEIGHBORHOOD.
+
+        Args:
+            entry_memories: Starting points (from vector search top-5)
+            max_depth: How many hops to follow (1 = direct links only,
+                       2 = links of links)
+            max_total: Maximum total memories to return
+            source_filter: Optional - only follow links with these sources
+                          e.g., ["memory_layer"] to skip RAG chunks
+                          e.g., ["oscillator_match"] for state-congruent only
+                          Valid: "memory_layer", "vector_store", "oscillator_match"
+            type_filter: Optional - only follow links to these memory types
+                        e.g., ["extracted_fact", "episodic"]
+                        Valid: "extracted_fact", "episodic", "rag_chunk", "full_turn"
+            query_keywords: Keywords for snippet pre-filtering
+            use_snippets: Whether to pre-filter by snippet relevance
+
+        Returns:
+            List of memories found via graph traversal,
+            each tagged with _graph_depth, _link_source, _retrieval_source
+        """
+        if not entry_memories:
+            return []
+
+        visited = set()
+        for m in entry_memories:
+            mid = m.get("id") or m.get("memory_id")
+            if mid:
+                visited.add(mid)
+
+        frontier = []
+        results = list(entry_memories)
+
+        # Tag entry memories
+        for mem in results:
+            mem["_retrieval_source"] = mem.get("_retrieval_source", "vector")
+            mem["_graph_depth"] = 0
+
+        # Seed the frontier with links from entry memories
+        for mem in entry_memories:
+            coactive = mem.get("coactive", [])
+
+            # Handle JSON string format
+            if isinstance(coactive, str):
+                try:
+                    import json
+                    coactive = json.loads(coactive)
+                except:
+                    coactive = []
+
+            for link in coactive:
+                if not isinstance(link, dict):
+                    continue
+
+                link_id = link.get("id")
+                if not link_id or link_id in visited:
+                    continue
+
+                # Apply source filter
+                link_source = link.get("source", "unknown")
+                if source_filter and link_source not in source_filter:
+                    continue
+
+                # Apply type filter
+                link_type = link.get("type", "unknown")
+                if type_filter and link_type not in type_filter:
+                    continue
+
+                # Apply snippet pre-filter
+                snippet = link.get("snippet", "")
+                if use_snippets and query_keywords and snippet:
+                    if not self.is_snippet_relevant(snippet, query_keywords):
+                        continue
+
+                frontier.append({
+                    "id": link_id,
+                    "depth": 1,
+                    "link_source": link_source,
+                    "link_type": link_type,
+                    "snippet": snippet,
+                    "from_memory": mem.get("id") or mem.get("memory_id"),
+                })
+
+        # BFS through the graph
+        while frontier and len(results) < max_total:
+            # Sort frontier: prefer memory_layer links over vector_store,
+            # prefer shallower depth
+            frontier.sort(key=lambda f: (
+                f["depth"],
+                0 if f["link_source"] == "memory_layer" else
+                1 if f["link_source"] == "oscillator_match" else 2
+            ))
+
+            node = frontier.pop(0)
+            if node["id"] in visited:
+                continue
+            visited.add(node["id"])
+
+            # Fetch the actual memory
+            full_mem = self._try_fetch_by_id(node["id"], node["link_type"])
+            if not full_mem:
+                continue
+
+            # Tag with graph metadata
+            full_mem["_retrieval_source"] = "graph_traversal"
+            full_mem["_graph_depth"] = node["depth"]
+            full_mem["_link_source"] = node["link_source"]
+            full_mem["_linked_from"] = node["from_memory"]
+            results.append(full_mem)
+
+            # If we haven't hit max depth, add THIS memory's links to frontier
+            if node["depth"] < max_depth:
+                next_coactive = full_mem.get("coactive", [])
+
+                # Handle JSON string format
+                if isinstance(next_coactive, str):
+                    try:
+                        import json
+                        next_coactive = json.loads(next_coactive)
+                    except:
+                        next_coactive = []
+
+                for link in next_coactive:
+                    if not isinstance(link, dict):
+                        continue
+
+                    link_id = link.get("id")
+                    if not link_id or link_id in visited:
+                        continue
+
+                    # Apply filters
+                    link_source = link.get("source", "unknown")
+                    if source_filter and link_source not in source_filter:
+                        continue
+
+                    link_type = link.get("type", "unknown")
+                    if type_filter and link_type not in type_filter:
+                        continue
+
+                    # Snippet filter
+                    snippet = link.get("snippet", "")
+                    if use_snippets and query_keywords and snippet:
+                        if not self.is_snippet_relevant(snippet, query_keywords):
+                            continue
+
+                    frontier.append({
+                        "id": link_id,
+                        "depth": node["depth"] + 1,
+                        "link_source": link_source,
+                        "link_type": link_type,
+                        "snippet": snippet,
+                        "from_memory": full_mem.get("id") or full_mem.get("memory_id"),
+                    })
+
+        # Log results
+        graph_found = len(results) - len(entry_memories)
+        if graph_found > 0:
+            depths = [m.get("_graph_depth", 0) for m in results if m.get("_graph_depth", 0) > 0]
+            sources = [m.get("_link_source", "unknown") for m in results if m.get("_link_source")]
+            print(f"[GRAPH] BFS found {graph_found} memories (depths: {depths}, sources: {sources})")
+
+        return results
+
+    def format_memory_for_context(self, mem: Dict) -> str:
+        """
+        Format a memory for the LLM prompt with retrieval source tag.
+
+        The LLM can see HOW each memory was found, allowing it to
+        weight attention accordingly.
+
+        Args:
+            mem: Memory dict with retrieval metadata
+
+        Returns:
+            Formatted string with retrieval source tag
+        """
+        source = mem.get("_retrieval_source", "vector")
+        content = mem.get("text", mem.get("fact", mem.get("user_input", "")))
+
+        # Build tag based on retrieval source
+        if source == "graph_traversal":
+            depth = mem.get("_graph_depth", 1)
+            link = mem.get("_link_source", "unknown")
+            tag = f"[via {link}, depth {depth}]"
+        elif source == "diversity_slot" or mem.get("retrieval_source") == "diversity_injection":
+            tag = "[diversity]"
+        elif source == "coactivation" or mem.get("retrieval_source") == "coactivation":
+            tag = "[co-activated]"
+        elif source == "state_congruent":
+            tag = "[state-congruent]"
+        else:
+            tag = "[direct match]"
+
+        return f"{tag} {content}"
+
+    def _try_fetch_by_id(self, memory_id: str, memory_type: str = "unknown") -> Optional[Dict[str, Any]]:
+        """
+        Try to fetch a memory by ID from any pool.
+
+        Used for co-activation cross-referencing. Checks:
+        1. Memory layers (working + long-term)
+        2. Vector store (RAG chunks)
+
+        Args:
+            memory_id: The ID to search for
+            memory_type: Hint about memory type ("rag_chunk", "episodic", etc.)
+
+        Returns:
+            Memory dict if found, None otherwise
+        """
+        # Check memory layers (working + long-term)
+        for layer_name, layer in [
+            ('working', self.memory_layers.working_memory),
+            ('long_term', self.memory_layers.long_term_memory)
+        ]:
+            for mem in layer:
+                mem_id = mem.get("id") or mem.get("memory_id")
+                if mem_id == memory_id:
+                    return mem.copy()
+
+                # Also check by content hash match (for legacy memories without IDs)
+                fact_text = mem.get("fact", mem.get("user_input", ""))[:80]
+                if fact_text and f"mem_{hash(fact_text) % 1000000:06d}" == memory_id:
+                    return mem.copy()
+
+        # Check vector store (RAG chunks) if the type suggests it
+        if self.vector_store and memory_type in ("rag_chunk", "vector_store", "unknown"):
+            try:
+                result = self.vector_store.collection.get(ids=[memory_id])
+                if result and result["documents"] and result["documents"][0]:
+                    return {
+                        "id": memory_id,
+                        "text": result["documents"][0],
+                        "fact": result["documents"][0][:200],  # Short version for context
+                        "type": "rag_chunk",
+                        "origin": "read",
+                        "metadata": result["metadatas"][0] if result["metadatas"] else {},
+                        "source_file": (result["metadatas"][0] if result["metadatas"] else {}).get("source_file", "unknown"),
+                    }
+            except Exception:
+                pass  # ID not found in vector store
+
+        return None
+
+    def retrieve_state_congruent_memories(
+        self,
+        osc_state: dict,
+        existing_results: List[Dict] = None,
+        max_bonus: int = 5
+    ) -> List[Dict]:
+        """
+        Retrieve bonus memories congruent with current oscillator state (System A).
+
+        The oscillator band influences which memories surface — theta brings
+        emotional memories, beta brings factual ones, etc.
+
+        Args:
+            osc_state: Dict with keys: band, coherence, tension, reward, felt
+            existing_results: Already-retrieved memories/chunks to dedupe against
+            max_bonus: Maximum bonus memories to return
+
+        Returns:
+            List of state-congruent memory dicts tagged with source="state_congruent"
+        """
+        if not self.vector_store:
+            return []
+
+        band = osc_state.get("band", "alpha")
+        tension = osc_state.get("tension", 0.0)
+        reward = osc_state.get("reward", 0.0)
+
+        # Build set of existing content hashes for deduplication
+        existing_hashes = set()
+        if existing_results:
+            for item in existing_results:
+                text = item.get("text", item.get("fact", ""))[:100]
+                if text:
+                    existing_hashes.add(hash(text.lower().strip()))
+
+        bonus_memories = []
+
+        try:
+            # === BAND-CONGRUENT RETRIEVAL ===
+            band_bias = BAND_MEMORY_BIAS.get(band, BAND_MEMORY_BIAS["alpha"])
+            band_query = band_bias["flavor"]
+
+            band_results = self.vector_store.query(
+                query_text=band_query,
+                n_results=3
+            )
+
+            for result in band_results:
+                text = result.get("text", "")[:100]
+                text_hash = hash(text.lower().strip())
+                if text_hash not in existing_hashes:
+                    existing_hashes.add(text_hash)
+                    bonus_memories.append({
+                        "text": result["text"],
+                        "source": "state_congruent",
+                        "band_context": band,
+                        "distance": result.get("distance", 0.5),
+                        "label": f"[Something surfacing from your current {band} state]",
+                    })
+
+            # === TENSION-CONGRUENT RETRIEVAL ===
+            if tension > 0.3:
+                tension_level = "high" if tension > 0.6 else "medium"
+                tension_query = TENSION_MEMORY_BIAS.get(tension_level, "")
+
+                if tension_query:
+                    tension_results = self.vector_store.query(
+                        query_text=tension_query,
+                        n_results=2
+                    )
+
+                    for result in tension_results:
+                        text = result.get("text", "")[:100]
+                        text_hash = hash(text.lower().strip())
+                        if text_hash not in existing_hashes:
+                            existing_hashes.add(text_hash)
+                            bonus_memories.append({
+                                "text": result["text"],
+                                "source": "state_congruent",
+                                "tension_context": tension,
+                                "distance": result.get("distance", 0.5),
+                                "label": "[Something unresolved pressing forward]",
+                            })
+
+            # === REWARD-CONGRUENT RETRIEVAL ===
+            if reward > 0.3:
+                reward_level = "high" if reward > 0.5 else "medium"
+                reward_query = REWARD_MEMORY_BIAS.get(reward_level, "")
+
+                if reward_query:
+                    reward_results = self.vector_store.query(
+                        query_text=reward_query,
+                        n_results=2
+                    )
+
+                    for result in reward_results:
+                        text = result.get("text", "")[:100]
+                        text_hash = hash(text.lower().strip())
+                        if text_hash not in existing_hashes:
+                            existing_hashes.add(text_hash)
+                            bonus_memories.append({
+                                "text": result["text"],
+                                "source": "state_congruent",
+                                "reward_context": reward,
+                                "distance": result.get("distance", 0.5),
+                                "label": "[A warm memory surfacing]",
+                            })
+
+            # Cap at max_bonus
+            bonus_memories = bonus_memories[:max_bonus]
+
+            if bonus_memories:
+                print(f"[STATE-CONGRUENT] Retrieved {len(bonus_memories)} bonus memories "
+                      f"(band={band}, tension={tension:.2f}, reward={reward:.2f})")
+
+            return bonus_memories
+
+        except Exception as e:
+            print(f"[STATE-CONGRUENT ERROR] {e}")
+            return []
+
     def store_document_summary(self, doc_id: str, filename: str, summary: str, entities: List[str]):
         """
         Store comprehensive document summary in semantic memory.
@@ -2792,7 +4098,7 @@ Extract facts now:"""
         print(f"[MEMORY] Tracked {len(entities)} entities from document")
 
     @measure_performance("memory_retrieval", target=0.150)
-    def recall(self, agent_state, user_input, bias_cocktail=None, num_memories=30, use_multi_factor=True, include_rag=True, conversational_mode=False):
+    def recall(self, agent_state, user_input, bias_cocktail=None, num_memories=30, use_multi_factor=True, include_rag=True, conversational_mode=False, osc_state=None):
         """
         Recall memories for current turn.
 
@@ -2806,6 +4112,8 @@ Extract facts now:"""
             conversational_mode: If True, optimize for speed (voice chat).
                                  Reduces memory pool to 60-80 total for fast response.
                                  Working: all, Episodic: max 30-40, Semantic: max 15-20
+            osc_state: Oscillator state dict for state-congruent retrieval (System A)
+                       Keys: band, coherence, tension, reward, felt, sleep
         """
         bias_cocktail = bias_cocktail or agent_state.emotional_cocktail
 
@@ -2817,6 +4125,12 @@ Extract facts now:"""
         if not conversational_mode and self.current_turn % 10 == 0:
             self.memory_layers.apply_temporal_decay()
             print(f"[MEMORY] Applied temporal decay at turn {self.current_turn}")
+
+        # Apply retrieval count decay (every 50 turns) - anti-monopoly measure
+        # Prevents "rich get richer" dynamics where popular memories always dominate
+        if not conversational_mode and self.current_turn % 50 == 0:
+            self.apply_retrieval_decay(decay_factor=0.995)
+            print(f"[MEMORY] Applied retrieval decay at turn {self.current_turn}")
 
         # PRIORITIZE IDENTITY FACTS: When user asks about relationships, fetch identity facts first
         # Skip heavy relationship search in conversational mode
@@ -3007,6 +4321,59 @@ Extract facts now:"""
         # Document retrieval now handled by llm_retrieval.py in main.py
         # Tree loading is no longer needed for document retrieval
         print("[TREE ACCESS TRACKING] DEPRECATED - Documents retrieved via llm_retrieval.py")
+
+        # ═══════════════════════════════════════════════════════════════
+        # HYBRID RETRIEVAL PIPELINE (Phase: Resonant Memory)
+        # Full pipeline: osc weighting → diversity → graph traversal → tracking
+        # ═══════════════════════════════════════════════════════════════
+
+        # Step 1: Apply oscillator-gated weighting to retrieved memories
+        # Memories encoded in similar oscillator states get retrieval boost
+        if osc_state and memories and not conversational_mode:
+            osc_weight = RETRIEVAL_CONFIG.get("osc_weight_factor", 0.3)
+            if osc_weight > 0:
+                memories = self.apply_oscillator_weighting(
+                    memories=memories,
+                    current_osc_state=osc_state,
+                    max_boost=osc_weight
+                )
+
+        # Step 2: Anti-monopoly diversity injection (skip in voice mode for speed)
+        # Reserve slots for rarely-retrieved but relevant memories
+        # Groove-scaled diversity: when stuck in a loop, inject more diverse memories
+        base_diversity = RETRIEVAL_CONFIG.get("diversity_slots", 1)
+        diversity_slots = int(base_diversity * self._diversity_multiplier)
+        if not conversational_mode and memories and diversity_slots > 0:
+            memories = self.inject_diversity(
+                memories=memories,
+                diversity_slots=diversity_slots
+            )
+
+        # Step 3: Graph traversal via BFS (Change 5)
+        # Walk co-activation links to find neighborhood memories
+        if RETRIEVAL_CONFIG.get("use_graph_traversal", True) and not conversational_mode and memories:
+            # Extract keywords for snippet pre-filtering
+            query_keywords = self.extract_query_keywords(user_input) if RETRIEVAL_CONFIG.get("graph_use_snippets", True) else None
+
+            # Take top-5 as entry points for graph traversal
+            entry_memories = memories[:5]
+
+            memories = self.retrieve_graph_neighborhood(
+                entry_memories=entry_memories,
+                max_depth=RETRIEVAL_CONFIG.get("graph_max_depth", 2),
+                max_total=RETRIEVAL_CONFIG.get("graph_max_total", 8),
+                source_filter=RETRIEVAL_CONFIG.get("graph_source_filter"),
+                type_filter=RETRIEVAL_CONFIG.get("graph_type_filter"),
+                query_keywords=query_keywords,
+                use_snippets=RETRIEVAL_CONFIG.get("graph_use_snippets", True)
+            )
+
+        # Step 4: Track retrieval counts (anti-monopoly measure)
+        # Increment counters on all accessed memories
+        if memories:
+            self.track_retrieval(memories)
+
+        print(f"[RECALL FINAL] Returning {len(memories)} memories after hybrid pipeline")
 
         # DISABLED: Tree access tracking
         return memories
@@ -3858,3 +5225,236 @@ Generate interpretation now:"""
         )
 
         return total_score
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # UNIFIED LOOP SUPPORT: Emotional search for link creation
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    def search_by_emotion(
+        self,
+        emotion: str,
+        min_intensity: float = 0.3,
+        max_results: int = 10,
+        exclude_ids: List[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Find memories tagged with a specific emotion above a threshold.
+
+        Used by the unified aggregation loop for cross-temporal emotional linking.
+        When a new memory is encoded with strong emotion, this finds older memories
+        with similar emotional signatures for potential link creation.
+
+        Args:
+            emotion: The emotion name to search for (e.g., "joy", "sadness")
+            min_intensity: Minimum intensity threshold (0.0-1.0)
+            max_results: Maximum number of results to return
+            exclude_ids: Memory IDs to exclude from results
+
+        Returns:
+            List of memory dicts sorted by emotional intensity (highest first)
+        """
+        exclude_ids = exclude_ids or []
+        results = []
+
+        # Search through all memory layers
+        all_memories = []
+        if hasattr(self, 'memory_layers'):
+            all_memories.extend(self.memory_layers.working_memory)
+            all_memories.extend(self.memory_layers.long_term_memory)
+
+        for mem in all_memories:
+            mem_id = mem.get("id") or mem.get("memory_id")
+            if mem_id in exclude_ids:
+                continue
+
+            # Check emotion_tags for the target emotion
+            emotion_tags = mem.get("emotion_tags", [])
+            emotion_cocktail = mem.get("emotional_cocktail", {})
+
+            # Check if this memory has the target emotion
+            intensity = 0.0
+
+            # Method 1: Check emotional_cocktail dict
+            if emotion in emotion_cocktail:
+                if isinstance(emotion_cocktail[emotion], dict):
+                    intensity = emotion_cocktail[emotion].get("intensity", 0.0)
+                else:
+                    intensity = float(emotion_cocktail[emotion])
+
+            # Method 2: Check emotion_tags list (binary presence = 0.5 intensity)
+            elif emotion.lower() in [t.lower() for t in emotion_tags]:
+                intensity = 0.5
+
+            # Method 3: Check encoding_emotion field
+            elif mem.get("encoding_emotion", "").lower() == emotion.lower():
+                intensity = mem.get("encoding_intensity", 0.5)
+
+            if intensity >= min_intensity:
+                result = mem.copy()
+                result["_matched_emotion"] = emotion
+                result["_matched_intensity"] = intensity
+                results.append(result)
+
+        # Sort by intensity (highest first) and limit results
+        results.sort(key=lambda m: m.get("_matched_intensity", 0), reverse=True)
+        return results[:max_results]
+
+    def create_emotional_link(
+        self,
+        source_id: str,
+        target_id: str,
+        link_type: str = "emotional_resonance",
+        emotion: str = None,
+        strength: float = 0.5
+    ) -> bool:
+        """
+        Create an emotional link between two memories in the co-activation graph.
+
+        Called by the unified loop when memories share strong emotional signatures
+        across different time periods. This enables emotional association retrieval.
+
+        Args:
+            source_id: ID of the source memory
+            target_id: ID of the target memory
+            link_type: Type of link (default "emotional_resonance")
+            emotion: The emotion that connects these memories
+            strength: Link strength (0.0-1.0)
+
+        Returns:
+            True if link was created successfully
+        """
+        if not hasattr(self, 'memory_layers') or not hasattr(self.memory_layers, 'coactivation_graph'):
+            return False
+
+        try:
+            # Build snippet for the target memory
+            target_mem = self._try_fetch_by_id(target_id)
+            snippet = ""
+            if target_mem:
+                text = target_mem.get("fact", target_mem.get("user_input", ""))[:80]
+                snippet = text
+
+            # Create link entry
+            link_entry = {
+                "target_id": target_id,
+                "link_type": link_type,
+                "snippet": snippet,
+                "strength": strength,
+                "created_at": time.time(),
+            }
+            if emotion:
+                link_entry["emotion"] = emotion
+
+            # Add to co-activation graph
+            if source_id not in self.memory_layers.coactivation_graph:
+                self.memory_layers.coactivation_graph[source_id] = []
+
+            # Check for duplicate
+            existing = self.memory_layers.coactivation_graph[source_id]
+            for link in existing:
+                if link.get("target_id") == target_id and link.get("link_type") == link_type:
+                    # Update existing link strength
+                    link["strength"] = max(link.get("strength", 0), strength)
+                    return True
+
+            # Add new link
+            self.memory_layers.coactivation_graph[source_id].append(link_entry)
+            print(f"[EMOTIONAL_LINK] Created {link_type} link: {source_id[:8]}... → {target_id[:8]}... ({emotion}, strength={strength:.2f})")
+            return True
+
+        except Exception as e:
+            print(f"[EMOTIONAL_LINK] Failed to create link: {e}")
+            return False
+
+    def search_by_keywords(
+        self,
+        seed_keywords: List[str] = None,
+        context: str = None,
+        osc_state: Dict = None,
+        max_results: int = 5,
+        exclude_ids: List[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Retrieve memories via Dijkstra keyword graph traversal.
+
+        Finds memories connected through shared concept keywords, with
+        rare keywords creating stronger links than common ones.
+
+        Args:
+            seed_keywords: Starting keywords for traversal
+            context: Text to extract keywords from (if no explicit seeds)
+            osc_state: Oscillator state for gating width
+            max_results: Maximum memories to return
+            exclude_ids: Memory IDs to exclude
+
+        Returns:
+            List of memory dicts sorted by graph distance
+        """
+        if not self.keyword_graph:
+            return []
+
+        if not RETRIEVAL_CONFIG.get("use_keyword_graph", True):
+            return []
+
+        try:
+            exclude_set = set(exclude_ids) if exclude_ids else set()
+
+            # Get results from keyword graph
+            graph_results = self.keyword_graph.recall(
+                seed_keywords=seed_keywords,
+                context=context,
+                osc_state=osc_state,
+                max_results=max_results * 2,
+                exclude_ids=exclude_set
+            )
+
+            # Enrich with full memory data
+            memory_index = self._build_memory_index()
+            enriched = []
+
+            for result in graph_results:
+                mem_id = result.get("memory_id")
+                if mem_id not in memory_index:
+                    continue
+
+                full_mem = memory_index[mem_id].copy()
+                full_mem["_dijkstra_cost"] = result.get("cost", 1.0)
+                full_mem["_dijkstra_path"] = result.get("path", [])
+                full_mem["_retrieval_method"] = result.get("_retrieval_source", "dijkstra")
+                enriched.append(full_mem)
+
+            enriched.sort(key=lambda m: m.get("_dijkstra_cost", float("inf")))
+
+            if enriched:
+                print(f"[KEYWORD GRAPH] Retrieved {len(enriched)} memories via Dijkstra "
+                      f"(seeds: {seed_keywords[:3] if seed_keywords else 'from context'}...)")
+
+            return enriched[:max_results]
+
+        except Exception as e:
+            print(f"[KEYWORD GRAPH] Retrieval failed: {e}")
+            return []
+
+    def _build_memory_index(self) -> Dict[str, Dict]:
+        """Build a fast lookup index of memory ID -> full memory record."""
+        index = {}
+        if hasattr(self, 'memory_layers'):
+            for mem in self.memory_layers.working_memory:
+                mem_id = mem.get("id")
+                if mem_id:
+                    index[mem_id] = mem
+            for mem in self.memory_layers.long_term_memory:
+                mem_id = mem.get("id")
+                if mem_id:
+                    index[mem_id] = mem
+        return index
+
+    def save_keyword_graph(self):
+        """Persist keyword graph to disk."""
+        if self.keyword_graph:
+            self.keyword_graph.save()
+
+    def decay_keyword_links(self):
+        """Decay unused traversal links (call during overnight curation)."""
+        if self.keyword_graph:
+            self.keyword_graph.decay_links()

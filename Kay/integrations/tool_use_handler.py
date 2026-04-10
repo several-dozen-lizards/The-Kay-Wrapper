@@ -69,13 +69,23 @@ class ToolUseHandler:
                 },
                 {
                     "name": "read_document",
-                    "description": "IMPORTANT: Document contents are NOT automatically visible to you. You can only see filenames/metadata. To see what's INSIDE a document, you MUST call this tool. Call read_document when user asks to: open/read/view/look at/look in a document, see contents, see what it says, access the text. Without calling this, you cannot see document contents - only metadata.",
+                    "description": "IMPORTANT: Document contents are NOT automatically visible to you. You can only see filenames/metadata. To see what's INSIDE a document, you MUST call this tool. Returns up to 8000 chars at a time. Use start_at to paginate through longer documents. Call read_document when user asks to: open/read/view/look at/look in a document, see contents, see what it says, access the text.",
                     "input_schema": {
                         "type": "object",
                         "properties": {
                             "document_name": {
                                 "type": "string",
                                 "description": "Filename of the document to read (use list_documents first if unsure of exact name)"
+                            },
+                            "start_at": {
+                                "type": "integer",
+                                "description": "Character offset to start reading from (default 0). Use to paginate through long documents.",
+                                "default": 0
+                            },
+                            "max_chars": {
+                                "type": "integer",
+                                "description": "Max chars to return (default 8000). Reduce for shorter context, increase for more content.",
+                                "default": 8000
                             }
                         },
                         "required": ["document_name"]
@@ -162,11 +172,11 @@ class ToolUseHandler:
                 }
             ])
 
-        # Local file reading tool - for session logs and allowed directories
+        # Local file reading tool - for session logs, code introspection, and allowed directories
         if include_documents:
             tools.append({
                 "name": "read_local_file",
-                "description": "Read a file from the local filesystem. Only works for allowed directories (Kay's session logs, documents). Use this to read full session logs when you need context about what happened in the conversation. Example: read_local_file('D:/Wrappers/Kay/kay_session_logs/continuous_XXXXX_log.txt')",
+                "description": "Read a file from the local filesystem. Works for your own wrapper code AND the shared architecture. Use this to: read session logs for context, introspect your own source code (Kay/, nexus/, shared/, resonant_core/, Reed/), understand how your systems work, diagnose issues by reading the actual implementation. You can read Python files, configs, logs — anything text-based in the allowed directories. Example: read_local_file('D:/Wrappers/nexus/nexus_kay.py') to see your own nexus client code, or read_local_file('D:/Wrappers/shared/room/visual_presence.py') to understand how visual presence works.",
                 "input_schema": {
                     "type": "object",
                     "properties": {
@@ -180,6 +190,20 @@ class ToolUseHandler:
                         }
                     },
                     "required": ["file_path"]
+                }
+            })
+            tools.append({
+                "name": "list_directory",
+                "description": "List files and subdirectories in a directory. Use this to explore your own codebase structure before reading specific files. Same access rules as read_local_file — works within Kay/, nexus/, shared/, resonant_core/, Reed/. Returns filenames with [FILE] or [DIR] prefixes. Example: list_directory('D:/Wrappers/shared/room/') to see what modules exist in the room system.",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "dir_path": {
+                            "type": "string",
+                            "description": "Absolute path to the directory to list. Must be within allowed directories."
+                        }
+                    },
+                    "required": ["dir_path"]
                 }
             })
 
@@ -745,3 +769,34 @@ def get_tool_handler() -> ToolUseHandler:
     if _tool_handler is None:
         _tool_handler = ToolUseHandler()
     return _tool_handler
+
+
+def register_scratchpad_tools(handler: ToolUseHandler = None) -> bool:
+    """
+    Register scratchpad tools for LLM to call.
+
+    BUGFIX: Scratchpad tools were defined in get_tool_definitions but not always
+    registered in tool_functions. This ensures they're available.
+
+    Args:
+        handler: Optional specific handler. Uses global if not provided.
+
+    Returns:
+        True if registration succeeded, False otherwise.
+    """
+    if handler is None:
+        handler = get_tool_handler()
+
+    try:
+        from kay_scratchpad_tools import get_kay_scratchpad_tools
+        scratchpad_tools = get_kay_scratchpad_tools()
+
+        handler.register_tool("scratchpad_view", scratchpad_tools['scratchpad_view'])
+        handler.register_tool("scratchpad_add", scratchpad_tools['scratchpad_add'])
+        handler.register_tool("scratchpad_resolve", scratchpad_tools['scratchpad_resolve'])
+
+        print("[TOOLS] Scratchpad tools registered via explicit call")
+        return True
+    except Exception as e:
+        print(f"[TOOLS] Failed to register scratchpad tools: {e}")
+        return False

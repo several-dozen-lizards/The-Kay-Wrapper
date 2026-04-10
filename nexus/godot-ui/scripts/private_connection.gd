@@ -10,6 +10,7 @@ signal emote_received(sender: String, content: String)
 signal status_received(status: String)
 signal system_received(content: String)
 signal history_received(messages: Array)
+signal image_received(sender: String, image_b64: String, caption: String)
 signal room_updated(state: Dictionary)
 signal room_changed(entity: String, to_room: String, from_room: String)
 signal logs_received(entries: Array)
@@ -24,13 +25,23 @@ var _wants_connection: bool = false
 var _reconnect_timer: float = 0.0
 var _reconnect_delay: float = 3.0
 
+## Buffer sizes: default 64KB is too small for history replays + log batches.
+const WS_BUFFER_SIZE := 10485760  # 10MB - needed for large responses
+
 
 func _ready() -> void:
+	_configure_socket(_socket)
 	set_process(false)
+
+
+func _configure_socket(ws: WebSocketPeer) -> void:
+	ws.inbound_buffer_size = WS_BUFFER_SIZE
+	ws.outbound_buffer_size = WS_BUFFER_SIZE
 
 
 func connect_to_room() -> void:
 	_wants_connection = true
+	_configure_socket(_socket)
 	var err = _socket.connect_to_url(server_url)
 	if err != OK:
 		push_error("PrivateConnection: connect failed: %s" % err)
@@ -68,54 +79,66 @@ func _send(data: Dictionary) -> void:
 func _process(delta: float) -> void:
 	_socket.poll()
 	var state = _socket.get_ready_state()
-	
+
 	match state:
 		WebSocketPeer.STATE_OPEN:
 			if not _connected:
 				_connected = true
 				_reconnect_timer = 0.0
 				connected.emit()
-			
+
 			while _socket.get_available_packet_count() > 0:
 				var raw = _socket.get_packet().get_string_from_utf8()
+				# Guard: check for empty string
+				if raw.is_empty():
+					continue
 				var parsed = JSON.parse_string(raw)
+				if parsed == null:
+					continue
 				if parsed is Dictionary:
 					_handle_message(parsed)
-		
+
 		WebSocketPeer.STATE_CLOSING:
 			pass
-		
+
 		WebSocketPeer.STATE_CLOSED:
 			if _connected:
 				_connected = false
 				disconnected.emit()
-			
+
 			if _wants_connection:
 				_reconnect_timer += delta
 				if _reconnect_timer >= _reconnect_delay:
 					_reconnect_timer = 0.0
 					_socket = WebSocketPeer.new()
+					_configure_socket(_socket)
 					_socket.connect_to_url(server_url)
 
 
 func _handle_message(data: Dictionary) -> void:
-	var msg_type = data.get("type", "")
-	
+	var msg_type = str(data.get("type", ""))
+
 	match msg_type:
 		"chat":
 			chat_received.emit(
-				data.get("sender", entity_name),
-				data.get("content", "")
+				str(data.get("sender", entity_name)),
+				str(data.get("content", ""))
 			)
 		"emote":
 			emote_received.emit(
-				data.get("sender", entity_name),
-				data.get("content", "")
+				str(data.get("sender", entity_name)),
+				str(data.get("content", ""))
 			)
 		"status":
-			status_received.emit(data.get("status", ""))
+			status_received.emit(str(data.get("status", "")))
 		"system":
-			system_received.emit(data.get("content", ""))
+			system_received.emit(str(data.get("content", "")))
+		"image":
+			image_received.emit(
+				str(data.get("sender", entity_name)),
+				str(data.get("image_b64", "")),
+				str(data.get("caption", ""))
+			)
 		"history":
 			var msgs = data.get("messages", [])
 			if msgs is Array:
@@ -124,11 +147,12 @@ func _handle_message(data: Dictionary) -> void:
 			pass  # keepalive response
 		"room_update":
 			# Check if this is a room change notification (entity moving)
-			var entity = data.get("entity", "")
-			var to_room = data.get("room", data.get("to_room", ""))
+			var entity = str(data.get("entity", ""))
+			var to_room_raw = data.get("room", data.get("to_room", ""))
+			var to_room = str(to_room_raw) if to_room_raw != null else ""
 			if entity and to_room:
 				# Room change — entity moved to a different room
-				var from_room = data.get("from_room", "")
+				var from_room = str(data.get("from_room", ""))
 				room_changed.emit(entity, to_room, from_room)
 			else:
 				# Full room state update
@@ -137,9 +161,10 @@ func _handle_message(data: Dictionary) -> void:
 					room_updated.emit(state)
 		"room_change":
 			# Explicit room change message
-			var entity = data.get("entity", "")
-			var to_room = data.get("to_room", data.get("room", ""))
-			var from_room = data.get("from_room", "")
+			var entity = str(data.get("entity", ""))
+			var to_room_raw = data.get("to_room", data.get("room", ""))
+			var to_room = str(to_room_raw) if to_room_raw != null else ""
+			var from_room = str(data.get("from_room", ""))
 			if entity and to_room:
 				room_changed.emit(entity, to_room, from_room)
 		"logs":
@@ -148,8 +173,8 @@ func _handle_message(data: Dictionary) -> void:
 				logs_received.emit(entries)
 		"log":
 			log_received.emit(
-				data.get("entity", ""), data.get("tag", ""),
-				data.get("message", ""), data.get("ts", 0.0)
+				str(data.get("entity", "")), str(data.get("tag", "")),
+				str(data.get("message", "")), float(data.get("ts", 0.0))
 			)
 		"log_batch":
 			var logs = data.get("logs", [])
@@ -157,6 +182,7 @@ func _handle_message(data: Dictionary) -> void:
 				for entry in logs:
 					if entry is Dictionary:
 						log_received.emit(
-							entry.get("entity", ""), entry.get("tag", ""),
-							entry.get("message", ""), entry.get("ts", 0.0)
+							str(entry.get("entity", "")), str(entry.get("tag", "")),
+							str(entry.get("message", "")), float(entry.get("ts", 0.0))
 						)
+

@@ -17,6 +17,74 @@ except ImportError:
     def etag(tag): return f"[{tag}]"
 
 
+# ============================================================================
+# ENTITY NOISE FILTERING - Prevents creation of transient/meaningless entities
+# ============================================================================
+# These patterns should NOT become persistent entities - they're mentioned
+# in conversation but aren't worth tracking in the entity graph.
+
+ENTITY_NOISE_PATTERNS = {
+    # Days of the week / time references
+    'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+    'today', 'tomorrow', 'yesterday', 'tonight', 'morning', 'afternoon', 'evening',
+    'weekend', 'weekday', 'week', 'month', 'year', 'day', 'night', 'hour', 'minute',
+
+    # Common food items (transient mentions)
+    'pizza', 'sandwich', 'coffee', 'tea', 'dinner', 'lunch', 'breakfast', 'snack',
+    'food', 'meal', 'drink', 'water', 'soda', 'beer', 'wine', 'juice',
+    'burger', 'salad', 'soup', 'pasta', 'rice', 'bread', 'chicken', 'beef',
+    'margherita', 'pepperoni', 'cheese', 'sauce', 'toppings',
+
+    # Common appliances/furniture (unless specifically named/important)
+    'oven', 'microwave', 'fridge', 'refrigerator', 'stove', 'dishwasher', 'toaster',
+    'desk', 'chair', 'table', 'couch', 'sofa', 'bed', 'lamp', 'light',
+    'screen', 'monitor', 'keyboard', 'mouse', 'computer', 'laptop', 'phone',
+    'tv', 'television', 'remote', 'speaker', 'headphones', 'earbuds', 'headset',
+
+    # Room/environment elements
+    'room', 'environment', 'atmosphere', 'workspace', 'backdrop', 'curtain',
+    'fabric', 'wall', 'floor', 'ceiling', 'window', 'door',
+    'scene', 'frame', 'background', 'foreground', 'camera frame',
+    'fabric backdrop', 'colored light', 'computing session',
+
+    # Abstract/generic concepts that aren't trackable entities
+    'issue', 'problem', 'thing', 'stuff', 'something', 'nothing', 'everything',
+    'article', 'blog', 'post', 'comment', 'message', 'text', 'email',
+    'system', 'feature', 'bug', 'fix', 'error', 'question', 'answer',
+    'idea', 'thought', 'concept', 'topic', 'subject', 'matter',
+    'way', 'method', 'approach', 'solution', 'option', 'choice',
+    'reason', 'cause', 'effect', 'result', 'outcome', 'consequence',
+    'work', 'session', 'activity', 'process', 'task', 'shared activity',
+    'files', 'meaning', 'context', 'document', 'joke', 'wiring', 'compression',
+    'coherence', 'substrate', 'path', 'sunset', 'branches', 'camera',
+    'artwork', 'abstract art', 'art piece', 'art', 'animals', 'woman', 'partner',
+
+    # Self-referential system terms (Kay talking about his own systems)
+    'recognition system', 'mislabeling issue', 'memory system', 'entity graph',
+    'extraction', 'processing', 'pipeline', 'module', 'engine', 'handler',
+    'affective layer',
+
+    # Camera-derived scene attributes (should NOT become entities)
+    'environment lighting', 'light source', 'screen light', 'gaze direction',
+    'lighting', 'illumination', 'brightness', 'darkness', 'shadow', 'ambient',
+    'position', 'posture', 'stance', 'facing', 'looking', 'sitting', 'standing',
+
+    # Common pronouns/determiners that might slip through
+    'someone', 'anyone', 'everyone', 'nobody', 'somebody',
+    'this', 'that', 'these', 'those', 'here', 'there', 'where', 'when',
+    'it', 'we', 'they', 'he', 'she', 'me', 'you', 'us', 'them',
+}
+
+# Camera-derived attribute patterns - these should not be stored on real entities
+CAMERA_ATTRIBUTE_PATTERNS = {
+    'gaze_direction', 'environment_lighting', 'light_source', 'screen_position',
+    'posture', 'facing_direction', 'body_position', 'head_position',
+    'ambient_lighting', 'illumination_type', 'shadow_direction',
+    'alone_status', 'environment_sound', 'people_count', 'animals_count',
+    'scene_mood', 'activity_flow', 'visual_feed', 'camera_data',
+}
+
+
 
 class Entity:
     """
@@ -812,53 +880,127 @@ class EntityGraph:
     def _is_valid_entity_name(self, name: str) -> bool:
         """
         Check if a name is valid for entity creation.
-        
+
         Rejects:
         - Empty or whitespace-only names
         - Names that are mostly symbols/glyphs (◈ⁿ, ⟡, ⊗, etc.)
         - Single non-letter characters
         - Names with no alphanumeric content
-        
+
         Args:
             name: Potential entity name
-            
+
         Returns:
             True if valid entity name, False if should be rejected
         """
         import re
-        
+
         if not name or not name.strip():
             return False
-        
+
         name = name.strip()
-        
+
         # Reject single characters unless they're letters (like "K" for Kay)
         if len(name) == 1 and not name.isalpha():
             return False
-        
+
         # Count alphanumeric characters
         alnum_count = sum(1 for c in name if c.isalnum())
-        
+
         # Reject if no alphanumeric characters at all
         if alnum_count == 0:
             return False
-        
+
         # Reject if less than 30% alphanumeric (catches things like "◈ⁿ" or "⟡³")
         if len(name) > 1 and alnum_count / len(name) < 0.3:
             return False
-        
+
         # Reject known glyph patterns used in the wrapper notation
         glyph_patterns = [
             r'^[◈⟡⊗∅◊△▽○●□■◆◇★☆♦♠♣♥♡⚡⚙⚔⛤⛧☾☽✦✧✨]+[ⁿ⁰¹²³⁴⁵⁶⁷⁸⁹]*$',  # Symbol + superscript
             r'^[⊕⊖⊗⊘⊙⊚⊛⊜⊝]+$',  # Mathematical operators
             r'^[\u2600-\u26FF]+$',  # Miscellaneous symbols unicode block
         ]
-        
+
         for pattern in glyph_patterns:
             if re.match(pattern, name):
                 return False
-        
+
         return True
+
+    def _is_noise_entity(self, name: str) -> bool:
+        """
+        Check if entity name matches transient/noise patterns that shouldn't be tracked.
+
+        These are mentions that appear in conversation but aren't worth creating
+        persistent entities for (food items, days of week, appliances, abstract concepts).
+
+        Args:
+            name: Entity name to check
+
+        Returns:
+            True if this is a noise entity (should NOT be created), False otherwise
+        """
+        if not name:
+            return True
+
+        name_lower = name.lower().strip()
+
+        # Direct match against noise patterns
+        if name_lower in ENTITY_NOISE_PATTERNS:
+            return True
+
+        # Check if name is a multi-word phrase that contains a noise pattern as the main noun
+        # e.g., "the oven", "my dinner", "tomorrow morning"
+        words = name_lower.split()
+        if len(words) >= 1:
+            # Check last word (usually the noun in "the X", "my X" patterns)
+            if words[-1] in ENTITY_NOISE_PATTERNS:
+                return True
+            # Check first significant word for standalone patterns
+            if words[0] in ENTITY_NOISE_PATTERNS:
+                return True
+
+        # Very short generic names (2 chars or less, unless they're initials like "Re")
+        if len(name_lower) <= 2 and not name_lower.isalpha():
+            return True
+
+        # Generic single-word names that are too common to be meaningful entities
+        generic_singles = {'it', 'he', 'she', 'they', 'we', 'you', 'me', 'us', 'them'}
+        if name_lower in generic_singles:
+            return True
+
+        return False
+
+    def _is_camera_derived_attribute(self, attribute: str) -> bool:
+        """
+        Check if an attribute is derived from camera/visual sensor data.
+
+        These attributes shouldn't be stored on real entities like Re or Kay
+        because they're transient scene observations, not permanent facts.
+
+        Args:
+            attribute: Attribute name to check
+
+        Returns:
+            True if this is a camera-derived attribute, False otherwise
+        """
+        if not attribute:
+            return False
+
+        attr_lower = attribute.lower().strip()
+
+        # Direct match
+        if attr_lower in CAMERA_ATTRIBUTE_PATTERNS:
+            return True
+
+        # Partial match for camera-related patterns
+        camera_keywords = ['gaze', 'lighting', 'illumination', 'posture', 'facing', 'position']
+        for keyword in camera_keywords:
+            if keyword in attr_lower:
+                return True
+
+        return False
 
     def resolve_entity(self, mention: str, context: str = "") -> Optional[str]:
         """
@@ -909,6 +1051,11 @@ class EntityGraph:
         """
         # VALIDATION: Reject glyph/symbol names that aren't real entities
         if not self._is_valid_entity_name(name):
+            return None
+
+        # NOISE FILTERING: Reject transient/meaningless entities
+        # Days of week, food items, appliances, abstract concepts, etc.
+        if self._is_noise_entity(name):
             return None
 
         # STEP 1: Check canonical mapping for deduplicated match
@@ -998,9 +1145,29 @@ class EntityGraph:
             turn: Current turn index
             source: Who stated this attribute
         """
+        # CAMERA ATTRIBUTE FILTERING: Don't store camera-derived attributes on real entities
+        # These are transient scene observations (gaze_direction, environment_lighting, etc.)
+        if self._is_camera_derived_attribute(attribute):
+            # Only allow camera attributes on visual_memory entities, not real people/things
+            if entity_name.lower() in ('re', 'kay', 'reed') or not entity_name.startswith('visual_'):
+                return  # Silently skip camera-derived attributes on real entities
+
+        # CAMERA VALUE FILTERING: Skip camera-derived values like "human" for species on Re
+        # when it's obviously just scene detection, not a meaningful fact
+        if attribute.lower() == 'species' and source == 'system':
+            value_lower = str(value).lower()
+            if value_lower in ('human', 'person', 'adult', 'male', 'female'):
+                # Skip obvious camera scene detections - not meaningful facts
+                return
+
         if entity_name not in self.entities:
             # Create entity if it doesn't exist
-            self.get_or_create_entity(entity_name, "unknown", turn)
+            result = self.get_or_create_entity(entity_name, "unknown", turn)
+            if result is None:
+                return  # Entity was rejected by noise filter
+
+        if entity_name not in self.entities:
+            return  # Entity creation failed
 
         entity = self.entities[entity_name]
         entity.add_attribute(attribute, value, turn, source)
@@ -1472,9 +1639,10 @@ class EntityGraph:
                     continue
 
                 # Check if any value in history matches wrong value
+                # Use word boundaries to prevent "phone" matching "headphones"
                 for value, stored_turn, source, timestamp in attr_history:
                     value_str = str(value).lower()
-                    if wrong_value_lower in value_str:
+                    if re.search(r'\b' + re.escape(wrong_value_lower) + r'\b', value_str):
                         # Found a value to correct!
                         print(f"{etag('USER CORRECTION')} Found: {entity.canonical_name}.{attr_name} = '{value}' (source: {source})")
 
@@ -1523,10 +1691,10 @@ class EntityGraph:
         """
         Find all entity attributes containing a specific value pattern.
 
-        Useful for debugging and seeing where a wrong value exists.
+        Uses word boundary matching to prevent 'phone' matching 'headphones'.
 
         Args:
-            value_pattern: Substring to search for in attribute values
+            value_pattern: Word/phrase to search for in attribute values
             entity_filter: Optional entity name filter
 
         Returns:
@@ -1534,6 +1702,8 @@ class EntityGraph:
         """
         results = []
         value_pattern_lower = value_pattern.lower()
+        # Word boundary regex prevents substring false positives
+        word_re = re.compile(r'\b' + re.escape(value_pattern_lower) + r'\b', re.IGNORECASE)
 
         for ent_name, entity in self.entities.items():
             if entity_filter and entity_filter.lower() not in ent_name.lower():
@@ -1541,7 +1711,7 @@ class EntityGraph:
 
             for attr_name, attr_history in entity.attributes.items():
                 for value, turn, source, timestamp in attr_history:
-                    if value_pattern_lower in str(value).lower():
+                    if word_re.search(str(value)):
                         results.append({
                             "entity": ent_name,
                             "attribute": attr_name,
