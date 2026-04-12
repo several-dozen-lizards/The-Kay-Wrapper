@@ -145,6 +145,15 @@ class GraphActivationCache:
             self.memories = []
             self.activated_band = ""
 
+    def inject_memory(self, memory: Dict):
+        """Inject a single memory into the cache (for novelty/anti-rumination).
+        Replaces the oldest entry if cache is full."""
+        with self.lock:
+            if len(self.memories) >= self.max_size:
+                self.memories.pop(0)  # Remove oldest
+            self.memories.append(memory)
+            self.last_updated = time.time()
+
     def is_stale(self, max_age: float = None) -> bool:
         """Check if cache is too old to be useful."""
         max_age = max_age or UNIFIED_LOOP_CONFIG.get("max_cache_age", 120.0)

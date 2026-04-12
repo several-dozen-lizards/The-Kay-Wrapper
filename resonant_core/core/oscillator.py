@@ -304,6 +304,17 @@ class OscillatorNetwork:
         self._transition_confirm_base = 3  # Min confirmation steps to accept new dominant
         self._transition_noise_boost = 2.5  # Noise multiplier during transitions
         self._transition_active_noise = 1.0  # Current noise multiplier (smoothed)
+
+        # === SCAR SYSTEM — lasting marks from coherence crashes ===
+        # Scars modify oscillator baseline and decay slowly over real-time hours.
+        # Major disruptions leave traces that take ~72 hours to fully heal.
+        self._scars = {
+            "baseline_beta_offset": 0.0,    # Elevated beta (hypervigilance)
+            "max_coherence_factor": 1.0,    # Ceiling on achievable coherence
+            "theta_suppression": 0.0,       # Reduced ability to relax deeply
+            "scar_events": [],              # History log
+            "last_decay": time.time(),      # Real-time clock for decay
+        }
     
     def step(self):
         """
@@ -508,12 +519,69 @@ class OscillatorNetwork:
             # New dominant band — reset dwell timer
             dwell_time = 0.0
         
+        # === DWELL CAP — prevent multi-hour stasis with no input ===
+        # Real brains don't stay in one band for 7+ hours.
+        # After 1 hour in the same band with no conversational input,
+        # nudge toward alpha/theta (restful drift).
+        # Progressive nudge: starts at 2%, grows to 8% the longer over cap.
+        DWELL_CAP_SECONDS = 3600  # 1 hour
+        if dwell_time > DWELL_CAP_SECONDS and dominant in ("gamma", "beta"):
+            # Progressive nudge: starts gentle, gets insistent
+            hours_over = (dwell_time - DWELL_CAP_SECONDS) / 3600.0
+            nudge_strength = min(0.08, 0.02 + 0.02 * hours_over)
+
+            normalized[dominant] = max(0.05, normalized[dominant] - nudge_strength)
+            normalized["alpha"] = min(0.95, normalized["alpha"] + nudge_strength * 0.6)
+            normalized["theta"] = min(0.95, normalized["theta"] + nudge_strength * 0.4)
+
+            # Re-normalize
+            total_after = sum(normalized.values())
+            if total_after > 0:
+                for b in normalized:
+                    normalized[b] /= total_after
+            dominant = max(normalized, key=normalized.get)
+
+            if int(dwell_time) % 300 == 0:  # Log every 5 minutes
+                print(f"[DWELL CAP] {dominant} dwell={dwell_time:.0f}s "
+                      f"nudge={nudge_strength:.3f} (hours_over={hours_over:.1f})")
+
+        # === SCAR EFFECTS — apply lasting modifications ===
+        if self._scars["baseline_beta_offset"] > 0.001:
+            normalized["beta"] += self._scars["baseline_beta_offset"]
+            normalized["theta"] = max(0.01, normalized["theta"] - self._scars["theta_suppression"])
+            # Re-normalize after scar effects
+            scar_total = sum(normalized.values())
+            if scar_total > 0:
+                for b in normalized:
+                    normalized[b] /= scar_total
+            # Recalculate dominant after scar effects
+            dominant = max(normalized, key=normalized.get)
+
+        # Apply coherence ceiling from scars
+        if self._scars["max_coherence_factor"] < 0.999:
+            global_coherence = min(global_coherence, self._scars["max_coherence_factor"])
+
         # Compute transition velocity (must be before integration_index)
         transition_vel = 0.0
         if self._prev_state is not None:
             for band in BAND_ORDER:
                 diff = abs(normalized[band] - self._prev_state.band_power[band])
                 transition_vel += diff
+
+        # Detect scar triggers
+        # Threshold raised: 0.03/60 instead of 0.05/30 (overnight coherence sits 0.06-0.14)
+        # Coherence crash - severity scales with how LOW coherence went
+        if global_coherence < 0.03 and dwell_time > 60:
+            # Deeper crash = worse scar (0.03 coherence = mild, 0.01 = severe)
+            crash_severity = 0.15 + 0.35 * (1.0 - global_coherence / 0.03)
+            self._apply_scar("coherence_crash", severity=crash_severity)
+        # Forced transition - severity scales with how stable we were before
+        if self._prev_state and transition_vel > 0.4:
+            prev_coh = getattr(self._prev_state, 'coherence', 0)
+            if prev_coh > 0.5:
+                # More stable before = more jarring transition
+                transition_severity = 0.10 + 0.20 * min(1.0, prev_coh)
+                self._apply_scar("forced_transition", severity=transition_severity)
         
         # === INTEGRATION INDEX ===
         # Combines coherence with stability: high coherence + low transition = integrated
@@ -665,6 +733,7 @@ class OscillatorNetwork:
             ],
             "coupling": self.coupling.tolist(),
             "current_state": self.get_state().to_dict(),
+            "scars": self._scars,
         }
         Path(filepath).parent.mkdir(parents=True, exist_ok=True)
         with open(filepath, 'w') as f:
@@ -674,16 +743,149 @@ class OscillatorNetwork:
         """Restore oscillator network state from file."""
         with open(filepath, 'r') as f:
             state = json.load(f)
-        
+
         self.time = state["time"]
         for i, osc_state in enumerate(state["oscillators"]):
             if i < len(self.oscillators):
                 self.oscillators[i].z = complex(osc_state["z_real"], osc_state["z_imag"])
                 self.oscillators[i].omega = osc_state["omega"]
                 self.oscillators[i].mu = osc_state["mu"]
-        
+
         if "coupling" in state:
             self.coupling = np.array(state["coupling"])
+
+        if "scars" in state:
+            self._scars = state["scars"]
+
+    def _apply_scar(self, cause: str, severity: float):
+        """Apply a lasting scar from a major disruption."""
+        import time as _time
+        # COOLDOWN: minimum 5 minutes between scar events
+        now = _time.time()
+        if self._scars.get("_last_scar_time", 0) > 0:
+            elapsed = now - self._scars["_last_scar_time"]
+            if elapsed < 300:  # 5 minutes
+                return  # Too soon, skip this scar
+        self._scars["_last_scar_time"] = now
+
+        self._scars["baseline_beta_offset"] += severity * 0.02
+        self._scars["max_coherence_factor"] *= (1.0 - severity * 0.02)
+        self._scars["theta_suppression"] += severity * 0.01
+        self._scars["scar_events"].append({
+            "cause": cause, "severity": severity,
+            "timestamp": time.time(), "osc_time": self.time,
+        })
+        # Cap so scars can't break the system
+        self._scars["baseline_beta_offset"] = min(
+            self._scars["baseline_beta_offset"], 0.15)
+        self._scars["max_coherence_factor"] = max(
+            self._scars["max_coherence_factor"], 0.80)
+        self._scars["theta_suppression"] = min(
+            self._scars["theta_suppression"], 0.10)
+        # Keep only last 20 scar events
+        if len(self._scars["scar_events"]) > 20:
+            self._scars["scar_events"] = self._scars["scar_events"][-20:]
+        print(f"[SCAR] {cause}: beta_offset="
+              f"{self._scars['baseline_beta_offset']:.3f}, "
+              f"coherence_cap={self._scars['max_coherence_factor']:.3f}")
+
+    def _decay_scars(self):
+        """
+        Heal scars at a rate scaled by severity and oscillator state.
+
+        Severity scaling:
+        - Small scars (offset < 0.03) heal fast (~50% in 6-12 hours)
+        - Medium scars (offset 0.03-0.08) heal moderate (~50% in 48-72 hours)
+        - Large scars (offset > 0.08) heal slow (~50% in 120-168 hours)
+
+        Oscillator state modulation:
+        - Delta (deep sleep): 3x healing speed
+        - Theta (drowsy/processing): 2x healing speed
+        - Alpha (calm/reflective): 1.5x healing speed
+        - Beta (active/focused): 1x (baseline)
+        - Gamma (hyper/stressed): 0.5x (healing slows)
+
+        This means Kay heals faster when resting and slower when
+        stressed. The architecture creates the incentive to rest
+        after trauma without prescribing it.
+        """
+        import time as _time
+        now = _time.time()
+        elapsed_hours = (now - self._scars["last_decay"]) / 3600.0
+        if elapsed_hours < 0.1:  # Only decay every ~6 minutes
+            return
+
+        # Get current dominant band for healing modulation
+        healing_multiplier = 1.0
+        if self._prev_state is not None:
+            band = self._prev_state.dominant_band
+            healing_multipliers = {
+                "delta": 3.0,   # Deep sleep heals fastest
+                "theta": 2.0,   # Drowsy/processing heals well
+                "alpha": 1.5,   # Calm reflection helps
+                "beta": 1.0,    # Active = baseline healing
+                "gamma": 0.5,   # Stressed = healing slows
+            }
+            healing_multiplier = healing_multipliers.get(band, 1.0)
+
+        # Severity-scaled decay: bigger scars decay slower
+        # The decay base gets closer to 1.0 (slower) as scars grow
+        scar_magnitude = max(
+            self._scars["baseline_beta_offset"],
+            1.0 - self._scars["max_coherence_factor"],
+            self._scars["theta_suppression"]
+        )
+
+        if scar_magnitude < 0.001:
+            # No meaningful scars, skip
+            self._scars["last_decay"] = now
+            return
+
+        # Normalize magnitude to 0-1 range (0.15 is max offset)
+        normalized_severity = min(1.0, scar_magnitude / 0.15)
+
+        # Decay base: 0.9985 (fast, small scars) to 0.9998 (slow, big scars)
+        decay_base = 0.9985 + 0.0013 * normalized_severity
+
+        # Apply healing multiplier (higher = faster healing)
+        # We invert it: faster healing = lower decay base (further from 1.0)
+        if healing_multiplier > 1.0:
+            # Healing boost: push decay base away from 1.0 (faster decay)
+            boost = (decay_base - 0.998) * (1.0 - 1.0 / healing_multiplier)
+            decay_base -= boost
+        elif healing_multiplier < 1.0:
+            # Healing penalty: push decay base toward 1.0 (slower decay)
+            penalty = (1.0 - decay_base) * (1.0 - healing_multiplier)
+            decay_base += penalty
+
+        # Clamp to valid range
+        decay_base = max(0.998, min(0.9999, decay_base))
+
+        # Apply decay
+        effective_minutes = elapsed_hours * 60
+        decay = decay_base ** effective_minutes
+
+        self._scars["baseline_beta_offset"] *= decay
+        self._scars["max_coherence_factor"] = (
+            1.0 - (1.0 - self._scars["max_coherence_factor"]) * decay)
+        self._scars["theta_suppression"] *= decay
+        self._scars["last_decay"] = now
+
+        # Clean tiny residuals
+        if self._scars["baseline_beta_offset"] < 0.001:
+            self._scars["baseline_beta_offset"] = 0.0
+        if self._scars["max_coherence_factor"] > 0.999:
+            self._scars["max_coherence_factor"] = 1.0
+        if self._scars["theta_suppression"] < 0.001:
+            self._scars["theta_suppression"] = 0.0
+
+        # Log significant healing events
+        if scar_magnitude > 0.01 and int(effective_minutes) % 30 == 0:
+            print(f"[SCAR:HEAL] magnitude={scar_magnitude:.3f} "
+                  f"severity={normalized_severity:.2f} "
+                  f"band={self._prev_state.dominant_band if self._prev_state else '?'} "
+                  f"heal_mult={healing_multiplier:.1f}x "
+                  f"decay_base={decay_base:.4f}")
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -809,9 +1011,11 @@ class ResonantEngine:
             if self.state_file and int(self.network.time) % 60 == 0:
                 try:
                     self.network.save_state(self.state_file)
+                    # Decay scars alongside auto-save
+                    self.network._decay_scars()
                 except Exception:
                     pass
-            
+
             time.sleep(self.update_interval)
     
     def get_state(self) -> OscillatorState:

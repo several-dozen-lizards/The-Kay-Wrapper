@@ -125,6 +125,9 @@ class MetacognitiveMonitor:
         self.inventory = SystemInventory(memory_path=memory_path)
         self.inventory._metacog = self  # Reference back for firing novelty pulses
 
+        # Trip metrics — continuous cognitive observation (set by wrapper_bridge)
+        self._trip_metrics = None
+
         # Track session delta injection (inject into first ~3 resonant contexts only)
         self._session_delta_injected_count = 0
         self._max_session_delta_injections = 3
@@ -605,6 +608,12 @@ class MetacognitiveMonitor:
 
         pulse = NoveltyPulse(source, description, significance, category)
         self._active_pulses.append(pulse)
+
+        # Trip metrics: record novelty event (and awe if highly significant)
+        if self._trip_metrics:
+            self._trip_metrics.record_novelty_event()
+            if significance >= 0.7:  # High significance triggers awe signature
+                self._trip_metrics.record_awe_signature()
 
         print(f"{etag('METACOG')} NOVELTY PULSE: {source} ({category}, sig={significance:.2f})")
         print(f"{etag('METACOG')}   Stage: disruption — '???'")

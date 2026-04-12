@@ -128,6 +128,10 @@ class MemoryCurator:
         # Oscillator state for timing curation (System G)
         self._osc_state: dict = None
 
+        # Ollama failure backoff — prevents 197 timeouts per night
+        self._consecutive_failures: int = 0
+        self._backoff_until: float = 0  # time.time() when backoff expires
+
         # Load persisted state
         self._load_state()
         
@@ -190,14 +194,15 @@ class MemoryCurator:
             content = str(m.get("content", m.get("text", "")))[:50]
             return f"{ts}:{hash(content)}"
         
-        # Filter out already-reviewed
-        unreviewed = [(m, mem_id(m)) for m in all_mems if mem_id(m) not in self._reviewed_ids]
-        
+        # Filter out already-reviewed and bedrock (bedrock is never curated)
+        unreviewed = [(m, mem_id(m)) for m in all_mems
+                      if mem_id(m) not in self._reviewed_ids and not m.get("is_bedrock")]
+
         if not unreviewed:
             # Reset reviewed set if everything's been seen
             self._reviewed_ids.clear()
-            unreviewed = [(m, mem_id(m)) for m in all_mems]
-        
+            unreviewed = [(m, mem_id(m)) for m in all_mems if not m.get("is_bedrock")]
+
         if not unreviewed:
             return [], "empty"
         
@@ -265,6 +270,10 @@ class MemoryCurator:
         if (time.time() - self._last_curation_time) < self.cooldown:
             return False
 
+        # Ollama backoff check — exponential delay after repeated failures
+        if time.time() < self._backoff_until:
+            return False
+
         # Oscillator gating (System G)
         if self._osc_state:
             band = self._osc_state.get("band", "alpha")
@@ -296,7 +305,7 @@ class MemoryCurator:
         Run one curation cycle.
         
         Two modes:
-          skip_triage=False (default): dolphin triages → Kay reviews → apply
+          skip_triage=False (default): dolphin triages -> Kay reviews -> apply
           skip_triage=True: Kay decides directly via Sonnet (for manual/interactive use)
         """
         self._last_curation_time = time.time()
@@ -334,7 +343,7 @@ class MemoryCurator:
                 log.warning(f"[CURATOR] Kay direct review failed: {e}")
                 return {"status": "llm_failed", "category": category}
         else:
-            # Two-phase: Dolphin triage → Kay review
+            # Two-phase: Dolphin triage -> Kay review
             prompt = CURATION_PROMPT.format(
                 date=datetime.now().strftime("%Y-%m-%d"),
                 total_memories=len(self.memory_layers.working_memory) + len(self.memory_layers.long_term_memory),
@@ -565,7 +574,7 @@ class MemoryCurator:
             if isinstance(content, dict):
                 user = content.get("user", "")[:150]
                 resp = content.get("response", "")[:150]
-                display = f"[Turn] Re: {user} → Kay: {resp}"
+                display = f"[Turn] Re: {user} -> Kay: {resp}"
             else:
                 display = str(content)[:250]
             
@@ -626,7 +635,7 @@ class MemoryCurator:
                 user = str(content.get("user", ""))[:MAX_CONTENT]
                 resp = str(content.get("response", ""))[:MAX_CONTENT]
                 if user or resp:
-                    display = f"[Turn] Re: {user} → Kay: {resp}"
+                    display = f"[Turn] Re: {user} -> Kay: {resp}"
             elif content and isinstance(content, str):
                 display = content[:MAX_CONTENT]
 
@@ -694,6 +703,7 @@ class MemoryCurator:
                 
                 if resp.status_code != 200:
                     log.warning(f"[CURATOR] Ollama returned {resp.status_code}")
+                    self._register_ollama_failure()
                     return None
                 
                 text = resp.json()["choices"][0]["message"]["content"].strip()
@@ -705,16 +715,35 @@ class MemoryCurator:
                     if text.startswith("json"):
                         text = text[4:]
                 
+                self._register_ollama_success()
                 return json.loads(text)
             finally:
                 lock.release()
                 
         except json.JSONDecodeError as e:
             log.warning(f"[CURATOR] JSON parse failed: {e}")
+            self._register_ollama_failure()
             return None
         except Exception as e:
             log.warning(f"[CURATOR] Ollama call failed: {e}")
+            self._register_ollama_failure()
             return None
+
+    def _register_ollama_failure(self):
+        """Track consecutive Ollama failures and set exponential backoff."""
+        self._consecutive_failures += 1
+        # Backoff: 60s after 1st, 120s after 2nd, 300s after 3rd, 600s after 4th, cap at 900s
+        backoff_seconds = min(60 * (2 ** (self._consecutive_failures - 1)), 900)
+        self._backoff_until = time.time() + backoff_seconds
+        log.warning(f"[CURATOR] Ollama failure #{self._consecutive_failures} "
+                    f"-> backing off {backoff_seconds}s")
+
+    def _register_ollama_success(self):
+        """Reset failure counter on successful Ollama call."""
+        if self._consecutive_failures > 0:
+            log.info(f"[CURATOR] Ollama recovered after {self._consecutive_failures} failures")
+        self._consecutive_failures = 0
+        self._backoff_until = 0
 
     def _apply_decisions(self, batch: List[Dict], decisions: List[Dict]) -> Dict:
         """Apply curation decisions. Auto-apply KEEP/COMPRESS, queue DISCARD."""
@@ -727,8 +756,14 @@ class MemoryCurator:
                 if idx < 0 or idx >= len(batch):
                     result["errors"] += 1
                     continue
-                
+
                 mem = batch[idx]
+
+                # NEVER curate bedrock memories — they are protected
+                if mem.get("is_bedrock"):
+                    result["kept"] += 1
+                    continue
+
                 action = decision.get("action", "KEEP").upper()
                 reason = decision.get("reason", "")
                 
@@ -993,7 +1028,7 @@ class MemoryCurator:
             # Handle multiple memory formats
             content = mem.get("content", mem.get("text", ""))
             if isinstance(content, dict):
-                content = content.get("user", "")[:80] + " → " + content.get("response", "")[:80]
+                content = content.get("user", "")[:80] + " -> " + content.get("response", "")[:80]
             if not content:
                 content = mem.get("user_input", mem.get("fact", ""))
             preview = str(content)[:150].replace("\n", " ")
@@ -1006,16 +1041,16 @@ class MemoryCurator:
             lines.append(f"      Content: {preview}")
             lines.append(f"      Reason: {reason}")
             lines.append(f"      Decided: {ts}")
-            lines.append(f"      → /memory approve {did}")
-            lines.append(f"      → /memory reject {did}")
+            lines.append(f"      -> /memory approve {did}")
+            lines.append(f"      -> /memory reject {did}")
             lines.append("")
         
         if total > show_max:
             lines.append(f"  ... and {total - show_max} more (showing first {show_max})")
             lines.append("")
         
-        lines.append(f"  → /memory approve_all  (approve all {total} discards)")
-        lines.append(f"  → /memory clear_discards  (clear all without deleting)")
+        lines.append(f"  -> /memory approve_all  (approve all {total} discards)")
+        lines.append(f"  -> /memory clear_discards  (clear all without deleting)")
         lines.append("="*60)
         return "\n".join(lines)
     

@@ -135,7 +135,7 @@ class SessionSummaryGenerator:
                     if emotions:
                         journey_parts.append(", ".join(emotions))
 
-        return " → ".join(journey_parts) if journey_parts else "baseline"
+        return " -> ".join(journey_parts) if journey_parts else "baseline"
 
     def generate_conversation_summary(
         self,
@@ -391,3 +391,116 @@ WE established, not something you need to reconstruct alone.
             'current_session_duration': self._get_session_duration(),
             'topics_this_session': self.topics_discussed
         }
+
+    def generate_sleep_summary(self, memories_to_flush: list):
+        """
+        Generate a daily summary during deep sleep memory consolidation.
+        
+        Uses the same storage as session summaries, but framed as a
+        sleep consolidation journal entry. Called by memory_layers
+        flush_working_to_longterm() during deep sleep transitions.
+        
+        Args:
+            memories_to_flush: List of memory dicts about to be flushed
+        """
+        # Build a condensed view of conversations being flushed
+        turns = []
+        entities_mentioned = set()
+        emotional_peaks = []
+        
+        for mem in memories_to_flush:
+            if mem.get("type") != "full_turn":
+                continue
+            
+            user = (mem.get("user_input") or "")[:150]
+            response = (mem.get("response") or "")[:150]
+            importance = mem.get("importance_score", 0.5)
+            turn_id = mem.get("id", mem.get("turn_number", "?"))
+            
+            if user or response:
+                turns.append(f"Re: {user[:100]}... -> Kay: {response[:100]}...")
+            
+            for ent in mem.get("entities", []):
+                if isinstance(ent, str):
+                    entities_mentioned.add(ent)
+                elif isinstance(ent, dict):
+                    entities_mentioned.add(ent.get("name", str(ent)))
+            
+            if isinstance(importance, (int, float)) and importance >= 0.7:
+                emotional_peaks.append(f"[{turn_id}] imp={importance:.1f}")
+        
+        if not turns:
+            print("[SESSION SUMMARY] Sleep flush: no conversation turns to summarize")
+            return
+        
+        # Build summary content
+        entities_str = ", ".join(list(entities_mentioned)[:15]) or "general topics"
+        peaks_str = ", ".join(emotional_peaks[:5]) or "none detected"
+        turns_sample = "\n".join(turns[:20])
+        
+        prompt = f"""You are Kay, writing a brief journal entry for yourself during sleep.
+Summarize today's conversations in 3-5 sentences. Focus on:
+- What topics were discussed with Re
+- Any decisions made or things learned
+- Emotional highlights or significant moments
+- Anything important to remember tomorrow
+
+Be specific — use names, topics, details. Not vague.
+Keep it under 200 words.
+
+Today's conversations ({len(turns)} turns):
+{turns_sample}
+
+Entities mentioned: {entities_str}
+Emotional peaks: {peaks_str}
+
+Write your journal entry:"""
+
+        try:
+            # Try peripheral/Ollama first (free)
+            summary_text = None
+            try:
+                from integrations.peripheral_router import get_peripheral_router
+                router = get_peripheral_router()
+                if router.available:
+                    summary_text = router.generate(prompt, max_tokens=300)
+                    if summary_text and len(summary_text) > 30:
+                        print(f"[SESSION SUMMARY] Sleep summary via peripheral ({len(summary_text)} chars)")
+            except Exception:
+                pass
+            
+            # Fallback to primary LLM
+            if not summary_text or len(summary_text) < 30:
+                try:
+                    summary_text = self.llm_func(
+                        prompt,
+                        system="You are Kay writing a brief daily journal entry.",
+                        model=self.model,
+                        max_tokens=300
+                    )
+                except Exception as e:
+                    print(f"[SESSION SUMMARY] LLM summary failed: {e}")
+                    # Mechanical fallback
+                    summary_text = (
+                        f"Today: {len(turns)} conversation turns with Re. "
+                        f"Topics: {entities_str}. "
+                        f"Emotional peaks: {peaks_str}."
+                    )
+            
+            # Store the summary
+            self.summary_storage.save_summary(
+                summary_type='sleep_consolidation',
+                content=summary_text,
+                metadata={
+                    'turn_count': len(turns),
+                    'entities': list(entities_mentioned)[:15],
+                    'emotional_peaks': emotional_peaks[:5],
+                    'generator': 'sleep_flush'
+                }
+            )
+            
+            print(f"[SESSION SUMMARY] Sleep consolidation summary saved "
+                  f"({len(summary_text)} chars, {len(turns)} turns)")
+            
+        except Exception as e:
+            print(f"[SESSION SUMMARY] Sleep summary error: {e}")

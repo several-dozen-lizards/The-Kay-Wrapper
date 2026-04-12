@@ -1112,7 +1112,7 @@ class NexusAutonomousProcessor:
                     chat_messages.append(m)
 
             response = await client.messages.create(
-                model="claude-sonnet-4-20250514",
+                model="claude-3-5-haiku-20241022",  # Haiku for autonomous exploration (cost optimization)
                 max_tokens=1500,
                 system=system_msg,
                 messages=chat_messages,

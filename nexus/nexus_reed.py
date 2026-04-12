@@ -5414,6 +5414,16 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
 # ---------------------------------------------------------------------------
 async def run_reed(server_url: str, model: str, no_nexus: bool = False):
     """Run Reed with private room and optionally Nexus."""
+    # Start terminal log capture FIRST — before any output happens
+    try:
+        import sys as _sys, os as _os
+        _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), '..', 'Reed'))
+        from log_router import start_logging
+        start_logging(log_dir=_os.path.join(_os.path.dirname(__file__), 'sessions'))
+        log.info("[LOG ROUTER] Reed terminal capture active -> all output persisted to disk")
+    except Exception as e:
+        log.warning(f"[LOG ROUTER] Failed to start Reed terminal capture: {e}")
+
     client = ReedNexusClient(server_url=server_url, model=model)
     
     # Always start private room

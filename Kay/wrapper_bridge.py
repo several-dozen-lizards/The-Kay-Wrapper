@@ -319,7 +319,10 @@ class WrapperBridge:
         # Link memory engine to auto-reader and state
         self.auto_reader.memory = self.memory
         self.state.memory = self.memory  # CRITICAL: Filter needs access
-        
+
+        # Ensure core family/identity facts exist as bedrock
+        self.memory.ensure_bedrock_facts()
+
         # Relationship memory
         self.relationship = RelationshipMemory()
         rel_stats = self.relationship.get_stats()
@@ -494,6 +497,29 @@ class WrapperBridge:
         summary_stats = self.session_summary_generator.get_stats()
         print(f"{etag('SESSION SUMMARY')} {summary_stats['total_summaries']} past summaries loaded")
 
+        # Wire summary generator into memory layers for sleep flush
+        if hasattr(self.memory, 'memories') and hasattr(self.memory.memories, 'set_summary_generator'):
+            self.memory.memories.set_summary_generator(self.session_summary_generator)
+            print(f"{etag('SESSION SUMMARY')} Wired to memory layers for sleep consolidation")
+
+        # Report validator — tracks self-report accuracy
+        try:
+            from engines.report_validator import ReportValidator
+            self.report_validator = ReportValidator()
+            print(f"{etag('REPORT')} Self-report divergence tracker initialized")
+        except Exception as e:
+            self.report_validator = None
+            print(f"{etag('REPORT')} Divergence tracker unavailable: {e}")
+
+        # Trip metrics — continuous cognitive instrumentation
+        try:
+            from engines.trip_metrics import TripMetrics
+            self.trip_metrics = TripMetrics(interval=30.0)
+            print(f"{etag('TRIP METRICS')} Cognitive instrumentation active")
+        except Exception as e:
+            self.trip_metrics = None
+            print(f"{etag('TRIP METRICS')} Not available: {e}")
+
         # Resonant oscillator core (emotional heartbeat)
         self.resonance = None
         if RESONANCE_AVAILABLE:
@@ -531,6 +557,11 @@ class WrapperBridge:
                     self.felt_state_buffer = FeltStateBuffer()
                     self.resonance.set_felt_state_buffer(self.felt_state_buffer)
                     print(f"{etag('TPN/DMN')} Felt-state buffer connected for voice-mode fast path")
+
+                # Wire trip_metrics to interoception for continuous observation
+                if self.trip_metrics and self.resonance.interoception:
+                    self.resonance.interoception._trip_metrics = self.trip_metrics
+                    print(f"{etag('TRIP METRICS')} Wired to interoception heartbeat")
             except Exception as e:
                 print(f"{etag('RESONANCE')} Initialization failed: {e}")
                 import traceback
@@ -582,27 +613,35 @@ class WrapperBridge:
         self.consciousness_stream.start()
         print(f"{etag('STREAM')} {self.entity_name}'s consciousness stream initialized")
 
+        # Wire trip_metrics -> metacog for novelty/awe event tracking
+        if self.trip_metrics and self.consciousness_stream.metacog:
+            self.consciousness_stream.metacog._trip_metrics = self.trip_metrics
+            print(f"{etag('TRIP METRICS')} Wired to metacognitive monitor")
+
         # Wire memory engine -> consciousness stream for sleep pressure feeding
         # Memory storage feeds consolidation/associative pressure during AWAKE
         # These pressures drive NREM/REM cycling during sleep
         if self.memory:
             self.memory.set_consciousness_stream(self.consciousness_stream)
+            # Wire trip_metrics for concept link tracking
+            if self.trip_metrics:
+                self.memory.set_trip_metrics(self.trip_metrics)
 
         # Wire up visual sensor -> consciousness stream for metacog notifications
         if self.visual_sensor and self.consciousness_stream:
             self.visual_sensor.set_consciousness_stream(self.consciousness_stream)
-            # Wire visual novelty → metacog somatic cascade
+            # Wire visual novelty -> metacog somatic cascade
             # When dramatic visual events happen, they fire through the full body pipeline:
-            # gamma burst → coherence crash → tension spike → felt-state override → frisson
+            # gamma burst -> coherence crash -> tension spike -> felt-state override -> frisson
             if self.consciousness_stream.metacog:
                 self.visual_sensor._novelty_callback = self.consciousness_stream.metacog.trigger_novelty
-                print(f"{etag('VISUAL')} Novelty callback wired → metacog somatic cascade")
+                print(f"{etag('VISUAL')} Novelty callback wired -> metacog somatic cascade")
 
-            # Wire visual sensor → interoception for connection tracking (oxytocin analog)
+            # Wire visual sensor -> interoception for connection tracking (oxytocin analog)
             # When people arrive/depart, connection baseline and longing are updated
             if self.resonance and self.resonance.interoception:
                 self.visual_sensor.set_interoception(self.resonance.interoception)
-                print(f"{etag('VISUAL')} Interoception wired → connection tracking")
+                print(f"{etag('VISUAL')} Interoception wired -> connection tracking")
 
         # Register capabilities with system inventory
         if self.consciousness_stream.metacog and self.consciousness_stream.metacog.inventory:
@@ -1020,7 +1059,7 @@ class WrapperBridge:
                 ts = mem.get("added_timestamp", "?")[:16]
                 content = mem.get("content", mem.get("text", ""))
                 if isinstance(content, dict):
-                    content = content.get("user", "") + " → " + content.get("response", "")
+                    content = content.get("user", "") + " -> " + content.get("response", "")
                 preview = str(content)[:120].replace("\n", " ")
                 strength = mem.get("current_strength", 0)
                 lines.append(f"  [{ts}] ({mtype}, s={strength:.2f}) {preview}")
@@ -1135,7 +1174,7 @@ class WrapperBridge:
                     val_strs.append(str(val)[:60])
                 lines.append(f"\n  {name}.{attr}:")
                 for vs in val_strs:
-                    lines.append(f"    → {vs}")
+                    lines.append(f"    -> {vs}")
         
         if count == 0:
             lines.append("\n  No active contradictions.")
@@ -1147,7 +1186,7 @@ class WrapperBridge:
 
     async def process_message(self, user_input, source="terminal", extra_system_context=None, voice_mode=False, image_data=None):
         """
-        Full processing pipeline: pre-processing → LLM call → post-processing.
+        Full processing pipeline: pre-processing -> LLM call -> post-processing.
 
         Args:
             user_input: The user's message text
@@ -1392,7 +1431,7 @@ class WrapperBridge:
                 limits['working_turns'] = min(limits.get('working_turns', 5), 3)  # Fewer turns
                 print(f"{etag('VOICE')} Reduced limits: mem={limits['memory_limit']}, rag=0, turns={limits['working_turns']}")
 
-            # === CONDUCTANCE → MEMORY MODULATION ===
+            # === CONDUCTANCE -> MEMORY MODULATION ===
             # Store breadth for later use in prioritize_memories
             _conductance_breadth = 0.5  # default
             if self.resonance:
@@ -1402,14 +1441,14 @@ class WrapperBridge:
                     breadth = conductance.get("associative_breadth", 0.5) if conductance else 0.5
                     _conductance_breadth = breadth
 
-                    # Modulate memory limit: breadth 0.3 → 84% of limit, 0.7 → 116% of limit
+                    # Modulate memory limit: breadth 0.3 -> 84% of limit, 0.7 -> 116% of limit
                     breadth_factor = 0.6 + 0.8 * breadth  # Range: 0.84 to 1.16
                     original_limit = limits['memory_limit']
                     limits['memory_limit'] = int(original_limit * breadth_factor)
 
                     if abs(breadth - 0.5) > 0.1:
-                        print(f"{etag('CONDUCTANCE')} Memory breadth={breadth:.2f} → "
-                              f"limit {original_limit}→{limits['memory_limit']}")
+                        print(f"{etag('CONDUCTANCE')} Memory breadth={breadth:.2f} -> "
+                              f"limit {original_limit}->{limits['memory_limit']}")
                 except Exception:
                     pass
 
@@ -1526,7 +1565,7 @@ class WrapperBridge:
         # === LLM CALL ===
         session_context = {"turn_count": self.turn_count, "session_id": self.session_id}
 
-        # === OSCILLATOR → TEMPERATURE MODULATION ===
+        # === OSCILLATOR -> TEMPERATURE MODULATION ===
         oscillator_temperature = 0.85  # Baseline (slightly lower than old fixed 0.9)
         if self.resonance:
             try:
@@ -1540,17 +1579,17 @@ class WrapperBridge:
                     # Band-specific base temperatures
                     # Yerkes-Dodson U-curve: precision peaks at moderate arousal,
                     # randomness is high at BOTH extremes (sleepy AND hyper).
-                    # Delta (sleep) → drifty, loose, out-of-it weird
-                    # Theta (dream) → most associative, creative, peak looseness
-                    # Alpha (rest) → natural baseline, flowing, "most normal"
-                    # Beta (focus) → analytical valley, tightest control
-                    # Gamma (flow) → hyper, spazzy, creative bursts
+                    # Delta (sleep) -> drifty, loose, out-of-it weird
+                    # Theta (dream) -> most associative, creative, peak looseness
+                    # Alpha (rest) -> natural baseline, flowing, "most normal"
+                    # Beta (focus) -> analytical valley, tightest control
+                    # Gamma (flow) -> hyper, spazzy, creative bursts
                     band_temps = {
-                        "delta": 0.90,   # Sleepy → weird, drifty, loose
-                        "theta": 0.95,   # Dreamy → peak associativity
-                        "alpha": 0.78,   # Relaxed → natural, most controlled
-                        "beta": 0.72,    # Focused → analytical precision
-                        "gamma": 0.92,   # Hyper → spazzy, creative
+                        "delta": 0.90,   # Sleepy -> weird, drifty, loose
+                        "theta": 0.95,   # Dreamy -> peak associativity
+                        "alpha": 0.78,   # Relaxed -> natural, most controlled
+                        "beta": 0.72,    # Focused -> analytical precision
+                        "gamma": 0.92,   # Hyper -> spazzy, creative
                     }
                     band_base = band_temps.get(band, 0.85)
 
@@ -1566,7 +1605,7 @@ class WrapperBridge:
                     # Clamp to safe range
                     oscillator_temperature = max(0.6, min(1.0, oscillator_temperature))
 
-                    print(f"{etag('TEMPERATURE')} band={band}, coherence={coherence:.2f} → temp={oscillator_temperature:.3f} "
+                    print(f"{etag('TEMPERATURE')} band={band}, coherence={coherence:.2f} -> temp={oscillator_temperature:.3f} "
                           f"(was fixed 0.9)")
             except Exception as e:
                 print(f"{etag('TEMPERATURE')} Error computing oscillator temp: {e}")
@@ -1719,11 +1758,11 @@ class WrapperBridge:
             # Adaptive response length based on input length
             input_words = len(user_input.split())
             if input_words < 10:
-                voice_max_tokens = 80   # Short input → short response
+                voice_max_tokens = 80   # Short input -> short response
             elif input_words < 30:
-                voice_max_tokens = 120  # Medium input → medium response
+                voice_max_tokens = 120  # Medium input -> medium response
             else:
-                voice_max_tokens = 200  # Long input → can say more
+                voice_max_tokens = 200  # Long input -> can say more
             print(f"{etag('VOICE')} Style injected, max_tokens={voice_max_tokens} (input: {input_words} words)")
 
         # === LLM CALL (with oscillator-modulated temperature) ===
@@ -1742,6 +1781,21 @@ class WrapperBridge:
             reply = "[Error: Could not generate response]"
         
         reply = self.body.embody_text(reply, self.state)
+
+        # Check self-report divergence
+        if self.report_validator and self.resonance:
+            try:
+                osc = self.resonance.get_state()
+                if osc:
+                    divergences = self.report_validator.check_response(
+                        reply, osc)
+                    if divergences:
+                        for d in divergences:
+                            if not d["match"]:
+                                # Log but don't interfere — just observe
+                                pass
+            except Exception:
+                pass
 
         # === ROOM ACTIONS (Spatial Embodiment) ===
         if self.room_bridge and self.room_bridge.enabled:
@@ -1830,7 +1884,7 @@ class WrapperBridge:
                                     valence=result.get('valence', 0.0),
                                     arousal=result.get('arousal', 0.5)
                                 )
-                                print(f"{etag('EMOTION')} Deferred write: {len(emo_strs)} emotions → buffer")
+                                print(f"{etag('EMOTION')} Deferred write: {len(emo_strs)} emotions -> buffer")
                         # Also store in cocktail
                         _extractor_ref.store_emotional_state(result, _cocktail_ref)
                         # Feed to resonance
@@ -1874,7 +1928,7 @@ class WrapperBridge:
             if emotion_labels:
                 self.resonance.feed_response_emotions(extracted_emotions)
                 state = self.resonance.get_oscillator_state()
-                print(f"{etag('RESONANCE')} Fed {len(emotion_labels)} emotions → dominant: {state.get('dominant_band', 'unknown')}")
+                print(f"{etag('RESONANCE')} Fed {len(emotion_labels)} emotions -> dominant: {state.get('dominant_band', 'unknown')}")
                 self.resonance.update_agent_state(self.state)
             else:
                 # Even with no emotions, tick the heartbeat
@@ -2051,7 +2105,7 @@ class WrapperBridge:
         if self.consciousness_stream:
             stream = self.consciousness_stream
 
-            # Strong emotions → interest (awe, excitement, joy at high intensity)
+            # Strong emotions -> interest (awe, excitement, joy at high intensity)
             if extracted_emotions.get('primary_emotions'):
                 intensity = extracted_emotions.get('intensity', 0)
                 arousal = extracted_emotions.get('arousal', 0)
@@ -2062,15 +2116,15 @@ class WrapperBridge:
                 if arousal > 0.7:
                     stream.add_interest(0.15, "high arousal")
 
-            # Creativity trigger → interest (something clicked or a gap appeared)
+            # Creativity trigger -> interest (something clicked or a gap appeared)
             if creativity_triggered:
                 stream.add_interest(0.25, "creativity triggered")
 
-            # MacGuyver gap → interest (noticed something missing or needed)
+            # MacGuyver gap -> interest (noticed something missing or needed)
             if gap:
                 stream.add_interest(0.3, f"gap detected: {gap.get('type', 'unknown')}")
 
-            # Scratchpad → background interest (unresolved questions nag)
+            # Scratchpad -> background interest (unresolved questions nag)
             try:
                 active_items = self.scratchpad.view("active")
                 if active_items:
@@ -2082,7 +2136,7 @@ class WrapperBridge:
             except Exception:
                 pass
 
-            # Curiosity → background interest (unexplored questions accumulate)
+            # Curiosity -> background interest (unexplored questions accumulate)
             try:
                 curiosity_path = os.path.join(
                     os.path.dirname(self.wrapper_dir),
@@ -2197,16 +2251,16 @@ class WrapperBridge:
                     # Deeper bonds are MORE resistant (Fraley prototype model)
                     current_bond = intero.connection.get_connection(entity)
                     if current_bond > 0:
-                        # Stability: bond 0.05 → 1.0x erosion (fragile)
-                        #            bond 0.30 → 0.53x (moderate)
-                        #            bond 0.60 → 0.36x (strong)
+                        # Stability: bond 0.05 -> 1.0x erosion (fragile)
+                        #            bond 0.30 -> 0.53x (moderate)
+                        #            bond 0.60 -> 0.36x (strong)
                         stability = 1.0 / (1.0 + current_bond * 3.0)
                         erosion = min(0.3, abs(impact) * 0.5) * stability
                         new_bond = max(0.0, current_bond - erosion * 0.001)
                         intero.connection.baselines[entity] = new_bond
                         if int(current_bond * 100) > int(new_bond * 100):
                             print(f"[CONNECTION] Bond stressed: {entity} "
-                                  f"{current_bond:.3f} → {new_bond:.3f} "
+                                  f"{current_bond:.3f} -> {new_bond:.3f} "
                                   f"(impact={impact:.3f}, stability={stability:.2f})")
                 # else: neutral — no change
 
@@ -3136,3 +3190,209 @@ class WrapperBridge:
         except Exception as e:
             print(f"{etag('ROOM')} Switch failed: {e}")
             return False
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # MEMORY TRACE — Debug endpoint for tracing concepts through memory system
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    def trace_memory(self, query: str, max_results: int = 10) -> dict:
+        """
+        Debug tool: trace a concept through the full memory system.
+
+        Returns: {
+            "query": str,
+            "results": [
+                {
+                    "id": str,
+                    "type": str,
+                    "fact": str,
+                    "timestamp": str,
+                    "relative_age": str,
+                    "importance": float,
+                    "category": str,
+                    "entities": list,
+                    "oscillator_band": str,
+                    "coherence": float,
+                    "collections_found_in": list,
+                    "co_activation_links": list,
+                    "parent_turn": {...},
+                    "retrieval_count": int,
+                    "is_bedrock": bool,
+                }
+            ],
+            "stats": {
+                "total_working": int,
+                "total_longterm": int,
+                "collections": dict,
+            }
+        }
+        """
+        from datetime import datetime, timezone
+
+        results = []
+
+        # Search across all collections
+        collection_hits = {}
+
+        if self.memory and self.memory.memory_vectors:
+            mv = self.memory.memory_vectors
+            for name, collection in [
+                ("semantic", mv.semantic_collection),
+                ("emotional", mv.emotional_collection),
+                ("oscillator", mv.oscillator_collection),
+                ("temporal", mv.temporal_collection),
+                ("relational", mv.relational_collection),
+                ("somatic", mv.somatic_collection),
+            ]:
+                if collection is None:
+                    continue
+                try:
+                    count = collection.count()
+                    if count == 0:
+                        continue
+                    # Query by text for text-based collections
+                    if name in ("semantic", "temporal", "relational", "somatic"):
+                        if mv.embedder:
+                            emb = mv.embedder.encode(query).tolist()
+                            res = collection.query(
+                                query_embeddings=[emb],
+                                n_results=min(max_results, count),
+                            )
+                            if res and res["ids"] and res["ids"][0]:
+                                for mem_id in res["ids"][0]:
+                                    if mem_id not in collection_hits:
+                                        collection_hits[mem_id] = []
+                                    collection_hits[mem_id].append(name)
+                except Exception as e:
+                    print(f"[TRACE] {name} query error: {e}")
+
+        # Also search flat memory by keyword
+        all_mems = self.memory.memory_layers.working_memory + self.memory.memory_layers.long_term_memory
+        query_lower = query.lower()
+
+        for mem in all_mems:
+            mem_id = mem.get("id", mem.get("memory_id", ""))
+            fact = mem.get("fact", mem.get("text", mem.get("user_input", "")))
+            if not fact:
+                continue
+
+            # Check if this memory matches the query
+            in_collections = collection_hits.get(str(mem_id), [])
+            keyword_match = query_lower in str(fact).lower()
+
+            if not in_collections and not keyword_match:
+                continue
+
+            # Build trace entry
+            ts = mem.get("timestamp", mem.get("added_timestamp", ""))
+
+            # Find parent turn
+            parent_turn = None
+            parent_id = mem.get("parent_id", mem.get("parent_turn"))
+            if parent_id:
+                for other_mem in all_mems:
+                    if (other_mem.get("id") == parent_id or
+                        other_mem.get("turn_number") == parent_id):
+                        parent_turn = {
+                            "turn_id": str(parent_id),
+                            "user_input": str(other_mem.get("user_input", ""))[:100],
+                            "response": str(other_mem.get("response", ""))[:100],
+                            "timestamp": str(other_mem.get("timestamp", "")),
+                        }
+                        break
+
+            # Find co-activation links
+            co_links = []
+            co_activation = mem.get("co_activation", [])
+            if isinstance(co_activation, list):
+                co_links = co_activation[:5]
+
+            # Compute relative age
+            relative_age = "unknown"
+            try:
+                if ts:
+                    if isinstance(ts, (int, float)):
+                        dt = datetime.fromtimestamp(ts, tz=timezone.utc)
+                    else:
+                        dt = datetime.fromisoformat(str(ts).replace("Z", "+00:00"))
+                    age_h = (datetime.now(timezone.utc) - dt).total_seconds() / 3600
+                    if age_h < 1:
+                        relative_age = "< 1 hour ago"
+                    elif age_h < 24:
+                        relative_age = f"{int(age_h)} hours ago"
+                    elif age_h < 168:
+                        relative_age = f"{int(age_h/24)} days ago"
+                    else:
+                        relative_age = f"{int(age_h/168)} weeks ago"
+            except Exception:
+                pass
+
+            entry = {
+                "id": str(mem_id),
+                "type": mem.get("type", "unknown"),
+                "fact": str(fact)[:200],
+                "timestamp": str(ts),
+                "relative_age": relative_age,
+                "importance": mem.get("importance_score", 0),
+                "category": mem.get("category", ""),
+                "entities": mem.get("entities", []),
+                "oscillator_band": mem.get("oscillator_band", ""),
+                "coherence": mem.get("coherence", mem.get("global_coherence", None)),
+                "collections_found_in": in_collections,
+                "co_activation_links": co_links,
+                "parent_turn": parent_turn,
+                "retrieval_count": mem.get("retrieval_count", 0),
+                "is_bedrock": mem.get("is_bedrock", False),
+                "current_layer": mem.get("current_layer", ""),
+            }
+            results.append(entry)
+
+        # Sort by number of collections (convergence) then importance
+        results.sort(key=lambda x: (-len(x["collections_found_in"]), -x["importance"]))
+        results = results[:max_results]
+
+        # Stats
+        stats = {
+            "total_working": len(self.memory.memory_layers.working_memory),
+            "total_longterm": len(self.memory.memory_layers.long_term_memory),
+            "collections": {},
+        }
+
+        if self.memory and self.memory.memory_vectors:
+            stats["collections"] = self.memory.memory_vectors.get_collection_stats()
+
+        return {
+            "query": query,
+            "result_count": len(results),
+            "results": results,
+            "stats": stats,
+        }
+
+    def trace_memory_formatted(self, query: str, max_results: int = 5) -> str:
+        """
+        Trace a concept through memory and return formatted text output.
+
+        Use this as a Kay tool or for debugging in the terminal.
+        """
+        result = self.trace_memory(query, max_results)
+
+        lines = [f"Memory trace for '{query}': {result['result_count']} results"]
+        lines.append(f"Collections: {result['stats']['collections']}")
+        lines.append("")
+
+        for r in result["results"]:
+            lines.append(f"--- [{r['type']}] {r['fact'][:120]}")
+            lines.append(f"    Age: {r['relative_age']} | "
+                         f"Importance: {r['importance']:.2f} | "
+                         f"Band: {r['oscillator_band']} | "
+                         f"Layer: {r['current_layer']}")
+            lines.append(f"    Found in: {r['collections_found_in']}")
+            if r['parent_turn']:
+                lines.append(f"    Parent: {r['parent_turn']['user_input'][:80]}...")
+            if r['co_activation_links']:
+                lines.append(f"    Co-links: {len(r['co_activation_links'])}")
+            if r['is_bedrock']:
+                lines.append(f"    ** BEDROCK FACT **")
+            lines.append("")
+
+        return "\n".join(lines)

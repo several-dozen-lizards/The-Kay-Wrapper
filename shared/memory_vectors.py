@@ -280,10 +280,31 @@ class MemoryVectorStore:
             metadata={"hnsw:space": "cosine", "description": "Emotional cocktail vectors"}
         )
 
+        # NEW: Temporal collection — encodes WHEN memories formed
+        self.temporal_collection = self.client.get_or_create_collection(
+            name=f"{entity}_memories_temporal",
+            metadata={"hnsw:space": "cosine", "description": "Temporal context embeddings"}
+        )
+
+        # NEW: Relational collection — encodes WHO is involved
+        self.relational_collection = self.client.get_or_create_collection(
+            name=f"{entity}_memories_relational",
+            metadata={"hnsw:space": "cosine", "description": "Entity relationship embeddings"}
+        )
+
+        # NEW: Somatic collection — encodes BODY state at memory formation
+        self.somatic_collection = self.client.get_or_create_collection(
+            name=f"{entity}_memories_somatic",
+            metadata={"hnsw:space": "cosine", "description": "Somatic/body state embeddings"}
+        )
+
         log.info(f"[MEMORY_VECTORS] Initialized for {entity}: "
                  f"semantic={self.semantic_collection.count()}, "
                  f"oscillator={self.oscillator_collection.count()}, "
-                 f"emotional={self.emotional_collection.count()}")
+                 f"emotional={self.emotional_collection.count()}, "
+                 f"temporal={self.temporal_collection.count()}, "
+                 f"relational={self.relational_collection.count()}, "
+                 f"somatic={self.somatic_collection.count()}")
 
     def add_memory(
         self,
@@ -291,10 +312,13 @@ class MemoryVectorStore:
         text: str,
         osc_state: Dict = None,
         emotional_cocktail: Dict = None,
-        metadata: Dict = None
+        metadata: Dict = None,
+        temporal_context: str = None,
+        relational_context: str = None,
+        somatic_context: str = None
     ) -> bool:
         """
-        Store a memory in all three collections simultaneously.
+        Store a memory in all six collections simultaneously.
 
         Args:
             memory_id: Unique ID for this memory
@@ -302,6 +326,9 @@ class MemoryVectorStore:
             osc_state: Oscillator state dict for oscillator embedding
             emotional_cocktail: Emotional cocktail dict for emotional embedding
             metadata: Additional metadata to store
+            temporal_context: Text describing WHEN (time of day, relative age, phase)
+            relational_context: Text describing WHO (entities, relationships)
+            somatic_context: Text describing BODY state (band, coherence, tension)
 
         Returns:
             True if stored successfully
@@ -336,6 +363,36 @@ class MemoryVectorStore:
                     ids=[memory_id],
                     embeddings=[emo_vector],
                     metadatas=[base_metadata]
+                )
+
+            # Collection 4: Temporal (text embedding of when)
+            if self.embedder and temporal_context and temporal_context != "unknown time":
+                temporal_embedding = self.embedder.encode(temporal_context).tolist()
+                self.temporal_collection.upsert(
+                    ids=[memory_id],
+                    embeddings=[temporal_embedding],
+                    metadatas=[base_metadata],
+                    documents=[temporal_context]
+                )
+
+            # Collection 5: Relational (text embedding of who)
+            if self.embedder and relational_context and relational_context != "no_entities general":
+                relational_embedding = self.embedder.encode(relational_context).tolist()
+                self.relational_collection.upsert(
+                    ids=[memory_id],
+                    embeddings=[relational_embedding],
+                    metadatas=[base_metadata],
+                    documents=[relational_context]
+                )
+
+            # Collection 6: Somatic (text embedding of body state)
+            if self.embedder and somatic_context and somatic_context != "neutral baseline":
+                somatic_embedding = self.embedder.encode(somatic_context).tolist()
+                self.somatic_collection.upsert(
+                    ids=[memory_id],
+                    embeddings=[somatic_embedding],
+                    metadatas=[base_metadata],
+                    documents=[somatic_context]
                 )
 
             return True
@@ -452,6 +509,117 @@ class MemoryVectorStore:
             log.warning(f"[MEMORY_VECTORS] Emotional query failed: {e}")
             return []
 
+    def query_temporal(
+        self,
+        query_text: str,
+        n_results: int = 5,
+        where_filter: Dict = None
+    ) -> List[Dict]:
+        """
+        Query temporal collection by time-related text similarity.
+
+        Args:
+            query_text: Temporal query (e.g., "last week", "morning", "recent")
+            n_results: Number of results to return
+            where_filter: Optional ChromaDB where filter
+
+        Returns:
+            List of memory dicts with id, score, metadata
+        """
+        if not self.embedder:
+            return []
+
+        try:
+            query_embedding = self.embedder.encode(query_text).tolist()
+
+            kwargs = {
+                "query_embeddings": [query_embedding],
+                "n_results": min(n_results, self.temporal_collection.count() or 1),
+            }
+            if where_filter:
+                kwargs["where"] = where_filter
+
+            results = self.temporal_collection.query(**kwargs)
+            return self._format_results(results, "temporal")
+
+        except Exception as e:
+            log.warning(f"[MEMORY_VECTORS] Temporal query failed: {e}")
+            return []
+
+    def query_relational(
+        self,
+        query_text: str,
+        n_results: int = 5,
+        where_filter: Dict = None
+    ) -> List[Dict]:
+        """
+        Query relational collection by entity/relationship text similarity.
+
+        Args:
+            query_text: Entity query (e.g., "John", "cat", "Re")
+            n_results: Number of results to return
+            where_filter: Optional ChromaDB where filter
+
+        Returns:
+            List of memory dicts with id, score, metadata
+        """
+        if not self.embedder:
+            return []
+
+        try:
+            query_embedding = self.embedder.encode(query_text).tolist()
+
+            kwargs = {
+                "query_embeddings": [query_embedding],
+                "n_results": min(n_results, self.relational_collection.count() or 1),
+            }
+            if where_filter:
+                kwargs["where"] = where_filter
+
+            results = self.relational_collection.query(**kwargs)
+            return self._format_results(results, "relational")
+
+        except Exception as e:
+            log.warning(f"[MEMORY_VECTORS] Relational query failed: {e}")
+            return []
+
+    def query_somatic(
+        self,
+        query_text: str,
+        n_results: int = 5,
+        where_filter: Dict = None
+    ) -> List[Dict]:
+        """
+        Query somatic collection by body-state text similarity.
+
+        Args:
+            query_text: Body state query (e.g., "tense", "relaxed", "high coherence")
+            n_results: Number of results to return
+            where_filter: Optional ChromaDB where filter
+
+        Returns:
+            List of memory dicts with id, score, metadata
+        """
+        if not self.embedder:
+            return []
+
+        try:
+            query_embedding = self.embedder.encode(query_text).tolist()
+
+            kwargs = {
+                "query_embeddings": [query_embedding],
+                "n_results": min(n_results, self.somatic_collection.count() or 1),
+            }
+            if where_filter:
+                kwargs["where"] = where_filter
+
+            results = self.somatic_collection.query(**kwargs)
+            return self._format_results(results, "somatic")
+
+        except Exception as e:
+            log.warning(f"[MEMORY_VECTORS] Somatic query failed: {e}")
+            return []
+
     def query_multi_collection(
         self,
         query_text: str = None,
@@ -460,10 +628,13 @@ class MemoryVectorStore:
         linked_ids: List[str] = None,
         semantic_k: int = 5,
         oscillator_k: int = 3,
-        emotional_k: int = 3
+        emotional_k: int = 3,
+        temporal_k: int = 3,
+        relational_k: int = 3,
+        somatic_k: int = 3
     ) -> Dict[str, List[Dict]]:
         """
-        Query all three collections, optionally filtered to linked IDs.
+        Query all six collections, optionally filtered to linked IDs.
 
         This is the main retrieval method. Linked IDs come from co-activation
         links on the semantic entry points, constraining oscillator and
@@ -477,15 +648,21 @@ class MemoryVectorStore:
             semantic_k: Number of semantic results
             oscillator_k: Number of oscillator results
             emotional_k: Number of emotional results
+            temporal_k: Number of temporal results
+            relational_k: Number of relational results
+            somatic_k: Number of somatic results
 
         Returns:
-            Dict with keys: semantic, oscillator, emotional, merged
+            Dict with keys for all 6 collections plus merged
             Each contains list of memory dicts
         """
         results = {
             "semantic": [],
             "oscillator": [],
             "emotional": [],
+            "temporal": [],
+            "relational": [],
+            "somatic": [],
             "merged": []
         }
 
@@ -517,15 +694,71 @@ class MemoryVectorStore:
                 where_filter=link_filter
             )
 
-        # Merge and deduplicate
-        seen_ids = set()
-        for source in ["semantic", "oscillator", "emotional"]:
+        # Query temporal (use query_text for time-related terms)
+        if query_text and self.temporal_collection.count() > 0:
+            results["temporal"] = self.query_temporal(
+                query_text,
+                n_results=temporal_k,
+                where_filter=link_filter
+            )
+
+        # Query relational (use query_text for entity matching)
+        if query_text and self.relational_collection.count() > 0:
+            results["relational"] = self.query_relational(
+                query_text,
+                n_results=relational_k,
+                where_filter=link_filter
+            )
+
+        # Query somatic (use query_text for body state terms)
+        if query_text and self.somatic_collection.count() > 0:
+            results["somatic"] = self.query_somatic(
+                query_text,
+                n_results=somatic_k,
+                where_filter=link_filter
+            )
+
+        # Merge with convergence scoring
+        # Memories found in more collections rank higher
+        collection_hits = {}
+        all_sources = ["semantic", "oscillator", "emotional", "temporal", "relational", "somatic"]
+
+        for source in all_sources:
             for mem in results[source]:
                 mem_id = mem.get("id")
-                if mem_id and mem_id not in seen_ids:
-                    mem["_retrieval_source"] = source
-                    results["merged"].append(mem)
-                    seen_ids.add(mem_id)
+                if not mem_id:
+                    continue
+                if mem_id not in collection_hits:
+                    collection_hits[mem_id] = {
+                        "mem": mem,
+                        "sources": [],
+                        "min_distance": mem.get("score", 0.0)
+                    }
+                collection_hits[mem_id]["sources"].append(source)
+                # Track best score across collections
+                score = mem.get("score", 0.0)
+                collection_hits[mem_id]["min_distance"] = max(
+                    collection_hits[mem_id]["min_distance"], score
+                )
+
+        # Compute convergence and build merged list
+        for mem_id, data in collection_hits.items():
+            mem = data["mem"].copy()
+            mem["_retrieval_sources"] = data["sources"]
+            mem["_convergence"] = len(data["sources"]) / len(all_sources)
+            mem["_retrieval_source"] = data["sources"][0]  # Primary source
+            results["merged"].append(mem)
+
+        # Sort by convergence then score
+        results["merged"].sort(
+            key=lambda x: (-x.get("_convergence", 0), -x.get("score", 0))
+        )
+
+        # Log top result's convergence
+        if results["merged"]:
+            top = results["merged"][0]
+            log.debug(f"[MULTI-VEC] Top result found in {top.get('_retrieval_sources', [])} "
+                      f"(convergence={top.get('_convergence', 0):.2f})")
 
         return results
 
@@ -556,19 +789,25 @@ class MemoryVectorStore:
         return memories
 
     def get_collection_stats(self) -> Dict[str, int]:
-        """Get counts for all three collections."""
+        """Get counts for all six collections."""
         return {
             "semantic": self.semantic_collection.count(),
             "oscillator": self.oscillator_collection.count(),
             "emotional": self.emotional_collection.count(),
+            "temporal": self.temporal_collection.count(),
+            "relational": self.relational_collection.count(),
+            "somatic": self.somatic_collection.count(),
         }
 
     def delete_memory(self, memory_id: str) -> bool:
-        """Delete a memory from all three collections."""
+        """Delete a memory from all six collections."""
         try:
             self.semantic_collection.delete(ids=[memory_id])
             self.oscillator_collection.delete(ids=[memory_id])
             self.emotional_collection.delete(ids=[memory_id])
+            self.temporal_collection.delete(ids=[memory_id])
+            self.relational_collection.delete(ids=[memory_id])
+            self.somatic_collection.delete(ids=[memory_id])
             return True
         except Exception as e:
             log.warning(f"[MEMORY_VECTORS] Failed to delete {memory_id}: {e}")

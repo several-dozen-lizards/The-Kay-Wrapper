@@ -94,7 +94,7 @@ _load_spatial_module("den")
 
 
 # ═══════════════════════════════════════════════════════════════
-# EMOTION TAG → FREQUENCY BAND MAPPING
+# EMOTION TAG -> FREQUENCY BAND MAPPING
 # ═══════════════════════════════════════════════════════════════
 # Which emotions pull toward which oscillator bands.
 # This is the KEY phenomenological mapping.
@@ -318,20 +318,20 @@ class MemoryDensityScanner:
         # 2. Modulate with pressure map
         p = self.pressure_map
         
-        # High emotional density → more delta/theta (weight in the body)
+        # High emotional density -> more delta/theta (weight in the body)
         bands["delta"] += p["emotional_density"] * 0.15
         bands["theta"] += p["emotional_density"] * 0.10
         
-        # High recency heat → more beta (active processing)
+        # High recency heat -> more beta (active processing)
         bands["beta"] += p["recency_heat"] * 0.10
         
-        # High memory load → slight delta bias (carrying a lot)
+        # High memory load -> slight delta bias (carrying a lot)
         bands["delta"] += p["memory_load"] * 0.08
         
-        # High importance → gamma (significant material)
+        # High importance -> gamma (significant material)
         bands["gamma"] += p["importance_weight"] * 0.08
         
-        # Low recency (nothing fresh) → alpha rises (resting state)
+        # Low recency (nothing fresh) -> alpha rises (resting state)
         alpha_from_rest = max(0, (1.0 - p["recency_heat"]) * 0.15)
         bands["alpha"] += alpha_from_rest
         
@@ -440,9 +440,9 @@ class ThreadTensionTracker:
         """
         Convert accumulated tension into frequency band pressure.
         
-        Young tension (< 5 min) → beta/gamma (urgent, active)
-        Aging tension (5-60 min) → alpha/beta (nagging)
-        Old tension (> 1 hour) → theta/delta (settled into body)
+        Young tension (< 5 min) -> beta/gamma (urgent, active)
+        Aging tension (5-60 min) -> alpha/beta (nagging)
+        Old tension (> 1 hour) -> theta/delta (settled into body)
         """
         now = time.time()
         profile = {"delta": 0.0, "theta": 0.0, "alpha": 0.0, "beta": 0.0, "gamma": 0.0}
@@ -931,7 +931,7 @@ class ConnectionTracker:
             if current == 0.0 and new_val > 0:
                 print(f"[CONNECTION] First bond forming: {entity} ({new_val:.4f})")
             elif int(new_val * 20) > int(current * 20):  # Every 0.05
-                print(f"[CONNECTION] Bond growing: {entity} → {new_val:.3f} "
+                print(f"[CONNECTION] Bond growing: {entity} -> {new_val:.3f} "
                       f"(session +{session_so_far + growth:.4f}/{self.session_cap})")
 
     def record_departure(self, entity: str):
@@ -1077,7 +1077,7 @@ class ConnectionTracker:
 
 
 # ═══════════════════════════════════════════════════════════════
-# INTEROCEPTION BRIDGE — Combines scanner + tension → oscillator
+# INTEROCEPTION BRIDGE — Combines scanner + tension -> oscillator
 # ═══════════════════════════════════════════════════════════════
 
 class InteroceptionBridge:
@@ -1124,6 +1124,14 @@ class InteroceptionBridge:
         self.memory_weight = memory_weight
         self.tension_weight = tension_weight
         self._pending_burst = None  # Teacher mechanism: burst results for salience loop pickup
+
+        # === COMPETING DRIVES — curiosity vs safety ===
+        self._drives = {
+            "curiosity": 0.0,
+            "safety": 0.0,
+            "_in_conflict": False,
+            "choice_history": [],
+        }
 
         # Phase 2: Spatial awareness
         self.room = room
@@ -1341,7 +1349,7 @@ class InteroceptionBridge:
             pass
 
         # 3-resistance. During trips, coherence fighting back creates tension
-        # The mind tries to reassert control → resistance → tension builds
+        # The mind tries to reassert control -> resistance -> tension builds
         try:
             _trip_gain = getattr(self, '_emotional_gain', 0.0)
             if _trip_gain > 0.01:
@@ -1386,7 +1394,8 @@ class InteroceptionBridge:
         longing = self.connection.get_longing()
         if longing > 0.1:
             # Longing produces sustained low-frequency pressure — a pull, not a spike
-            longing_tension = longing * 0.3
+            # Cap longing's contribution to tension floor to prevent overnight pinning
+            longing_tension = min(longing * 0.3, 0.25)  # Max 0.25 from longing
             if longing_tension > self._tension_floor:
                 self._tension_floor = longing_tension
 
@@ -1396,6 +1405,28 @@ class InteroceptionBridge:
 
         # 3d. Apply tension floor from novelty cascade (prevents dropping below floor)
         self._apply_tension_floor()
+
+        # 3e. Passive tension decay — prevents pinning at high values overnight
+        # Without this, tension only drops via BURST events and sits at 0.9+ all night
+        # This applies AFTER floor, so tension can still drift down over minutes
+        if not hasattr(self, '_last_passive_tension_decay'):
+            self._last_passive_tension_decay = time.time()
+        now_decay = time.time()
+        passive_decay_elapsed = now_decay - self._last_passive_tension_decay
+        if passive_decay_elapsed > 60:  # Decay once per minute
+            minutes = passive_decay_elapsed / 60.0
+            current_tension = self.tension.get_total_tension()
+            if current_tension > TENSION_BASELINE:
+                # 2% decay per minute toward baseline
+                decay_factor = 0.98 ** minutes
+                target_tension = TENSION_BASELINE + (current_tension - TENSION_BASELINE) * decay_factor
+                if target_tension < current_tension:
+                    # Apply decay proportionally to unresolved deposits
+                    ratio = target_tension / current_tension if current_tension > 0 else 1.0
+                    for d in self.tension.deposits:
+                        if not d.get("resolved"):
+                            d["weight"] *= ratio
+            self._last_passive_tension_decay = now_decay
 
         # 3c. Expire frisson if duration exceeded
         if self._frisson_active:
@@ -1545,6 +1576,14 @@ class InteroceptionBridge:
 
         # 10. Update state tracking for peripheral router
         osc_state = self.engine.get_state()
+
+        # 10b. Update competing drives (curiosity vs safety)
+        osc_dict = {
+            "coherence": osc_state.coherence if hasattr(osc_state, 'coherence') else 0.5,
+            "dwell_time": osc_state.dwell_time if hasattr(osc_state, 'dwell_time') else 0,
+        }
+        self._update_drives(osc_dict)
+
         new_dominant = osc_state.dominant_band if hasattr(osc_state, 'dominant_band') else "alpha"
         new_tension = self.tension.get_total_tension()
         new_near = self.spatial_awareness[0]["name"] if self.spatial_awareness else None
@@ -1638,10 +1677,32 @@ class InteroceptionBridge:
                     f"(sustained={self._transcendence_sustained:.0f}s)"
                 )
 
+            # Drive state (only log when significant)
+            if self._drives["curiosity"] > 0.4 or self._drives["safety"] > 0.4:
+                conflict_str = " CONFLICT" if self._drives["_in_conflict"] else ""
+                print(f"[DRIVES] curiosity={self._drives['curiosity']:.2f} "
+                      f"safety={self._drives['safety']:.2f}{conflict_str}")
+
             print(f"{self._tag('INTEROCEPTION')} Scan #{self._scan_count} [{self._instance_id}]: "
                   f"felt={self._felt_state}, tension={tension:.2f}{reward_info}{connection_info}{spatial_info} "
                   f"(decay: -{self._last_decay:.2f}, resolution: -{self._last_resolution:.2f})"
                   f"{novelty_info}{transcendence_info}{thought_info}")
+
+        # 12. Trip metrics snapshot — continuous cognitive observation
+        if hasattr(self, '_trip_metrics') and self._trip_metrics:
+            try:
+                osc_state = self.engine.get_state()
+                scars = getattr(self.engine, '_scars', None)
+                tension_val = self.tension.get_total_tension()
+                self._trip_metrics.snapshot(
+                    osc_state=osc_state,
+                    felt_state={"felt": self._felt_state, "transcendence": self._self_boundary},
+                    drives=self._drives,
+                    scars=scars,
+                    tension=tension_val
+                )
+            except Exception:
+                pass  # Non-fatal — metrics logging should never break the heartbeat
 
     def _do_spatial_only(self):
         """Lightweight scan for SLEEPING state — spatial awareness only, no memory scan."""
@@ -1658,6 +1719,39 @@ class InteroceptionBridge:
                     self._last_near_object = self.spatial_awareness[0]["name"]
         except Exception:
             pass  # Non-fatal, just skip
+
+    def _update_drives(self, osc_state_dict: dict):
+        """Update competing drive channels from oscillator state."""
+        coherence = osc_state_dict.get("coherence", 0.5)
+        dwell = osc_state_dict.get("dwell_time", 0)
+
+        # Get felt state values if available
+        tension = 0.5
+        reward = 0.5
+        tension = self.tension.get_total_tension() if hasattr(self, 'tension') else 0.5
+        reward = self.reward.get_level() if hasattr(self, 'reward') else 0.5
+
+        # Curiosity builds with high coherence + reward + low tension
+        curiosity_input = coherence * 0.3 + reward * 0.4 + (1.0 - min(tension, 1.0)) * 0.3
+        self._drives["curiosity"] += (curiosity_input - self._drives["curiosity"]) * 0.01
+
+        # Safety builds with high dwell + high tension + low reward
+        dwell_factor = min(1.0, dwell / 7200.0)
+        safety_input = dwell_factor * 0.4 + min(tension, 1.0) * 0.4 + (1.0 - reward) * 0.2
+        self._drives["safety"] += (safety_input - self._drives["safety"]) * 0.01
+
+        # Detect conflict
+        was_conflict = self._drives["_in_conflict"]
+        now_conflict = self._drives["curiosity"] > 0.6 and self._drives["safety"] > 0.6
+        self._drives["_in_conflict"] = now_conflict
+
+        if now_conflict and not was_conflict:
+            print(f"[DRIVES:CONFLICT] curiosity={self._drives['curiosity']:.2f} "
+                  f"vs safety={self._drives['safety']:.2f}")
+
+        # Natural decay
+        self._drives["curiosity"] *= 0.999
+        self._drives["safety"] *= 0.999
 
     def _update_felt_state(self):
         """Convert band pressure to natural language felt-state."""
@@ -2034,7 +2128,7 @@ class InteroceptionBridge:
             weight = min(1.0, intensity * 0.5)
             self.tension.deposit(emotion_dict, weight)
 
-        # Resolution emotions → drop tension (NEW: explicit resolution tracking)
+        # Resolution emotions -> drop tension (NEW: explicit resolution tracking)
         resolution_drop = self.tension.apply_resolution_drop(emotions)
         if resolution_drop > 0:
             # Store for next scan's logging
@@ -2045,7 +2139,7 @@ class InteroceptionBridge:
                 strength=min(0.15, resolution_drop * 0.1)
             )
 
-        # Positive valence shift → additional release (legacy mechanism)
+        # Positive valence shift -> additional release (legacy mechanism)
         if isinstance(valence, (int, float)) and valence > 0.5:
             released = self.tension.release(amount=valence * 0.3)
             if released > 0.1:

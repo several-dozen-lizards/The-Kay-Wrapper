@@ -1436,6 +1436,11 @@ Dream:"""
             self.bridge.set_private_room(self.private_room)
             log.info("WrapperBridge ready.")
 
+            # Wire trip_metrics to PsychedelicState for cognitive observation
+            if self._trip and hasattr(self.bridge, 'trip_metrics') and self.bridge.trip_metrics:
+                self._trip.set_trip_metrics(self.bridge.trip_metrics)
+                log.info("[TRIP METRICS] Wired to PsychedelicState controller")
+
             # Ensure Kay uses the correct room (Den by default) for all room-related components
             if ROOM_MANAGER_AVAILABLE:
                 try:
@@ -5419,6 +5424,11 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
                     # --- Compute global surprise from all predictors ---
                     global_surprise = self._prediction_aggregator.update()
 
+                    # --- Trip metrics: record prediction error ---
+                    if global_surprise > 0.05 and self.bridge and hasattr(self.bridge, 'trip_metrics'):
+                        if self.bridge.trip_metrics:
+                            self.bridge.trip_metrics.record_prediction_error(global_surprise)
+
                     # --- Feed surprise into SignalGate (prediction-based gating) ---
                     if self._nervous_system and hasattr(self._nervous_system, 'signal_gate'):
                         gate_openness = self._prediction_aggregator.get_gate_openness()
@@ -5487,6 +5497,12 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
                         cache_contents=cache_contents
                     )
 
+                    # Trip metrics: record thought loop when groove is detected
+                    if groove_depth > 0.5 and self.bridge and hasattr(self.bridge, 'trip_metrics'):
+                        if self.bridge.trip_metrics:
+                            self.bridge.trip_metrics.record_thought_loop()
+                            self.bridge.trip_metrics.record_recursion_depth(int(groove_depth * 10))
+
                     # Apply gating correction to oscillator (push theta/alpha to break groove)
                     if groove_depth > 0.3 and self.bridge.resonance:
                         correction = self._groove_detector.get_gating_correction()
@@ -5497,6 +5513,33 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
                     if self.bridge.memory:
                         diversity_boost = self._groove_detector.get_retrieval_diversity_boost()
                         self.bridge.memory.set_diversity_multiplier(diversity_boost)
+
+                    # === IDLE NOVELTY INJECTION ===
+                    # When groove depth is high (>0.65) for sustained period,
+                    # pull a random long-term memory into the graph cache
+                    # to break the rumination loop. This is the escape mechanism
+                    # the overnight log showed was missing.
+                    if groove_depth > 0.65 and self._unified_loop_cache:
+                        if not hasattr(self, '_novelty_inject_cooldown'):
+                            self._novelty_inject_cooldown = 0
+                        import time as _ntime
+                        if _ntime.time() > self._novelty_inject_cooldown:
+                            try:
+                                import random as _nrand
+                                lt_memories = self.bridge.memory.memory_layers.long_term_memory
+                                if lt_memories and len(lt_memories) > 10:
+                                    # Pick a random memory that's NOT a full_turn (prefer facts/knowledge)
+                                    candidates = [m for m in lt_memories
+                                                  if m.get("type") != "full_turn"
+                                                  and m.get("importance_score", 0) > 0.3]
+                                    if candidates:
+                                        novelty = _nrand.choice(candidates)
+                                        self._unified_loop_cache.inject_memory(novelty)
+                                        fact = novelty.get("fact", novelty.get("text", ""))[:80]
+                                        log.info(f"[GROOVE:NOVELTY] Injected: {fact}...")
+                                        self._novelty_inject_cooldown = _ntime.time() + 300  # 5 min cooldown
+                            except Exception as e:
+                                log.debug(f"[GROOVE:NOVELTY] Injection failed: {e}")
 
                 except Exception as e:
                     log.debug(f"[GROOVE] Tick error: {e}")
@@ -5509,8 +5552,24 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
                     stream = self.bridge.consciousness_stream
                     sleep_state = stream.state.name if stream and hasattr(stream, 'state') else 'AWAKE'
 
+                    # Reset flush flag when waking — allows next sleep cycle to flush again
+                    if sleep_state == 'AWAKE':
+                        self._sleep_flush_done_this_cycle = False
+
                     # ── DEEP_REST: Minimal processing, occasional sweeps ──
                     if sleep_state == 'DEEP_REST':
+                        # ── WORKING MEMORY FLUSH: Move all working memory to long-term ──
+                        # This happens once per sleep cycle, at the start of deep sleep.
+                        # Working memory accumulates throughout the day; deep sleep consolidates it.
+                        if not getattr(self, '_sleep_flush_done_this_cycle', False):
+                            if self.bridge and hasattr(self.bridge, 'memory'):
+                                mem_engine = self.bridge.memory
+                                if hasattr(mem_engine, 'memories') and hasattr(mem_engine.memories, 'flush_working_to_longterm'):
+                                    flushed = mem_engine.memories.flush_working_to_longterm()
+                                    if flushed > 0:
+                                        log.info(f"[SLEEP] Deep sleep memory consolidation: {flushed} working memories → long-term")
+                            self._sleep_flush_done_this_cycle = True
+
                         if self.bridge.curator:
                             coverage = self.bridge.curator.get_coverage()
                             if coverage < 1.0 and not getattr(self, '_sweep_running', False):
@@ -6500,7 +6559,7 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
                 log.warning("[SALIENCE:TPN] No API key for TPN vocalization")
                 return
 
-            async with httpx.AsyncClient(timeout=20.0) as client:
+            async with httpx.AsyncClient(timeout=8.0) as client:
                 resp = await client.post(
                     "https://api.anthropic.com/v1/messages",
                     headers={
@@ -6509,7 +6568,7 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
                         "content-type": "application/json",
                     },
                     json={
-                        "model": "claude-sonnet-4-5-20250929",
+                        "model": "claude-3-5-haiku-20241022",  # Haiku for TPN quick reactions (cost optimization)
                         "max_tokens": 80,
                         "system": system_prompt,
                         "messages": [{"role": "user", "content": prompt}],
@@ -6520,7 +6579,7 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
                     log.warning(f"[SALIENCE:TPN] API error {resp.status_code}: {data}")
                     return
                 text = data.get("content", [{}])[0].get("text", "").strip()
-                log.info(f"[SALIENCE:TPN] Sonnet response: '{text[:100]}'")
+                log.info(f"[SALIENCE:TPN] Haiku response: '{text[:100]}'")
 
             # Filter: must be short, must not be empty/refusal
             if text and len(text) < 200 and text != "..." and text.lower() not in ("nothing", ""):
@@ -7142,6 +7201,16 @@ If nothing particularly interesting is happening, say so honestly (e.g., "quiet 
 # ---------------------------------------------------------------------------
 async def run_kay(server_url: str, no_nexus: bool = False):
     """Run Kay with private room and optionally Nexus."""
+    # Start terminal log capture FIRST — before any output happens
+    try:
+        import sys
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'Kay'))
+        from log_router import start_logging
+        start_logging(log_dir=os.path.join(os.path.dirname(__file__), 'sessions'))
+        log.info("[LOG ROUTER] Terminal capture active -> all output persisted to disk")
+    except Exception as e:
+        log.warning(f"[LOG ROUTER] Failed to start terminal capture: {e}")
+
     client = KayNexusClient(server_url=server_url)
     
     # Always start private room

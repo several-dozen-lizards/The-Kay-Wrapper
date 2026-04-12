@@ -238,6 +238,19 @@ class RoomEngine:
         self.action_log: List[dict] = []
         self.turn_number = 0
 
+        # === ENVIRONMENT MEMORY — persistent object state ===
+        # Each object tracks interactions over time, building familiarity
+        self._object_states: Dict[str, dict] = {}
+        # Default state for new objects:
+        # {
+        #     "interaction_count": 0,
+        #     "total_dwell_seconds": 0,
+        #     "familiarity_bonus": 0.0,  # 0.0-0.08 range
+        #     "condition": "normal",      # normal, damaged, broken
+        #     "damage_sessions_remaining": 0,
+        # }
+        self._session_start = time.time()
+
         self._load_state()
 
     # ── Entity Management ──
@@ -385,7 +398,51 @@ class RoomEngine:
 
         entity.state = "interacting"
         self._log_action(entity_id, "interact", {"object": object_id})
+        # Record interaction for environment memory
+        self._record_object_interaction(object_id)
         return obj.interaction_text or f"[Interacting with {obj.display_name}]"
+
+    # ── Object State (Environment Memory) ──
+
+    def _get_object_state(self, object_id: str) -> dict:
+        """Get or initialize persistent state for an object."""
+        if object_id not in self._object_states:
+            self._object_states[object_id] = {
+                "interaction_count": 0,
+                "total_dwell_seconds": 0.0,
+                "familiarity_bonus": 0.0,
+                "condition": "normal",
+                "damage_sessions_remaining": 0,
+            }
+        return self._object_states[object_id]
+
+    def _record_object_interaction(self, object_id: str):
+        """Record an interaction with an object, building familiarity."""
+        state = self._get_object_state(object_id)
+        state["interaction_count"] += 1
+        # Familiarity grows with interactions, capped at 0.08
+        state["familiarity_bonus"] = min(0.08, state["interaction_count"] * 0.002)
+
+    def get_object_familiarity(self, object_id: str) -> float:
+        """Get familiarity bonus for an object (0.0-0.08 range)."""
+        if object_id in self._object_states:
+            return self._object_states[object_id].get("familiarity_bonus", 0.0)
+        return 0.0
+
+    def damage_object(self, object_id: str, sessions: int = 3):
+        """Mark an object as damaged for a number of sessions."""
+        state = self._get_object_state(object_id)
+        state["condition"] = "damaged"
+        state["damage_sessions_remaining"] = sessions
+
+    def _heal_damaged_objects(self):
+        """Decrement damage timers on session start. Called by _load_state."""
+        for obj_id, state in self._object_states.items():
+            if state.get("damage_sessions_remaining", 0) > 0:
+                state["damage_sessions_remaining"] -= 1
+                if state["damage_sessions_remaining"] <= 0:
+                    state["condition"] = "normal"
+                    print(f"[ROOM] {obj_id} has healed back to normal")
 
     # ── Action Pipeline ──
 
@@ -542,6 +599,7 @@ class RoomEngine:
             },
             "entities": entities_screen,
             "objects": objects_screen,
+            "object_states": self._object_states,
             "timestamp": time.time(),
         }
 
@@ -595,6 +653,12 @@ class RoomEngine:
                     interaction_text=od.get("interaction_text", ""),
                     sprite=od.get("sprite", "default")
                 )
+
+            # Load object states (environment memory)
+            if "object_states" in data:
+                self._object_states = data["object_states"]
+                # Heal damaged objects on session start
+                self._heal_damaged_objects()
 
             print(f"[ROOM] Loaded {self.name}: {len(self.entities)} entities, {len(self.objects)} objects (circular, r={self.radius})")
         except Exception as e:

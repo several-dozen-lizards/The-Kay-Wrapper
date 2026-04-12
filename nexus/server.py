@@ -1611,6 +1611,188 @@ async def stats_overview(entity: str):
 
 
 # ---------------------------------------------------------------------------
+# Memory Trace Endpoint
+# ---------------------------------------------------------------------------
+
+# Cache for memory readers (avoid re-initialization per request)
+_memory_readers = {}
+
+def _get_memory_reader(entity: str):
+    """Get or create a memory reader for an entity."""
+    entity = entity.capitalize()
+    if entity in _memory_readers:
+        return _memory_readers[entity]
+
+    import sys
+    wdir = _wrapper_dir(entity)
+
+    # Add paths for imports
+    if _WRAPPERS_ROOT not in sys.path:
+        sys.path.insert(0, _WRAPPERS_ROOT)
+    entity_dir = os.path.join(_WRAPPERS_ROOT, entity)
+    if entity_dir not in sys.path:
+        sys.path.insert(0, entity_dir)
+
+    try:
+        from shared.memory_vectors import MemoryVectorStore
+        from engines.memory_engine import MemoryEngine
+        from engines.memory_layers import MemoryLayers
+
+        memory_vectors = MemoryVectorStore(entity=entity.lower(), persist_dir=os.path.join(wdir, "memory", "vector_collections"))
+        memory_layers = MemoryLayers(persist_path=os.path.join(wdir, "memory", f"{entity.lower()}_memory_layers.json"))
+
+        _memory_readers[entity] = {
+            "vectors": memory_vectors,
+            "layers": memory_layers,
+            "entity": entity,
+        }
+        return _memory_readers[entity]
+    except Exception as e:
+        log.warning(f"[MEMORY-TRACE] Failed to initialize memory reader for {entity}: {e}")
+        return None
+
+
+@app.get("/memory/trace/{entity}/{query}")
+async def memory_trace(entity: str, query: str, max_results: int = 10):
+    """
+    Debug endpoint: trace a concept through an entity's memory system.
+    Shows which collections found the memory and detailed metadata.
+    """
+    from datetime import datetime, timezone
+
+    reader = _get_memory_reader(entity)
+    if not reader:
+        return {"error": f"Could not initialize memory reader for {entity}"}
+
+    mv = reader["vectors"]
+    ml = reader["layers"]
+    results = []
+    collection_hits = {}
+
+    # Query each collection
+    for name, collection in [
+        ("semantic", mv.semantic_collection),
+        ("emotional", mv.emotional_collection),
+        ("oscillator", mv.oscillator_collection),
+        ("temporal", mv.temporal_collection),
+        ("relational", mv.relational_collection),
+        ("somatic", mv.somatic_collection),
+    ]:
+        if collection is None:
+            continue
+        try:
+            # Generate query embedding
+            query_embedding = mv.embedder.encode(query).tolist() if mv.embedder else None
+            if not query_embedding:
+                continue
+
+            coll_results = collection.query(
+                query_embeddings=[query_embedding],
+                n_results=max_results * 2,
+                include=["documents", "metadatas", "distances"]
+            )
+
+            if coll_results and coll_results.get("ids") and coll_results["ids"][0]:
+                for i, mid in enumerate(coll_results["ids"][0]):
+                    if mid not in collection_hits:
+                        collection_hits[mid] = {
+                            "collections": [],
+                            "best_distance": float("inf"),
+                            "metadata": coll_results["metadatas"][0][i] if coll_results.get("metadatas") else {},
+                        }
+                    collection_hits[mid]["collections"].append(name)
+                    dist = coll_results["distances"][0][i] if coll_results.get("distances") else 1.0
+                    if dist < collection_hits[mid]["best_distance"]:
+                        collection_hits[mid]["best_distance"] = dist
+        except Exception as e:
+            log.warning(f"[MEMORY-TRACE] Error querying {name} collection: {e}")
+
+    # Score by convergence (more collections = higher rank)
+    sorted_hits = sorted(
+        collection_hits.items(),
+        key=lambda x: (-len(x[1]["collections"]), x[1]["best_distance"])
+    )[:max_results]
+
+    # Enrich with memory layer data
+    now = datetime.now(timezone.utc)
+    for mid, hit in sorted_hits:
+        # Find in memory layers
+        fact_data = None
+        current_layer = "unknown"
+        for mem in ml.working_memory:
+            if mem.get("id") == mid:
+                fact_data = mem
+                current_layer = "working"
+                break
+        if not fact_data:
+            for mem in ml.long_term_memory:
+                if mem.get("id") == mid:
+                    fact_data = mem
+                    current_layer = "long_term"
+                    break
+        if not fact_data:
+            for mem in ml.bedrock_facts:
+                if mem.get("id") == mid:
+                    fact_data = mem
+                    current_layer = "bedrock"
+                    break
+
+        # Build result
+        result = {
+            "id": mid,
+            "type": fact_data.get("type", "unknown") if fact_data else "unknown",
+            "fact": fact_data.get("fact", hit["metadata"].get("fact", "")) if fact_data else hit["metadata"].get("fact", ""),
+            "timestamp": fact_data.get("timestamp", "") if fact_data else "",
+            "importance": fact_data.get("importance", 0.5) if fact_data else 0.5,
+            "category": fact_data.get("category", "general") if fact_data else "general",
+            "entities": fact_data.get("entities", []) if fact_data else [],
+            "oscillator_band": fact_data.get("oscillator_band", "unknown") if fact_data else "unknown",
+            "coherence": fact_data.get("coherence", 0.0) if fact_data else 0.0,
+            "collections_found_in": hit["collections"],
+            "convergence_score": len(hit["collections"]),
+            "current_layer": current_layer,
+            "is_bedrock": current_layer == "bedrock",
+            "retrieval_count": fact_data.get("retrieval_count", 0) if fact_data else 0,
+        }
+
+        # Calculate relative age
+        if fact_data and fact_data.get("timestamp"):
+            try:
+                ts = datetime.fromisoformat(fact_data["timestamp"].replace("Z", "+00:00"))
+                age = now - ts
+                if age.days > 30:
+                    result["relative_age"] = f"{age.days // 30} months ago"
+                elif age.days > 0:
+                    result["relative_age"] = f"{age.days} days ago"
+                elif age.seconds > 3600:
+                    result["relative_age"] = f"{age.seconds // 3600} hours ago"
+                else:
+                    result["relative_age"] = "recent"
+            except:
+                result["relative_age"] = "unknown"
+        else:
+            result["relative_age"] = "unknown"
+
+        results.append(result)
+
+    # Stats
+    stats = mv.get_collection_stats()
+
+    return {
+        "query": query,
+        "entity": entity.capitalize(),
+        "result_count": len(results),
+        "results": results,
+        "stats": {
+            "total_working": len(ml.working_memory),
+            "total_longterm": len(ml.long_term_memory),
+            "total_bedrock": len(ml.bedrock_facts),
+            "collections": stats,
+        }
+    }
+
+
+# ---------------------------------------------------------------------------
 # Expression Engine Endpoints
 # ---------------------------------------------------------------------------
 

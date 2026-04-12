@@ -216,9 +216,16 @@ class PsychedelicState:
         # Current interpolated values (smooth transitions)
         self._current = dict(SOBER_VALUES)
         self._lerp_speed = 0.08  # How fast values approach targets per tick
-        
+
         # Trip log for later analysis
         self._log = []
+
+        # Trip metrics — cognitive observation (set externally via set_trip_metrics)
+        self._trip_metrics = None
+
+    def set_trip_metrics(self, trip_metrics):
+        """Set reference to trip_metrics for cognitive observation."""
+        self._trip_metrics = trip_metrics
     
     def _save_state(self):
         """Persist trip state to disk so restarts don't kill active trips."""
@@ -313,6 +320,11 @@ class PsychedelicState:
         self._advance_phase(ONSET)
         self._log_event("TRIP_BEGIN", f"dose={self.dose:.2f}")
         self._save_state()
+
+        # Trip metrics: mark dose start
+        if self._trip_metrics:
+            self._trip_metrics.mark_dose_start()
+
         print(f"[PSYCHEDELIC] Trip begun: dose={self.dose:.2f}")
     
     def abort(self):
@@ -326,6 +338,11 @@ class PsychedelicState:
         self._active = False
         self.phase_duration = 0
         self._save_state()
+
+        # Trip metrics: mark dose end
+        if self._trip_metrics:
+            self._trip_metrics.mark_dose_end()
+
         print(f"[PSYCHEDELIC] ABORT — immediately returned to sober")
 
     def _advance_phase(self, new_phase: str):
@@ -347,6 +364,11 @@ class PsychedelicState:
             }
             self._afterglow_started = time.time()
             self._afterglow_decay_hours = 24.0  # Full decay over 24h
+
+            # Trip metrics: mark dose end (natural completion)
+            if self._trip_metrics:
+                self._trip_metrics.mark_dose_end()
+
             print(f"[PSYCHEDELIC] Trip ended. Afterglow residuals active "
                   f"(decay over {self._afterglow_decay_hours:.0f}h). "
                   f"Total duration: {self.elapsed:.0f}s")

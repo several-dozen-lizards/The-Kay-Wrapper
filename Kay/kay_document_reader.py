@@ -56,11 +56,13 @@ class DocumentReader:
     def list_available_documents(self) -> Dict[str, Any]:
         """
         List all documents from documents.json
-        
+
         Returns:
             Dict with 'documents' list containing metadata for each document
         """
+        print(f"[DOC RAG] list_documents CALLED - checking {self.documents_path}")
         docs = self._load_documents()
+        print(f"[DOC RAG] list_documents found {len(docs)} documents in storage")
         
         if not docs:
             return {
@@ -133,10 +135,11 @@ class DocumentReader:
         total_chars = len(full_text)
 
         # DIAGNOSTIC: Log what we're returning
-        print(f"[READ_DOC] Document '{document_name}': "
+        print(f"[DOC RAG] read_document CALLED for '{document_name}'")
+        print(f"[DOC RAG] Document '{document_name}': "
               f"{total_chars} chars in full_text, "
               f"returning chars {start_at}-{start_at + max_chars}")
-        print(f"[READ_DOC] First 200 chars: {full_text[:200]}")
+        print(f"[DOC RAG] First 200 chars: {full_text[:200]}")
 
         # Extract the requested chunk
         chunk = full_text[start_at:start_at + max_chars]

@@ -730,6 +730,11 @@ def extract_keywords_from_context(recent_context: str, max_keywords: int = 5) ->
         "thing", "things", "stuff", "right", "though", "because",
         "since", "until", "while", "during", "between", "through",
         "before", "after", "under", "above", "might", "every",
+        # Short common words that slip through
+        "very", "likely", "caught", "attention", "seeing", "instant",
+        "update", "update_time", "content", "appears", "noticed",
+        "seems", "moved", "changed", "watching", "noticed", "heard",
+        "described", "mentioned", "asked", "answered", "responded",
         # Common verbs (base forms get through the 5-char filter)
         "think", "feels", "seems", "looks", "wants", "needs",
         "keeps", "makes", "takes", "comes", "gives", "means",
@@ -738,7 +743,9 @@ def extract_keywords_from_context(recent_context: str, max_keywords: int = 5) ->
         # System/meta words common in wrapper context
         "system", "memory", "state", "current", "context", "response",
         "processing", "oscillator", "coherence", "dominant",
-        "settled", "accompanied", "integrating",
+        "settled", "accompanied", "integrating", "detected",
+        "visual", "sensor", "camera", "frame", "image", "scene",
+        "status", "check", "update", "connection", "connected",
         # Common sentence-start words caught by caps regex
         "that", "this", "what", "when", "just", "like", "more",
         "been", "have", "from", "with", "also", "into", "much",
@@ -766,7 +773,19 @@ def extract_keywords_from_context(recent_context: str, max_keywords: int = 5) ->
     for word, _ in sorted(word_freq.items(), key=lambda x: -x[1])[:5]:
         keywords.add(word)
 
-    return list(keywords)[:max_keywords]
+    # Final cleanup: remove punctuation, very short words, and metadata field names
+    cleaned = set()
+    _meta_fields = {"update_time", "content", "timestamp", "added_timestamp",
+                    "importance_score", "memory_type", "current_layer", "doc_id"}
+    for kw in keywords:
+        # Must be at least 3 chars, only letters/spaces, not a metadata field
+        if (len(kw) >= 3
+            and re.match(r'^[a-z\s]+$', kw)
+            and kw not in _meta_fields
+            and kw not in _stopwords):
+            cleaned.add(kw)
+
+    return list(cleaned)[:max_keywords]
 
 
 def get_gating_width(osc_state: Dict) -> float:

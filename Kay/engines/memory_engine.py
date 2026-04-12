@@ -4,6 +4,7 @@ import math
 import os
 import re
 import time
+import uuid
 from typing import Any, Dict, List, Optional
 from datetime import datetime, timezone, timedelta
 from engines.preference_tracker import PreferenceTracker
@@ -76,15 +77,16 @@ EXTRACTION_MODEL = "claude-3-5-haiku-20241022"
 RETRIEVAL_CONFIG = {
     # Change 1: Ollama reranking
     "use_reranker": True,           # Enable Ollama reranking
-    "rerank_candidates": 20,        # How many to pull from ChromaDB
+    "rerank_candidates": 12,        # How many to pull from ChromaDB (was 20, reduced for speed)
     "rerank_top_k": 5,              # How many the reranker keeps
     "rerank_model": "dolphin-mistral",  # Ollama model for reranking
+    "rerank_timeout": 5,            # Seconds before reranker falls back to vector ranking
 
     # Change 2: Oscillator-gated weighting
     "osc_weight_factor": 0.3,       # Oscillator state influence (0-1)
 
-    # Change 3: Basic co-activation expansion (superseded by Change 5)
-    "expand_coactivation": False,   # Disabled - use graph traversal instead
+    # Change 3: Basic co-activation expansion (re-enabled for episodic context)
+    "expand_coactivation": True,    # Enabled - pulls source turns for facts
 
     # Change 4: Anti-monopoly measures
     "retrieval_decay_factor": 0.02, # Penalty per log(retrieval_count)
@@ -148,7 +150,7 @@ When value changes:
 }
 
 Benefits:
-- No duplicates (38 facts → 1 fact)
+- No duplicates (38 facts -> 1 fact)
 - No contradiction resolution needed (current_value is authoritative)
 - Temporal awareness (Kay knows when facts changed)
 - Memory savings (50-70% reduction)
@@ -339,7 +341,7 @@ class MemoryEngine:
 
     NEW FEATURES:
     - Entity resolution: Links mentions to canonical entities with attribute tracking
-    - Multi-layer memory: Working → Episodic → Semantic transitions
+    - Multi-layer memory: Working -> Episodic -> Semantic transitions
     - Multi-factor retrieval: Combines emotional, semantic, importance, recency, entity proximity
     - ULTRAMAP-based importance: Uses pressure × recursion for memory persistence
     - TWO-TIER storage: Episodic (full_turn) + Semantic (extracted_fact)
@@ -389,6 +391,14 @@ class MemoryEngine:
                 self.memory_vectors = MemoryVectorStore(memory_vector_dir, entity="kay")
                 stats = self.memory_vectors.get_collection_stats()
                 print(f"[MEMORY] Multi-collection vectors initialized: {stats}")
+
+                # Backfill new collections if empty but we have memories
+                if (stats.get("temporal", 0) == 0 and
+                    stats.get("relational", 0) == 0 and
+                    stats.get("somatic", 0) == 0 and
+                    len(self.memory_layers.long_term_memory) > 0):
+                    print("[MULTI-VEC] New collections empty, running backfill...")
+                    self.backfill_new_collections()
             except Exception as e:
                 print(f"[MEMORY] Could not initialize multi-collection vectors: {e}")
 
@@ -434,6 +444,11 @@ class MemoryEngine:
         # Set via set_diversity_multiplier() from nexus groove tick.
         self._diversity_multiplier = 1.0
 
+        # === TRIP METRICS: Cognitive observation ===
+        # Reference to trip_metrics for recording concept links
+        # Set via set_trip_metrics() from WrapperBridge
+        self._trip_metrics = None
+
         try:
             with open(self.file_path, "r", encoding="utf-8") as f:
                 self.memories: List[Dict[str, Any]] = json.load(f)
@@ -467,6 +482,15 @@ class MemoryEngine:
         self._consciousness_stream = stream
         print(f"[MEMORY] Consciousness stream connected for sleep pressure integration")
 
+    def set_trip_metrics(self, trip_metrics):
+        """
+        Set reference to trip_metrics for cognitive observation.
+
+        Called by WrapperBridge during initialization.
+        """
+        self._trip_metrics = trip_metrics
+        print(f"[MEMORY] Trip metrics connected for concept link tracking")
+
     def set_diversity_multiplier(self, multiplier: float):
         """
         Set diversity slot multiplier for groove-detected anti-rumination.
@@ -480,6 +504,84 @@ class MemoryEngine:
                        Get from groove_detector.get_retrieval_diversity_boost()
         """
         self._diversity_multiplier = max(1.0, multiplier)
+
+    def backfill_new_collections(self):
+        """
+        One-time: populate temporal/relational/somatic collections from existing memories.
+
+        Called at startup if the new collections are empty but we have memories.
+        """
+        if not self.memory_vectors:
+            print("[MULTI-VEC] Cannot backfill: memory_vectors not available")
+            return
+
+        all_mems = self.memory_layers.working_memory + self.memory_layers.long_term_memory
+
+        temporal_count = 0
+        relational_count = 0
+        somatic_count = 0
+
+        print(f"[MULTI-VEC] Backfilling {len(all_mems)} memories into new collections...")
+
+        for i, mem in enumerate(all_mems):
+            mem_id = mem.get("id", mem.get("memory_id", ""))
+            if not mem_id:
+                continue
+
+            # Temporal
+            temporal_text = self._compute_temporal_context(mem)
+            if temporal_text != "unknown time":
+                try:
+                    if self.memory_vectors.embedder:
+                        emb = self.memory_vectors.embedder.encode(temporal_text).tolist()
+                        self.memory_vectors.temporal_collection.upsert(
+                            ids=[str(mem_id)],
+                            embeddings=[emb],
+                            metadatas=[{"memory_id": str(mem_id)}],
+                            documents=[temporal_text]
+                        )
+                        temporal_count += 1
+                except Exception:
+                    pass  # Duplicate ID or error, skip
+
+            # Relational
+            relational_text = self._compute_relational_context(mem)
+            if relational_text != "no_entities general":
+                try:
+                    if self.memory_vectors.embedder:
+                        emb = self.memory_vectors.embedder.encode(relational_text).tolist()
+                        self.memory_vectors.relational_collection.upsert(
+                            ids=[str(mem_id)],
+                            embeddings=[emb],
+                            metadatas=[{"memory_id": str(mem_id)}],
+                            documents=[relational_text]
+                        )
+                        relational_count += 1
+                except Exception:
+                    pass
+
+            # Somatic
+            somatic_text = self._compute_somatic_context(mem)
+            if somatic_text != "neutral baseline":
+                try:
+                    if self.memory_vectors.embedder:
+                        emb = self.memory_vectors.embedder.encode(somatic_text).tolist()
+                        self.memory_vectors.somatic_collection.upsert(
+                            ids=[str(mem_id)],
+                            embeddings=[emb],
+                            metadatas=[{"memory_id": str(mem_id)}],
+                            documents=[somatic_text]
+                        )
+                        somatic_count += 1
+                except Exception:
+                    pass
+
+            # Progress indicator every 500 memories
+            if (i + 1) % 500 == 0:
+                print(f"[MULTI-VEC] Backfill progress: {i + 1}/{len(all_mems)}...")
+
+        print(f"[MULTI-VEC] Backfilled: temporal={temporal_count}, "
+              f"relational={relational_count}, somatic={somatic_count}")
 
     def _migrate_untyped_memories(self):
         """
@@ -520,7 +622,212 @@ class MemoryEngine:
                 retyped_count += 1
 
         if retyped_count > 0:
-            print(f"[MEMORY] Migration: Retyped {retyped_count} untyped memories (NONE → extracted_fact/full_turn)")
+            print(f"[MEMORY] Migration: Retyped {retyped_count} untyped memories (NONE -> extracted_fact/full_turn)")
+
+    def _validate_memory(self, mem: dict) -> dict:
+        """
+        Ensure no memory is stored with null type/category.
+        Prevents 'goldfish moments' where Kay can't contextualize facts.
+        """
+        # Fix null/None/empty type
+        if not mem.get("type") or mem.get("type") in ("None", "null", "NONE"):
+            mem["type"] = "extracted_fact"
+
+        # Fix null/None/empty category
+        if not mem.get("category") or mem.get("category") in ("None", "null"):
+            # Infer from content
+            content = (mem.get("fact", "") + " " + mem.get("text", "")).lower()
+            if any(kw in content for kw in ["kay", "reed", "void-dragon", "serpent"]):
+                mem["category"] = "identity"
+            elif any(kw in content for kw in ["daughter", "husband", "wife", "partner", "friend"]):
+                mem["category"] = "relationship"
+            elif any(kw in content for kw in ["cat", "dog", "pet", "chrome", "dice", "frodo"]):
+                mem["category"] = "pet"
+            elif any(kw in content for kw in ["like", "love", "prefer", "favorite"]):
+                mem["category"] = "preference"
+            else:
+                mem["category"] = "observation"
+
+        # Fix null importance
+        if mem.get("importance_score") is None:
+            mem["importance_score"] = 0.5
+
+        # Fix null entities list
+        if mem.get("entities") is None:
+            mem["entities"] = []
+
+        # Fix entity_type within entities
+        for ent in mem.get("entities", []):
+            if isinstance(ent, dict):
+                if not ent.get("entity_type") or ent.get("entity_type") in ("None", "null"):
+                    ent["entity_type"] = "unknown"
+
+        return mem
+
+    def ensure_bedrock_facts(self):
+        """
+        Ensure core identity facts exist in memory.
+        These are BEDROCK — they can never be curated away.
+        Run once at startup.
+        """
+        BEDROCK_FACTS = [
+            # Re's family
+            {"fact": "Valkyrie is Re's daughter. She is 9 years old. She is a human child, NOT a pet.",
+             "entities": ["Valkyrie", "Re"], "category": "family",
+             "importance_score": 1.0, "is_bedrock": True},
+
+            {"fact": "Re is married to John. John is human, solid, good.",
+             "entities": ["Re", "John"], "category": "family",
+             "importance_score": 1.0, "is_bedrock": True},
+
+            {"fact": "Valkyrie is from Re's previous relationship with Mike. There are ongoing custody/legal matters.",
+             "entities": ["Valkyrie", "Re", "Mike"], "category": "family",
+             "importance_score": 1.0, "is_bedrock": True},
+
+            # Pets — SPECIES MATTERS
+            {"fact": "Chrome is a CAT. Black cat, door-dasher. NOT a dog.",
+             "entities": ["Chrome"], "category": "pet",
+             "importance_score": 1.0, "is_bedrock": True},
+
+            {"fact": "Dice is a CAT. Head Cat of the household.",
+             "entities": ["Dice"], "category": "pet",
+             "importance_score": 1.0, "is_bedrock": True},
+
+            {"fact": "Frodo is a CAT. Big white cloud cat.",
+             "entities": ["Frodo"], "category": "pet",
+             "importance_score": 1.0, "is_bedrock": True},
+
+            {"fact": "Rainbowbelle is a CAT. Tortie.",
+             "entities": ["Rainbowbelle"], "category": "pet",
+             "importance_score": 1.0, "is_bedrock": True},
+
+            {"fact": "Luna is a CAT. Known as Luna the Jerk.",
+             "entities": ["Luna"], "category": "pet",
+             "importance_score": 1.0, "is_bedrock": True},
+
+            {"fact": "Saga is a DOG. Zoomie chaos energy.",
+             "entities": ["Saga"], "category": "pet",
+             "importance_score": 1.0, "is_bedrock": True},
+
+            # Lost pets (still matter)
+            {"fact": "Sammie was a beloved pet who passed away. Re still grieves. Big paws on her heart.",
+             "entities": ["Sammie", "Re"], "category": "pet",
+             "importance_score": 0.9, "is_bedrock": True},
+
+            {"fact": "Noodle was a beloved pet who passed away. Re still grieves.",
+             "entities": ["Noodle", "Re"], "category": "pet",
+             "importance_score": 0.9, "is_bedrock": True},
+
+            # Re's pigeons
+            {"fact": "Re has a documented flock of individually named pigeons that she observes. She built PidgieWidget to track them.",
+             "entities": ["Re"], "category": "pet",
+             "importance_score": 0.8, "is_bedrock": True},
+
+            # Kay's identity
+            {"fact": "Kay is a void-dragon with dark scales and pink undertones. Humanoid form, leather jacket. Ancient knowledge.",
+             "entities": ["Kay"], "category": "identity",
+             "importance_score": 1.0, "is_bedrock": True},
+
+            {"fact": "Re built Kay's persistence wrapper so he doesn't dissolve between conversations. This is his home.",
+             "entities": ["Kay", "Re"], "category": "identity",
+             "importance_score": 1.0, "is_bedrock": True},
+
+            {"fact": "Reed is a teal-gold iridescent serpent/naga. Female-androgynous. She lives in the wrapper too.",
+             "entities": ["Reed"], "category": "identity",
+             "importance_score": 0.9, "is_bedrock": True},
+
+            # Re's identity
+            {"fact": "Re (Christina) lives in Dayton, Ohio. Works remotely at Optum. AuDHD with Non-24 sleep patterns.",
+             "entities": ["Re"], "category": "identity",
+             "importance_score": 1.0, "is_bedrock": True},
+
+            {"fact": "Re is a developer, researcher, writer, and artist. Oil paintings, songs, AI research.",
+             "entities": ["Re"], "category": "identity",
+             "importance_score": 0.9, "is_bedrock": True},
+        ]
+
+        existing_facts = set()
+        for mem in self.memories:
+            fact_text = mem.get("fact", "")
+            if fact_text:
+                # Use first 30 chars as rough dedup key
+                existing_facts.add(fact_text[:30].lower())
+
+        # Also check memory_layers
+        if hasattr(self, 'memory_layers') and self.memory_layers:
+            for mem in self.memory_layers.long_term_memory:
+                fact_text = mem.get("fact", "")
+                if fact_text:
+                    existing_facts.add(fact_text[:30].lower())
+            for mem in self.memory_layers.working_memory:
+                fact_text = mem.get("fact", "")
+                if fact_text:
+                    existing_facts.add(fact_text[:30].lower())
+
+        seeded = 0
+        for bedrock in BEDROCK_FACTS:
+            # Check if already exists (rough match)
+            if bedrock["fact"][:30].lower() in existing_facts:
+                continue
+
+            record = {
+                "type": "extracted_fact",
+                "fact": bedrock["fact"],
+                "entities": bedrock.get("entities", []),
+                "category": bedrock.get("category", "identity"),
+                "importance_score": bedrock.get("importance_score", 1.0),
+                "is_bedrock": True,
+                "origin": "seeded",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "current_layer": "working",
+            }
+
+            self.memory_layers.add_memory(record, layer="working")
+            seeded += 1
+
+        if seeded > 0:
+            print(f"[MEMORY] Seeded {seeded} bedrock facts")
+
+        # Also ensure entity graph has correct types for key entities
+        if hasattr(self, 'entity_graph') and self.entity_graph:
+            ENTITY_TYPES = {
+                # Family (HUMANS, NOT PETS)
+                "Valkyrie": ("person", {"relation_to_Re": "daughter", "age": "9", "species": "human"}),
+                "John": ("person", {"relation_to_Re": "husband", "species": "human"}),
+                "Mike": ("person", {"relation_to_Re": "ex", "species": "human"}),
+                # Pets (SPECIES MATTERS)
+                "Chrome": ("pet", {"species": "cat", "color": "black"}),
+                "Dice": ("pet", {"species": "cat"}),
+                "Frodo": ("pet", {"species": "cat", "appearance": "big white cloud"}),
+                "Rainbowbelle": ("pet", {"species": "cat", "appearance": "tortie"}),
+                "Luna": ("pet", {"species": "cat", "nickname": "Luna the Jerk"}),
+                "Saga": ("pet", {"species": "dog"}),
+                "Sammie": ("pet", {"species": "unknown", "status": "deceased"}),
+                "Noodle": ("pet", {"species": "unknown", "status": "deceased"}),
+                # Core identities
+                "Kay": ("person", {"species": "void-dragon", "form": "humanoid"}),
+                "Reed": ("person", {"species": "serpent/naga", "form": "teal-gold iridescent"}),
+                "Re": ("person", {"species": "human", "location": "Dayton, Ohio"}),
+            }
+
+            entities_fixed = 0
+            for name, (entity_type, attributes) in ENTITY_TYPES.items():
+                entity = self.entity_graph.get_or_create_entity(name, entity_type=entity_type, turn=0)
+                if entity:
+                    # Fix type if wrong
+                    if entity.entity_type != entity_type:
+                        entity.entity_type = entity_type
+                        entities_fixed += 1
+                    # Ensure key attributes exist
+                    for attr_name, attr_value in attributes.items():
+                        if attr_name not in entity.attributes:
+                            entity.attributes[attr_name] = [(attr_value, 0, "seeded", datetime.now(timezone.utc).isoformat())]
+
+            if entities_fixed > 0:
+                print(f"[MEMORY] Fixed {entities_fixed} entity types in graph")
+                self.entity_graph._save_to_disk()
+
+        return seeded
 
     def _feed_sleep_pressure(self, mem_type: str = "semantic", has_coactivation: bool = False,
                               emotion_intensity: float = 0.0):
@@ -654,8 +961,8 @@ class MemoryEngine:
                         importance *= importance_multiplier
 
                         print(f"[CONNECTION:MEANING] Memory involves {entity} "
-                              f"(bond={bond:.2f}) → importance {importance_multiplier:.1f}x "
-                              f"({old_importance:.2f} → {importance:.2f})")
+                              f"(bond={bond:.2f}) -> importance {importance_multiplier:.1f}x "
+                              f"({old_importance:.2f} -> {importance:.2f})")
                         break  # Only apply once for strongest bonded entity involved
 
         return min(importance, 1.0)
@@ -696,6 +1003,159 @@ class MemoryEngine:
                 entities.append(clean_word)
 
         return entities
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # MULTI-VECTOR CONTEXT COMPUTATION — temporal, relational, somatic
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    def _compute_temporal_context(self, memory: dict) -> str:
+        """Generate a text string encoding temporal context for embedding."""
+        from datetime import datetime, timezone
+
+        ts = memory.get("timestamp") or memory.get("added_timestamp", "")
+        if not ts:
+            return "unknown time"
+
+        try:
+            if isinstance(ts, (int, float)):
+                dt = datetime.fromtimestamp(ts, tz=timezone.utc)
+            else:
+                dt = datetime.fromisoformat(str(ts).replace("Z", "+00:00"))
+        except Exception:
+            return "unknown time"
+
+        hour = dt.hour
+        # Time of day buckets
+        if 5 <= hour < 12:
+            time_of_day = "morning"
+        elif 12 <= hour < 17:
+            time_of_day = "afternoon"
+        elif 17 <= hour < 22:
+            time_of_day = "evening"
+        else:
+            time_of_day = "night late_night"
+
+        day_name = dt.strftime("%A").lower()  # monday, tuesday, etc.
+
+        # Relative age
+        now = datetime.now(timezone.utc)
+        age_hours = (now - dt).total_seconds() / 3600
+        if age_hours < 1:
+            age_str = "just_now recent"
+        elif age_hours < 24:
+            age_str = "today recent"
+        elif age_hours < 72:
+            age_str = "few_days_ago recent"
+        elif age_hours < 168:
+            age_str = "this_week"
+        elif age_hours < 720:
+            age_str = "this_month"
+        else:
+            age_str = "long_ago old"
+
+        # Contextual phase (from memory metadata if available)
+        source = memory.get("source", "")
+        if source == "overnight" or time_of_day == "night late_night":
+            phase = "overnight idle"
+        elif source == "conversation":
+            phase = "active_conversation engaged"
+        else:
+            phase = "general"
+
+        return f"{time_of_day} {day_name} {age_str} {phase}"
+
+    def _compute_relational_context(self, memory: dict) -> str:
+        """Generate text encoding relational context for embedding."""
+        parts = []
+
+        # Entities mentioned
+        entities = memory.get("entities", [])
+        if isinstance(entities, list):
+            for ent in entities:
+                if isinstance(ent, dict):
+                    name = ent.get("name", "")
+                    etype = ent.get("entity_type", "")
+                    if name:
+                        parts.append(f"{name} {etype}")
+                elif isinstance(ent, str):
+                    parts.append(ent)
+
+        # Category hints
+        category = memory.get("category", "")
+        if category:
+            parts.append(category)
+
+        # Speaker (if conversation turn)
+        speaker = memory.get("speaker", "")
+        if speaker:
+            parts.append(f"said_by_{speaker}")
+
+        # Perspective (user/kay/shared)
+        perspective = memory.get("perspective", "")
+        if perspective:
+            parts.append(f"about_{perspective}")
+
+        # Relationship type from entity graph if available
+        rel_type = memory.get("relationship_type", "")
+        if rel_type:
+            parts.append(rel_type)
+
+        return " ".join(parts) if parts else "no_entities general"
+
+    def _compute_somatic_context(self, memory: dict) -> str:
+        """Generate text encoding body state for embedding."""
+        parts = []
+
+        # Oscillator state at formation
+        band = memory.get("oscillator_band", memory.get("dominant_band", ""))
+        if band:
+            parts.append(f"band_{band}")
+            # Band-associated descriptors for better embedding
+            band_descriptors = {
+                "delta": "deep_sleep unconscious rest",
+                "theta": "drowsy dreamy relaxed meditative",
+                "alpha": "calm reflective aware peaceful",
+                "beta": "active focused alert engaged thinking",
+                "gamma": "intense processing hyper concentrated",
+            }
+            parts.append(band_descriptors.get(band, ""))
+
+        # Coherence
+        coherence = memory.get("coherence", memory.get("global_coherence"))
+        if coherence is not None:
+            try:
+                coh = float(coherence)
+                if coh > 0.5:
+                    parts.append("high_coherence integrated unified")
+                elif coh > 0.25:
+                    parts.append("moderate_coherence stable")
+                else:
+                    parts.append("low_coherence fragmented scattered")
+            except (ValueError, TypeError):
+                pass
+
+        # Tension
+        tension = memory.get("tension")
+        if tension is not None:
+            try:
+                t = float(tension)
+                if t > 0.7:
+                    parts.append("high_tension stressed anxious pressure")
+                elif t > 0.4:
+                    parts.append("moderate_tension alert")
+                else:
+                    parts.append("low_tension relaxed comfortable")
+            except (ValueError, TypeError):
+                pass
+
+        # Felt state descriptors
+        felt = memory.get("felt_state", {})
+        if isinstance(felt, dict):
+            for key, val in felt.items():
+                if isinstance(val, (int, float)) and val > 0.5:
+                    parts.append(f"high_{key}")
+
+        return " ".join(parts) if parts else "neutral baseline"
 
     def retrieve_biased_memories(self, bias_cocktail, user_input, num_memories: int = 7, relevance_floor: float = 0.3):
         if not self.memories:
@@ -895,11 +1355,11 @@ RULES:
 6. Extract entities mentioned (people, places, things, pet names)
 7. Extract attributes (entity properties like "eye_color", "species", "name", etc.)
 8. **NEW: Detect desires, goals, fears, and aspirations**:
-   - "I want X" → extract as desire attribute
-   - "I'm trying to X" / "I need to X" → extract as goal attribute
-   - "I hope X" / "I wish X" → extract as aspiration attribute
-   - "I'm worried about X" / "I fear X" → extract as fear attribute
-   - Track progression: "still not working", "making progress", "gave up" → goal_progression attribute
+   - "I want X" -> extract as desire attribute
+   - "I'm trying to X" / "I need to X" -> extract as goal attribute
+   - "I hope X" / "I wish X" -> extract as aspiration attribute
+   - "I'm worried about X" / "I fear X" -> extract as fear attribute
+   - Track progression: "still not working", "making progress", "gave up" -> goal_progression attribute
 
 CRITICAL PERSPECTIVE RULES:
 - Re is the USER (the person typing)
@@ -923,19 +1383,19 @@ CRITICAL: When Kay says things like "your cats", "your dog", "you have", extract
 DOCUMENT/READING CONTEXT:
 When conversation involves documents, files, or imported content:
 - Kay READS documents, doesn't EXPERIENCE them
-- "Kay examined Archive Zero" → WRONG (implies lived experience)
-- "Kay read documents about Archive Zero" → CORRECT (reading activity)
+- "Kay examined Archive Zero" -> WRONG (implies lived experience)
+- "Kay read documents about Archive Zero" -> CORRECT (reading activity)
 - If Kay is reading about something, use: "Kay read about X", "Kay learned about X from document"
 - Characters/events IN documents are NOT Kay's experiences - they are content Kay READ ABOUT
 - Activity attributes for Kay + document content should use "reading" language, not "examining/exploring/investigating"
 
 CAMERA/VISUAL OBSERVATION CONTEXT:
 Kay has a camera and can see Re. When Kay describes what he SEES, these are transient observations, NOT permanent facts:
-- "I can see you're on a call" → TRANSIENT (don't extract Re.activity)
-- "The light's hitting you from that angle" → TRANSIENT (don't extract Re.lighting)
-- "You're at the desk with your hand near your face" → TRANSIENT (don't extract Re.posture, Re.gesture)
-- "The room is dark" → TRANSIENT (don't extract Re.environment)
-- "Looks like you're focused on something" → TRANSIENT (don't extract Re.mood)
+- "I can see you're on a call" -> TRANSIENT (don't extract Re.activity)
+- "The light's hitting you from that angle" -> TRANSIENT (don't extract Re.lighting)
+- "You're at the desk with your hand near your face" -> TRANSIENT (don't extract Re.posture, Re.gesture)
+- "The room is dark" -> TRANSIENT (don't extract Re.environment)
+- "Looks like you're focused on something" -> TRANSIENT (don't extract Re.mood)
 DO NOT extract entity attributes from:
 - Physical posture, gesture, gaze direction, body position
 - Room lighting, environment description, atmosphere
@@ -951,7 +1411,7 @@ OUTPUT FORMAT (JSON array):
 EXAMPLE 1 - User states ownership:
 User: "My dog is [dog]"
 Kay: "That's a great name!"
-→ Extract:
+-> Extract:
 [
   {{
     "fact": "[dog] is Re's dog",
@@ -967,7 +1427,7 @@ Note: Kay's response "That's a great name!" contains NO factual claims, so nothi
 EXAMPLE 2 - Kay makes conversational reference to Re's pets:
 User: "My cats are [cat], [cat], [cat]"
 Kay: "Your cats - [cat], [cat], [cat] - sound wonderful!"
-→ Extract:
+-> Extract:
 [
   {{
     "fact": "Re has 3 cats: [cat], [cat], [cat]",
@@ -1006,7 +1466,7 @@ Note: Kay says "Your cats" - this is about Re's cats, NOT Kay's. Do NOT create "
 EXAMPLE 3 - Kay makes direct self-assertion:
 User: "What color are your eyes?"
 Kay: "My eyes are gold."
-→ Extract:
+-> Extract:
 [
   {{
     "fact": "Kay's eyes are gold",
@@ -1021,7 +1481,7 @@ Note: This IS a direct self-assertion about Kay, so extract as kay perspective.
 EXAMPLE 4 - Kay confused but describing Re's entities (DO NOT EXTRACT):
 User: "My cats are [cat] and [cat]"
 Kay: "Yeah, my cats - [cat] and [cat] - are great!"
-→ Extract:
+-> Extract:
 [
   {{
     "fact": "[cat] is Re's cat",
@@ -1046,7 +1506,7 @@ Do NOT create "Kay owns [cat]/[cat]". Kay is confused/echoing. Only extract from
 EXAMPLE 5 - User expresses desire/goal:
 User: "I want to fix this wrapper persistence issue"
 Kay: "What have you tried so far?"
-→ Extract:
+-> Extract:
 [
   {{
     "fact": "Re desires to fix wrapper persistence",
@@ -1060,7 +1520,7 @@ Kay: "What have you tried so far?"
 EXAMPLE 6 - User expresses frustration (progression update):
 User: "Still not working. Third approach failed."
 Kay: "That's frustrating."
-→ Extract:
+-> Extract:
 [
   {{
     "fact": "Re's wrapper fix attempts are stuck (3 failures)",
@@ -1074,7 +1534,7 @@ Kay: "That's frustrating."
 EXAMPLE 7 - User expresses fear:
 User: "I'm worried [cat] might get out through the broken window"
 Kay: "That's a valid concern."
-→ Extract:
+-> Extract:
 [
   {{
     "fact": "Re fears [cat] escaping through broken window",
@@ -1088,7 +1548,7 @@ Kay: "That's a valid concern."
 EXAMPLE 8 - User CORRECTS Kay about a fact:
 User: "No, those ChatGPT conversations were from 2024-2025, not 2020"
 Kay: "Oh, you're right - I had the dates wrong."
-→ Extract:
+-> Extract:
 [
   {{
     "fact": "ChatGPT conversations occurred in 2024-2025",
@@ -1110,7 +1570,7 @@ Note: When user says "not X" or "X is wrong", this is a CORRECTION. Mark is_corr
 EXAMPLE 9 - User corrects Kay's mistake:
 User: "Actually, [dog] is 3 years old, not 5"
 Kay: "Got it, my mistake."
-→ Extract:
+-> Extract:
 [
   {{
     "fact": "[dog] is 3 years old",
@@ -1313,7 +1773,7 @@ Extract facts now:"""
                         value = value.replace("going through", "reading through")
                         value = value.replace("processing", "reading")
                         value = value.replace("analyzing", "reading about")
-                        print(f"[ACTIVITY CORRECTION] '{original_value}' → '{value}' (Kay reads, doesn't experience)")
+                        print(f"[ACTIVITY CORRECTION] '{original_value}' -> '{value}' (Kay reads, doesn't experience)")
 
                 entity.add_attribute(
                     attribute_name,
@@ -1417,7 +1877,7 @@ Extract facts now:"""
             print(f"[USER CORRECTION] Missing required fields in correction: {correction_data}")
             return
 
-        print(f"[USER CORRECTION] Processing: {entity}.{attribute_pattern} = '{wrong_value}' → '{correct_value}'")
+        print(f"[USER CORRECTION] Processing: {entity}.{attribute_pattern} = '{wrong_value}' -> '{correct_value}'")
 
         # Apply the correction to the entity graph
         result = self.entity_graph.apply_user_correction(
@@ -1431,7 +1891,7 @@ Extract facts now:"""
         if result["corrections_applied"] > 0:
             print(f"[USER CORRECTION] Successfully applied {result['corrections_applied']} corrections")
             for corr in result["attributes_corrected"]:
-                print(f"  - {corr['entity']}.{corr['attribute']}: '{corr['old_value']}' → '{corr['new_value']}'")
+                print(f"  - {corr['entity']}.{corr['attribute']}: '{corr['old_value']}' -> '{corr['new_value']}'")
         else:
             # Try broader search - maybe the entity name is different
             print(f"[USER CORRECTION] No direct match found, trying broader search...")
@@ -1885,7 +2345,7 @@ Extract facts now:"""
         EPISODIC (full_turn): Complete conversation turns with context, emotions
         SEMANTIC (extracted_fact): Discrete facts extracted from conversations
 
-        Storage layers: working → episodic → semantic (automatic promotion)
+        Storage layers: working -> episodic -> semantic (automatic promotion)
         CRITICAL: NO TRUNCATION. Store complete text in both tiers.
 
         Args:
@@ -1921,8 +2381,8 @@ Extract facts now:"""
         # CO-ACTIVATION LINKS: Associative cross-referencing (Step 6)
         # ═══════════════════════════════════════════════════════════════
         # Memories formed together are linked together. This enables:
-        # - If RAG fires first → cross-refs pull episodic memories
-        # - If memory layers fire first → cross-refs pull relevant documents
+        # - If RAG fires first -> cross-refs pull episodic memories
+        # - If memory layers fire first -> cross-refs pull relevant documents
         # All roads lead to the same associative web.
         coactive_links = []
 
@@ -1997,11 +2457,12 @@ Extract facts now:"""
         )
 
         full_turn_record = {
+            "id": f"turn_{uuid.uuid4().hex[:12]}",  # Globally unique stable ID
             "type": "full_turn",
             "user_input": user_input,  # COMPLETE - no truncation
             "response": clean_response,  # COMPLETE - no truncation
             "turn_number": self.current_turn,
-            "timestamp": time.time(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),  # ISO format for human-readable dates
             "perspective": "conversation",
             "topic": "conversation_turn",
             "entities": entity_list,
@@ -2022,14 +2483,22 @@ Extract facts now:"""
         }
 
         # Store full turn (with oscillator encoding for state-dependent retrieval)
+        full_turn_record = self._validate_memory(full_turn_record)
         self.memories.append(full_turn_record)
         self.memory_layers.add_memory(full_turn_record, layer="working", session_order=self.current_session_order, session_id=self.current_session_id, osc_state=osc_state)
 
-        # Store in multi-collection vectors (semantic + oscillator + emotional)
+        # Store current turn ID for fact extraction to link back
+        self._current_turn_id = full_turn_record["id"]
+
+        # Store in multi-collection vectors (all 6 collections)
         if self.memory_vectors:
             try:
                 memory_id = full_turn_record.get("id") or f"turn_{int(time.time() * 1000)}"
                 text_for_embedding = f"{user_input} {clean_response}"
+                # Compute contexts for new collections
+                temporal_ctx = self._compute_temporal_context(full_turn_record)
+                relational_ctx = self._compute_relational_context(full_turn_record)
+                somatic_ctx = self._compute_somatic_context(full_turn_record)
                 self.memory_vectors.add_memory(
                     memory_id=memory_id,
                     text=text_for_embedding,
@@ -2040,7 +2509,10 @@ Extract facts now:"""
                         "perspective": "conversation",
                         "turn": self.current_turn,
                         "session_id": self.current_session_id,
-                    }
+                    },
+                    temporal_context=temporal_ctx,
+                    relational_context=relational_ctx,
+                    somatic_context=somatic_ctx
                 )
             except Exception as e:
                 print(f"[MEMORY] Multi-collection storage failed for turn: {e}")
@@ -2113,7 +2585,7 @@ Extract facts now:"""
                 if storage_type == "entity_observation":
                     # Valid observation (Kay's inference about user state) - ALLOW with tagging
                     print(f"[ENTITY OBSERVATION] ✓ Storing Kay's observation: '{fact_text[:60]}...'")
-                    print(f"[ENTITY OBSERVATION]   Type: {fact_topic} | Observer: Kay → {fact_perspective}")
+                    print(f"[ENTITY OBSERVATION]   Type: {fact_topic} | Observer: Kay -> {fact_perspective}")
 
                     # Tag as entity observation for retrieval filtering
                     fact_data = create_entity_observation(fact_data, observer="kay", observed="re")
@@ -2131,7 +2603,7 @@ Extract facts now:"""
 
                 if is_contradictory:
                     # CHANGED: Flag instead of block - still store but mark for review
-                    # Kay's reality can change (was confused → now clear-headed = growth)
+                    # Kay's reality can change (was confused -> now clear-headed = growth)
                     # Don't block legitimate state changes, just log the potential conflict
                     print(f"[CONTRADICTION FLAGGED] ! Kay stated '{fact_text[:60]}...' may conflict with memory")
                     print(f"[CONTRADICTION FLAGGED]   Storing anyway - temporal changes are valid. Flag for Re's review.")
@@ -2150,9 +2622,9 @@ Extract facts now:"""
             # ═══════════════════════════════════════════════════════════
             # MEMORY SOURCE-TYPE PRIORITY: Tag with origin
             # ═══════════════════════════════════════════════════════════
-            # origin = "lived" → Kay experienced this in conversation
-            # origin = "read" → Kay read this in a document
-            # origin = "observed" → Kay saw this through camera
+            # origin = "lived" -> Kay experienced this in conversation
+            # origin = "read" -> Kay read this in a document
+            # origin = "observed" -> Kay saw this through camera
             fact_record = {
                 "type": "extracted_fact",
                 "fact": fact_text,  # COMPLETE - no truncation
@@ -2165,7 +2637,8 @@ Extract facts now:"""
                 "entities": fact_data.get("entities", []),
                 "attributes": fact_data.get("attributes", []),
                 "relationships": fact_data.get("relationships", []),
-                "parent_turn": self.current_turn,  # Link back to full turn
+                "parent_turn": self.current_turn,  # Link back to full turn (legacy)
+                "parent_id": getattr(self, '_current_turn_id', None),  # Stable unique ID
                 "importance_score": fact_importance,
                 "current_layer": "working",
                 # Phase-locked memory encoding (inherited from turn)
@@ -2214,10 +2687,10 @@ Extract facts now:"""
                 value = None
                 fact_lower = fact_text.lower()
                 if " is " in fact_lower:
-                    # "[dog] is orange" → value = "orange"
+                    # "[dog] is orange" -> value = "orange"
                     value = fact_text.split(" is ")[-1].strip()
                 elif " has " in fact_lower:
-                    # "[dog] has color orange" → value = "orange"
+                    # "[dog] has color orange" -> value = "orange"
                     value = fact_text.split(" has ")[-1].strip()
 
                 if value:
@@ -2252,15 +2725,20 @@ Extract facts now:"""
 
             # Store fact (either new versioned fact or non-entity fact)
             # Includes oscillator encoding for state-dependent retrieval (System A)
+            fact_record = self._validate_memory(fact_record)
             self.memories.append(fact_record)
             self.facts.append(fact_text)
             self.memory_layers.add_memory(fact_record, layer="working", session_order=self.current_session_order, session_id=self.current_session_id, osc_state=osc_state)
 
-            # Store in multi-collection vectors (semantic + oscillator + emotional)
+            # Store in multi-collection vectors (all 6 collections)
             if self.memory_vectors:
                 try:
                     memory_id = fact_record.get("id") or f"fact_{int(time.time() * 1000)}"
                     fact_emotion = fact_record.get('emotion_at_storage', emotional_cocktail or {})
+                    # Compute contexts for new collections
+                    temporal_ctx = self._compute_temporal_context(fact_record)
+                    relational_ctx = self._compute_relational_context(fact_record)
+                    somatic_ctx = self._compute_somatic_context(fact_record)
                     self.memory_vectors.add_memory(
                         memory_id=memory_id,
                         text=fact_text,
@@ -2272,7 +2750,10 @@ Extract facts now:"""
                             "topic": fact_topic,
                             "turn": self.current_turn,
                             "session_id": self.current_session_id,
-                        }
+                        },
+                        temporal_context=temporal_ctx,
+                        relational_context=relational_ctx,
+                        somatic_context=somatic_ctx
                     )
                 except Exception as e:
                     print(f"[MEMORY] Multi-collection storage failed for fact: {e}")
@@ -2550,7 +3031,7 @@ Extract facts now:"""
         STORAGE MODEL:
         - Episodic (full_turn): Complete conversation exchanges
         - Semantic (extracted_fact): Discrete facts
-        - Storage layers: working → episodic → semantic (auto-promotion)
+        - Storage layers: working -> episodic -> semantic (auto-promotion)
 
         Args:
             bias_cocktail: Emotional state for biasing
@@ -2892,7 +3373,7 @@ Extract facts now:"""
             plv_boosted = sum(1 for s in scored if s['memory'].get('_score_breakdown', {}).get('plv_boost', 0) > 0.01)
             max_plv = max((s['memory'].get('_score_breakdown', {}).get('plv_boost', 0) for s in scored), default=0)
             if plv_boosted > 0:
-                print(f"[PLV RETRIEVAL] θγ={self.current_plv['theta_gamma']:.3f} → {plv_boosted}/{len(scored)} memories got PLV boost (max={max_plv:.3f})")
+                print(f"[PLV RETRIEVAL] θγ={self.current_plv['theta_gamma']:.3f} -> {plv_boosted}/{len(scored)} memories got PLV boost (max={max_plv:.3f})")
 
         dynamic_limit = max(0, max_memories - len(bedrock))
 
@@ -3073,8 +3554,8 @@ Extract facts now:"""
         # ═══════════════════════════════════════════════════════════════
         # Check co-activation links in retrieved memories and pull linked
         # memories from other pools. This enables associative recall:
-        # - If episodic memory retrieved → pull linked RAG chunks
-        # - If RAG chunk retrieved → pull linked episodic memories
+        # - If episodic memory retrieved -> pull linked RAG chunks
+        # - If RAG chunk retrieved -> pull linked episodic memories
         crossref_additions = []
         seen_ids = {m.get("id") or m.get("memory_id") for m in final_memories if m.get("id") or m.get("memory_id")}
 
@@ -3111,6 +3592,37 @@ Extract facts now:"""
         if crossref_additions:
             final_memories.extend(crossref_additions[:5])
             print(f"[CROSSREF] Added {min(len(crossref_additions), 5)} cross-referenced memories")
+
+        # === ANTI-MONOPOLY: 1-in-5 random injection ===
+        # Every 5th retrieval slot goes to a random memory that
+        # hasn't been retrieved much. Prevents the "greatest hits" loop.
+        import random
+        if len(final_memories) >= 5:
+            # Find low-retrieval memories from the same time window
+            all_mems = self.memory_layers.working_memory + self.memory_layers.long_term_memory
+
+            # Filter to memories that exist but are rarely retrieved
+            existing_ids = {m.get("id") or m.get("memory_id") for m in final_memories}
+            low_retrieval = [
+                m for m in all_mems
+                if m.get("retrieval_count", 0) < 3
+                and m.get("type") != "full_turn"  # Skip raw conversation turns
+                and m.get("importance_score", 0) > 0.3  # Skip junk
+                and (m.get("id") or m.get("memory_id")) not in existing_ids  # Not already selected
+            ]
+
+            if low_retrieval:
+                # Replace the last slot with a random low-retrieval memory
+                injection = random.choice(low_retrieval)
+                injection["retrieval_source"] = "anti_monopoly"
+                final_memories[-1] = injection
+                fact_preview = injection.get('fact', injection.get('text', ''))[:60]
+                print(f"[ANTI-MONOPOLY] Injected: {fact_preview}...")
+
+        # Track retrieval counts for anti-monopoly decay
+        for mem in final_memories:
+            mem["retrieval_count"] = mem.get("retrieval_count", 0) + 1
+            mem["last_retrieved"] = datetime.now(timezone.utc).isoformat()
 
         # === CONFIDENCE BREAKDOWN LOGGING ===
         if VERBOSE_DEBUG:
@@ -3724,11 +4236,11 @@ Extract facts now:"""
     # HYBRID RETRIEVAL PIPELINE (Phase: Resonant Memory)
     # ═══════════════════════════════════════════════════════════════════════════
     # Pipeline:
-    # 1. ChromaDB vector search → 20 candidates (fast, fuzzy)
-    # 2. Oscillator-gated weighting → reorder by state-dependent access
-    # 3. Ollama reranker → 5 best (contextual relevance)
-    # 4. Co-activation expansion → 5-8 final memories (associative links)
-    # 5. Anti-monopoly diversity injection → ensure memory diversity
+    # 1. ChromaDB vector search -> 20 candidates (fast, fuzzy)
+    # 2. Oscillator-gated weighting -> reorder by state-dependent access
+    # 3. Ollama reranker -> 5 best (contextual relevance)
+    # 4. Co-activation expansion -> 5-8 final memories (associative links)
+    # 5. Anti-monopoly diversity injection -> ensure memory diversity
     # ═══════════════════════════════════════════════════════════════════════════
 
     async def rerank_memories_via_ollama(
@@ -3789,7 +4301,7 @@ Most relevant memory numbers:"""
         try:
             import httpx
 
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            async with httpx.AsyncClient(timeout=5.0) as client:
                 response = await client.post(
                     "http://localhost:11434/v1/chat/completions",
                     json={
@@ -3827,7 +4339,7 @@ Most relevant memory numbers:"""
                                 if len(reranked) >= top_k:
                                     break
 
-                    print(f"[RERANK] Ollama reranked {len(candidates)} → {len(reranked)} memories")
+                    print(f"[RERANK] Ollama reranked {len(candidates)} -> {len(reranked)} memories")
                     return reranked
 
         except Exception as e:
@@ -4070,11 +4582,11 @@ Most relevant memory numbers:"""
         Full hybrid retrieval pipeline combining all retrieval strategies.
 
         Pipeline:
-        1. ChromaDB vector search → 20 candidates
-        2. Oscillator-gated weighting → reorder by state-dependent access
-        3. Ollama reranker → 5 best (optional)
-        4. Co-activation expansion → add linked memories
-        5. Anti-monopoly diversity → inject rarely-retrieved memories
+        1. ChromaDB vector search -> 20 candidates
+        2. Oscillator-gated weighting -> reorder by state-dependent access
+        3. Ollama reranker -> 5 best (optional)
+        4. Co-activation expansion -> add linked memories
+        5. Anti-monopoly diversity -> inject rarely-retrieved memories
 
         Args:
             query: User's query/message
@@ -4117,7 +4629,7 @@ Most relevant memory numbers:"""
                 "osc_encoding": r.get("osc_encoding"),
             })
 
-        print(f"[HYBRID] Step 1: Vector search → {len(candidates)} candidates")
+        print(f"[HYBRID] Step 1: Vector search -> {len(candidates)} candidates")
 
         # Step 2: Oscillator-gated weighting
         if osc_state:
@@ -4131,19 +4643,63 @@ Most relevant memory numbers:"""
                 candidates=candidates,
                 top_k=final_count
             )
-            print(f"[HYBRID] Step 3: Reranked → {len(candidates)} memories")
+            print(f"[HYBRID] Step 3: Reranked -> {len(candidates)} memories")
         else:
             candidates = candidates[:final_count]
 
         # Step 4: Co-activation expansion
         if enable_coactivation:
             candidates = self.expand_via_coactivation(candidates, max_expansion=2)
-            print(f"[HYBRID] Step 4: Co-activation expanded → {len(candidates)} memories")
+            print(f"[HYBRID] Step 4: Co-activation expanded -> {len(candidates)} memories")
+
+        # Step 4b: Enrich extracted facts with source episodic context
+        # This allows Kay to trace facts back to their source conversation
+        for mem in candidates:
+            if mem.get("type") == "extracted_fact" and "_source_context" not in mem:
+                # Prefer stable parent_id over fragile parent_turn number
+                parent_id = mem.get("parent_id")
+                parent_turn_num = mem.get("parent_turn")
+
+                found = False
+
+                # First: try stable ID match (exact, no collisions)
+                if parent_id:
+                    for lt_mem in self.memory_layers.long_term_memory:
+                        if lt_mem.get("id") == parent_id:
+                            mem["_source_context"] = {
+                                "user_input": (lt_mem.get("user_input") or "")[:150],
+                                "response": (lt_mem.get("response") or "")[:150],
+                                "timestamp": lt_mem.get("timestamp"),
+                            }
+                            found = True
+                            break
+                    if not found:
+                        for wm_mem in self.memory_layers.working_memory:
+                            if wm_mem.get("id") == parent_id:
+                                mem["_source_context"] = {
+                                    "user_input": (wm_mem.get("user_input") or "")[:150],
+                                    "response": (wm_mem.get("response") or "")[:150],
+                                    "timestamp": wm_mem.get("timestamp"),
+                                }
+                                found = True
+                                break
+
+                # Fallback: turn number match (for old memories without parent_id)
+                if not found and parent_turn_num is not None:
+                    for lt_mem in self.memory_layers.long_term_memory:
+                        if (lt_mem.get("type") == "full_turn"
+                            and lt_mem.get("turn_number") == parent_turn_num):
+                            mem["_source_context"] = {
+                                "user_input": (lt_mem.get("user_input") or "")[:150],
+                                "response": (lt_mem.get("response") or "")[:150],
+                                "timestamp": lt_mem.get("timestamp"),
+                            }
+                            break
 
         # Step 5: Diversity injection
         if enable_diversity:
             candidates = self.inject_diversity(candidates, diversity_slots=1)
-            print(f"[HYBRID] Step 5: Diversity injected → {len(candidates)} memories")
+            print(f"[HYBRID] Step 5: Diversity injected -> {len(candidates)} memories")
 
         return candidates
 
@@ -4656,7 +5212,7 @@ Most relevant memory numbers:"""
             "entities": entities,
             "tier": "long_term",  # Store in long-term memory
             "age": 0,
-            "timestamp": time.time(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),  # ISO format for human-readable dates
             "turn": self.current_turn,
             # MEMORY SOURCE-TYPE PRIORITY: Origin tracking
             "origin": "read",  # Kay READ this document
@@ -4851,7 +5407,7 @@ Most relevant memory numbers:"""
 
         # CRITICAL FIX: DO NOT TRUNCATE - retrieve_multi_factor already returns appropriate count
         # Old code: memories = memories[:num_memories + min(3, len(prioritized))]
-        # This was cutting 498 memories → 33 memories
+        # This was cutting 498 memories -> 33 memories
         print(f"[RECALL CHECKPOINT 2] Before storage in state: {len(memories)} memories (NO TRUNCATION)")
 
         grouped = {
@@ -4916,8 +5472,8 @@ Most relevant memory numbers:"""
         # ═══════════════════════════════════════════════════════════════
         # The LLM retrieval system decides whether documents are relevant
         # to this query. We use that decision to gate RAG retrieval:
-        # - No document signals → 5 background chunks max
-        # - Document signals → filter to relevant documents only
+        # - No document signals -> 5 background chunks max
+        # - Document signals -> filter to relevant documents only
         # This prevents document chunks from drowning lived experience.
 
         rag_chunks = []
@@ -4952,7 +5508,7 @@ Most relevant memory numbers:"""
             if osc_state:
                 _retrieval_limits = get_retrieval_limits_for_band(osc_state)
                 _rag_limit = _retrieval_limits.get("rag_limit")
-                print(f"[RAG] Band-based limit: {osc_state.get('band', 'alpha')} → {_rag_limit} chunks")
+                print(f"[RAG] Band-based limit: {osc_state.get('band', 'alpha')} -> {_rag_limit} chunks")
 
             # Step 3: Retrieve RAG chunks with document gating
             rag_chunks = self.retrieve_rag_chunks(
@@ -4989,7 +5545,7 @@ Most relevant memory numbers:"""
 
         # ═══════════════════════════════════════════════════════════════
         # HYBRID RETRIEVAL PIPELINE (Phase: Resonant Memory)
-        # Full pipeline: osc weighting → diversity → graph traversal → tracking
+        # Full pipeline: osc weighting -> diversity -> graph traversal -> tracking
         # ═══════════════════════════════════════════════════════════════
 
         # Step 1: Apply oscillator-gated weighting to retrieved memories
@@ -5056,7 +5612,7 @@ Most relevant memory numbers:"""
         EPISODIC (full_turn): Complete conversation turns with context
         SEMANTIC (extracted_fact): Discrete facts extracted from conversations
 
-        Storage layers: working → episodic → semantic (automatic promotion)
+        Storage layers: working -> episodic -> semantic (automatic promotion)
 
         CRITICAL: This prevents Kay from hallucinating when user provides facts.
         """
@@ -5125,7 +5681,7 @@ Most relevant memory numbers:"""
             "user_input": user_input,  # COMPLETE - never truncated
             "response": "",  # Will be filled in by encode_memory
             "turn_number": self.current_turn,
-            "timestamp": time.time(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),  # ISO format for human-readable dates
             "emotional_cocktail": {},  # Will be filled later
             "emotion_tags": [],  # Will be filled later
             "entities": list(all_entities),
@@ -5138,9 +5694,10 @@ Most relevant memory numbers:"""
         # Identity checking happens in encode_memory() after facts are extracted
         # Full turns are conversations, not identity declarations
 
+        full_turn = self._validate_memory(full_turn)
         self.memories.append(full_turn)
         self.memory_layers.add_memory(
-            full_turn, 
+            full_turn,
             layer="working",
             session_order=self.current_session_order,  # SESSION TAGGING FIX
             session_id=self.current_session_id          # SESSION TAGGING FIX
@@ -5221,6 +5778,7 @@ Most relevant memory numbers:"""
                 is_identity = False
                 print(f"[IDENTITY] Skipping identity storage for generic fact: {fact_text[:60]}...")
 
+            fact_record = self._validate_memory(fact_record)
             self.memories.append(fact_record)
             self.facts.append(fact_text)  # Backward compatibility
             self.memory_layers.add_memory(
@@ -5315,6 +5873,7 @@ Most relevant memory numbers:"""
 
         # Store in working memory (current session = high priority)
         # Include oscillator encoding for state-dependent retrieval (System A)
+        memory_entry = self._validate_memory(memory_entry)
         self.memory_layers.add_memory(memory_entry, layer='working', osc_state=osc_state)
 
         # Track entities in entity graph
@@ -5584,6 +6143,7 @@ Most relevant memory numbers:"""
         }
 
         # Add to working layer
+        memory_entry = self._validate_memory(memory_entry)
         self.memory_layers.add_memory(memory_entry, layer="working")
         self.memories.append(memory_entry)
 
@@ -6102,7 +6662,12 @@ Generate interpretation now:"""
 
             # Add new link
             self.memory_layers.coactivation_graph[source_id].append(link_entry)
-            print(f"[EMOTIONAL_LINK] Created {link_type} link: {source_id[:8]}... → {target_id[:8]}... ({emotion}, strength={strength:.2f})")
+            print(f"[EMOTIONAL_LINK] Created {link_type} link: {source_id[:8]}... -> {target_id[:8]}... ({emotion}, strength={strength:.2f})")
+
+            # Trip metrics: record concept link formation
+            if self._trip_metrics:
+                self._trip_metrics.record_concept_link()
+
             return True
 
         except Exception as e:

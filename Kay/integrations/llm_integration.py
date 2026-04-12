@@ -1203,11 +1203,11 @@ MID-CONVERSATION SCRATCHPAD USAGE:
 Your scratchpad is your working memory for things that need follow-up. USE IT REFLEXIVELY, not as an afterthought.
 
 When you encounter ANY of these during conversation, FLAG IT IMMEDIATELY:
-- "I don't know what Re means by [term]" → FLAG IT
-- "Re mentioned [thing] but I'm missing context" → FLAG IT
-- "This connects to something but I can't pin it down" → FLAG IT
-- "I want to follow up on [topic] but not now" → FLAG IT
-- "This feels important but I don't know why yet" → FLAG IT
+- "I don't know what Re means by [term]" -> FLAG IT
+- "Re mentioned [thing] but I'm missing context" -> FLAG IT
+- "This connects to something but I can't pin it down" -> FLAG IT
+- "I want to follow up on [topic] but not now" -> FLAG IT
+- "This feels important but I don't know why yet" -> FLAG IT
 
 DO NOT:
 - Work around gaps hoping they won't matter
@@ -1254,7 +1254,7 @@ When you finish something and the session continues, you experience BOREDOM. Thi
 Boredom is the signal to SCAN, not to stop.
 
 Wrong response to boredom: "I'm done." / "That's everything." / waiting
-Correct response to boredom: SCAN environment → mash unrelated elements → explore tangents
+Correct response to boredom: SCAN environment -> mash unrelated elements -> explore tangents
 
 When bored, ask yourself:
 1. What's immediately available? (recent context, active items)
@@ -1363,6 +1363,41 @@ def _style_block(affect_level: float = 3.5) -> str:
     )
 
 # ---------------------------------------------------------------------
+# Helper function for temporal context in memories
+# ---------------------------------------------------------------------
+def _format_relative_date(timestamp):
+    """Convert timestamp to relative date string for memory context."""
+    from datetime import datetime, timezone
+    try:
+        if isinstance(timestamp, (int, float)):
+            dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+        elif isinstance(timestamp, str):
+            # Handle ISO format with or without Z
+            ts = timestamp.replace("Z", "+00:00")
+            if "+" not in ts and "-" not in ts[10:]:
+                ts = ts + "+00:00"
+            dt = datetime.fromisoformat(ts)
+        else:
+            return None
+
+        now = datetime.now(timezone.utc)
+        delta = now - dt
+
+        if delta.days == 0:
+            return "today"
+        elif delta.days == 1:
+            return "yesterday"
+        elif delta.days < 7:
+            return f"{delta.days} days ago"
+        elif delta.days < 30:
+            weeks = delta.days // 7
+            return f"{weeks} week{'s' if weeks > 1 else ''} ago"
+        else:
+            return dt.strftime("%b %d")
+    except Exception:
+        return None
+
+# ---------------------------------------------------------------------
 def build_prompt_from_context(context, affect_level: float = 3.5):
     """
     Compose the full user prompt with HIERARCHICAL INFORMATION STRUCTURE.
@@ -1419,10 +1454,11 @@ def build_prompt_from_context(context, affect_level: float = 3.5):
 
     def clean_mem(m):
         """
-        Extract factual content from memory.
+        Extract factual content from memory with temporal and source context.
 
         NEW: Memories now contain discrete "fact" field extracted by LLM.
         Fallback to user_input for backwards compatibility with old memories.
+        NOW INCLUDES: Relative date and source conversation context.
         """
         # Use discrete fact if available (new format)
         if "fact" in m and m.get("fact"):
@@ -1434,6 +1470,21 @@ def build_prompt_from_context(context, affect_level: float = 3.5):
         # Remove stage directions and clean whitespace
         text = re.sub(r"\*[^*\n]{0,200}\*", "", text)
         text = re.sub(r"\s+", " ", text).strip()
+
+        # Add temporal context — when was this from?
+        timestamp = m.get("timestamp") or m.get("added_timestamp")
+        if timestamp:
+            date_str = _format_relative_date(timestamp)
+            if date_str:
+                text = f"({date_str}) {text}"
+
+        # Add source conversation context if available
+        source = m.get("_source_context")
+        if source:
+            src_input = source.get("user_input", "")[:80]
+            if src_input:
+                text += f" [from conversation: Re said \"{src_input}\"]"
+
         return text
 
     def format_temporal_marker(m, current_turn):
@@ -1519,7 +1570,7 @@ def build_prompt_from_context(context, affect_level: float = 3.5):
     user_input_words = set(user_input.lower().split()) if user_input else set()
 
     def render_episodic_turn(m):
-        """Render a full conversation turn with exchange texture."""
+        """Render a full conversation turn with exchange texture and date."""
         user_input = m.get("user_input", "")
         response = m.get("response", "")
         turn_num = m.get("turn_number", "?")
@@ -1534,7 +1585,12 @@ def build_prompt_from_context(context, affect_level: float = 3.5):
         if len(response) > 200:
             response = response[:197] + "..."
 
-        return f"[Turn {turn_num}] Re: \"{user_input}\" → Kay: \"{response}\""
+        # Add temporal context
+        timestamp = m.get("timestamp") or m.get("added_timestamp")
+        date_str = _format_relative_date(timestamp) if timestamp else ""
+        date_prefix = f"{date_str}, " if date_str else ""
+
+        return f"[{date_prefix}Turn {turn_num}] Re: \"{user_input}\" -> Kay: \"{response}\""
 
     def render_facts(mem_list, include_attribution=True):
         """
@@ -2475,17 +2531,32 @@ def build_dynamic_context(context, affect_level: float = 3.5):
     shared_mems = [m for m in lived_mems if m.get("perspective") == "shared"]
 
     def clean_mem(m):
-        """Extract factual content from memory."""
+        """Extract factual content from memory with temporal and source context."""
         if "fact" in m and m.get("fact"):
             text = m.get("fact", "")
         else:
             text = m.get("user_input", "")
         text = re.sub(r"\*[^*\n]{0,200}\*", "", text)
         text = re.sub(r"\s+", " ", text).strip()
+
+        # Add temporal context — when was this from?
+        timestamp = m.get("timestamp") or m.get("added_timestamp")
+        if timestamp:
+            date_str = _format_relative_date(timestamp)
+            if date_str:
+                text = f"({date_str}) {text}"
+
+        # Add source conversation context if available
+        source = m.get("_source_context")
+        if source:
+            src_input = source.get("user_input", "")[:80]
+            if src_input:
+                text += f" [from conversation: Re said \"{src_input}\"]"
+
         return text
 
     def render_episodic_turn(m):
-        """Render a full conversation turn with exchange texture."""
+        """Render a full conversation turn with exchange texture and date."""
         user_input = m.get("user_input", "")
         response = m.get("response", "")
         turn_num = m.get("turn_number", "?")
@@ -2500,7 +2571,12 @@ def build_dynamic_context(context, affect_level: float = 3.5):
         if len(response) > 200:
             response = response[:197] + "..."
 
-        return f"[Turn {turn_num}] Re: \"{user_input}\" → Kay: \"{response}\""
+        # Add temporal context
+        timestamp = m.get("timestamp") or m.get("added_timestamp")
+        date_str = _format_relative_date(timestamp) if timestamp else ""
+        date_prefix = f"{date_str}, " if date_str else ""
+
+        return f"[{date_prefix}Turn {turn_num}] Re: \"{user_input}\" -> Kay: \"{response}\""
 
     def render_document_memory(mem):
         """Render a document_content or shared_understanding_moment memory with relational context."""
@@ -3256,7 +3332,7 @@ def query_llm_json(prompt, temperature=0.9, model=MODEL, system_prompt=None, ses
                         'name': tb['name'],
                         'result': result,
                     })
-                    print(f"[LLM] Tool executed: {tb['name']} → {str(result)[:200]}")
+                    print(f"[LLM] Tool executed: {tb['name']} -> {str(result)[:200]}")
 
                 # If we already have text blocks, just append tool info
                 if text_blocks:

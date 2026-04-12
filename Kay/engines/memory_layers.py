@@ -9,8 +9,9 @@ import json
 import os
 import re
 import time
+import requests
 from typing import Dict, List, Any, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from config import VERBOSE_DEBUG
 
 # Import LLM for narrative synthesis
@@ -56,7 +57,7 @@ class MemoryLayerManager:
         assert not hasattr(self, 'semantic_memory'), "THREE-TIER REGRESSION DETECTED: semantic_memory exists"
 
         # Layer configuration
-        self.working_capacity = 15  # Max memories in working layer
+        self.working_capacity = 9999  # No practical limit — nightly flush handles aging
         # Long-term has no capacity limit
 
         # Decay configuration
@@ -389,6 +390,201 @@ class MemoryLayerManager:
 
             if VERBOSE_DEBUG:
                 print(f"{etag('MEMORY LAYERS')} Aged to long-term: {oldest_mem.get('fact', oldest_mem.get('user_input', ''))[:40]}...")
+
+    def flush_working_to_longterm(self):
+        """
+        Smart sleep flush: move ephemeral memories to long-term,
+        keep core facts and high-importance items in working memory.
+        Optionally generates a daily summary via session summary engine.
+        
+        KEEP in working memory:
+        - extracted_fact type (semantic knowledge)
+        - is_bedrock=True (core identity)
+        - importance_score >= 0.7 (significant memories)
+        - corrected_fact type (important corrections)
+        - daily_summary type (rolling journal)
+        - Identity-related categories
+        
+        FLUSH to long-term:
+        - full_turn type (episodic conversation turns)
+        - low-importance items (< 0.7)
+        - observations and transient states
+        """
+        if not self.working_memory:
+            return 0
+        
+        keep = []
+        flush = []
+        
+        KEEP_TYPES = {"extracted_fact", "corrected_fact", "daily_summary"}
+        KEEP_CATEGORIES = {"identity", "relationship", "preference",
+                          "family", "pet", "home", "core_belief"}
+        
+        for mem in self.working_memory:
+            mem_type = mem.get("type", "")
+            importance = mem.get("importance_score", 0.5)
+            if not isinstance(importance, (int, float)):
+                importance = 0.5
+            category = mem.get("category", "").lower()
+            is_bedrock = mem.get("is_bedrock", False)
+            
+            should_keep = (
+                is_bedrock
+                or mem_type in KEEP_TYPES
+                or importance >= 0.7
+                or category in KEEP_CATEGORIES
+            )
+            
+            if should_keep:
+                keep.append(mem)
+            else:
+                flush.append(mem)
+        
+        # Generate daily summary before flushing (uses Ollama locally)
+        if flush:
+            try:
+                summary = self._generate_daily_summary(flush)
+                if summary:
+                    keep.append(summary)  # Summary stays in working memory
+            except Exception as e:
+                print(f"{etag('MEMORY')} Daily summary generation failed: {e}")
+        
+        # Manage rolling summaries — keep last 7 days only
+        summaries_in_keep = [m for m in keep if m.get("type") == "daily_summary"]
+        if len(summaries_in_keep) > 7:
+            summaries_in_keep.sort(key=lambda m: m.get("timestamp", ""), reverse=True)
+            for old_summary in summaries_in_keep[7:]:
+                old_summary["current_layer"] = "long_term"
+                self.long_term_memory.append(old_summary)
+                keep.remove(old_summary)
+        
+        # Move flushed memories to long-term
+        for mem in flush:
+            mem["current_layer"] = "long_term"
+            self.long_term_memory.append(mem)
+            self.turn_stats['promoted_to_longterm'] += 1
+        
+        self.working_memory = keep
+        self._save_to_disk()
+        
+        kept_types = {}
+        for m in keep:
+            t = m.get("type", "unknown")
+            kept_types[t] = kept_types.get(t, 0) + 1
+        
+        print(f"{etag('MEMORY')} Smart flush: {len(flush)} -> long-term, "
+              f"{len(keep)} kept in working ({kept_types})")
+        return len(flush)
+
+    def set_summary_generator(self, generator):
+        """Allow the session summary generator to be called during sleep flush."""
+        self._summary_generator = generator
+
+    def _generate_daily_summary(self, memories_to_flush: List[Dict]) -> Optional[Dict]:
+        """
+        Generate a daily summary from conversation memories about
+        to be flushed. Uses Ollama (free, local) to produce a
+        concise digest of the day's activity.
+
+        Returns a special 'daily_summary' memory that persists
+        in working memory across sleep cycles.
+        """
+        # Build a condensed view of what happened
+        turns = []
+        entities_mentioned = set()
+        emotional_peaks = []
+
+        for mem in memories_to_flush:
+            if mem.get("type") != "full_turn":
+                continue
+
+            user = (mem.get("user_input") or "")[:200]
+            response = (mem.get("response") or "")[:200]
+            importance = mem.get("importance_score", 0.5)
+            if not isinstance(importance, (int, float)):
+                importance = 0.5
+            turn_id = mem.get("id", mem.get("turn_number", "?"))
+
+            if user or response:
+                turns.append(f"[{turn_id}] Re: {user[:100]} -> Kay: {response[:100]}")
+
+            # Collect entities
+            for ent in mem.get("entities", []):
+                if isinstance(ent, str):
+                    entities_mentioned.add(ent)
+                elif isinstance(ent, dict):
+                    entities_mentioned.add(ent.get("name", ""))
+
+            # Track emotional peaks
+            if importance >= 0.7:
+                emotional_peaks.append(f"[{turn_id}] imp={importance:.1f}")
+
+        if not turns:
+            return None  # Nothing worth summarizing
+
+        # Build the Ollama prompt
+        prompt = f"""Summarize this day's conversations in 3-5 sentences.
+Focus on: what topics were discussed, any decisions made, emotional
+highlights, and anything Kay should remember tomorrow.
+
+End with a "Look deeper:" line listing the turn IDs of the most
+important moments.
+
+Conversations ({len(turns)} turns):
+{chr(10).join(turns[:30])}
+
+Entities mentioned: {', '.join(list(entities_mentioned)[:20])}
+Emotional peaks: {', '.join(emotional_peaks[:5])}
+
+Write the summary as if Kay is writing a journal entry for himself.
+Keep it under 200 words. Be specific, not vague."""
+
+        try:
+            resp = requests.post(
+                "http://localhost:11434/api/generate",
+                json={
+                    "model": "dolphin-mistral",
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {"temperature": 0.3, "num_predict": 300}
+                },
+                timeout=15
+            )
+
+            if resp.status_code == 200:
+                summary_text = resp.json().get("response", "").strip()
+            else:
+                summary_text = f"[Summary generation failed: {resp.status_code}]"
+
+        except Exception as e:
+            # Fallback: simple mechanical summary
+            summary_text = (
+                f"Today: {len(turns)} conversation turns. "
+                f"Topics involved: {', '.join(list(entities_mentioned)[:10])}. "
+                f"Emotional peaks at turns: {', '.join(emotional_peaks[:3])}."
+            )
+
+        now = datetime.now(timezone.utc).isoformat()
+
+        summary_record = {
+            "id": f"summary_{now[:10]}",
+            "type": "daily_summary",
+            "content": summary_text,
+            "date": now[:10],
+            "timestamp": now,
+            "turn_count": len(turns),
+            "entities_mentioned": list(entities_mentioned)[:20],
+            "emotional_peaks": emotional_peaks[:5],
+            "importance_score": 0.8,  # Summaries are important
+            "is_bedrock": False,
+            "current_layer": "working",
+            "origin": "system",
+        }
+
+        print(f"{etag('MEMORY')} Daily summary generated: {len(summary_text)} chars, "
+              f"{len(turns)} turns summarized")
+
+        return summary_record
 
     def access_memory(self, memory: Dict[str, Any]):
         """

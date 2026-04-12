@@ -159,6 +159,7 @@ class VectorStore:
 
         # Chunk the document
         chunks = self._chunk_text(text, chunk_size, overlap)
+        print(f"[DOC RAG] Chunking {doc_id}: {len(chunks)} chunks generated from {source_file}")
 
         if not chunks:
             print(f"{etag('VECTOR_DB')} No chunks created from {source_file}")
@@ -215,6 +216,7 @@ class VectorStore:
             )
 
         print(f"{etag('VECTOR_DB')} Added {len(chunks)} chunks from {source_file}")
+        print(f"[DOC RAG] Stored {len(chunks)} chunks for {doc_id} in vector_db (ChromaDB)")
 
         return {
             "chunks_created": len(chunks),
